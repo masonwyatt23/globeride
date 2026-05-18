@@ -311,7 +311,7 @@ export function RouteDrawer({ onRouteReady, variant = 'overlay' }: RouteDrawerPr
         size="sm"
         className={cn(
           'gap-2',
-          isOverlay && 'backdrop-blur bg-card/80 border-border/60 shadow-lg',
+          isOverlay && 'glass glass-hairline border-transparent rounded-pill',
         )}
         onClick={startDrawing}
         title="Draw a custom route by clicking on the globe"
@@ -331,12 +331,12 @@ export function RouteDrawer({ onRouteReady, variant = 'overlay' }: RouteDrawerPr
     return (
       <div
         className={cn(
-          'flex flex-col gap-2 rounded-xl border border-border p-3 text-sm',
-          isOverlay && 'backdrop-blur bg-card/90 shadow-2xl shadow-black/50',
+          'flex flex-col gap-2 rounded-2xl p-3 text-sm',
+          isOverlay ? 'glass glass-hairline' : 'border border-border bg-card/60',
         )}
       >
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          <Loader2 className="h-4 w-4 animate-[spinSlow_1.5s_linear_infinite] shrink-0" />
           <span>
             {pct !== null ? `Fetching elevation… ${pct}%` : 'Sampling elevation…'}
           </span>
@@ -355,8 +355,8 @@ export function RouteDrawer({ onRouteReady, variant = 'overlay' }: RouteDrawerPr
   return (
     <div
       className={cn(
-        'flex flex-col gap-2.5 rounded-xl border border-border p-3 min-w-[220px]',
-        isOverlay && 'backdrop-blur bg-card/90 shadow-2xl shadow-black/50',
+        'flex flex-col gap-2.5 rounded-2xl p-3 min-w-[220px]',
+        isOverlay ? 'glass glass-hairline' : 'border border-border bg-card/60',
       )}
     >
       {/* Header */}
@@ -387,7 +387,7 @@ export function RouteDrawer({ onRouteReady, variant = 'overlay' }: RouteDrawerPr
 
       {/* Error */}
       {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive-foreground">
+        <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-2.5 py-1.5 text-xs text-destructive leading-snug">
           {error}
         </div>
       )}

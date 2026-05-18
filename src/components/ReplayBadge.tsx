@@ -15,21 +15,17 @@ export function ReplayBadge() {
 
   return (
     <div
-      className="
-        inline-flex items-center gap-1.5
-        rounded-full
-        bg-amber-500/20 border border-amber-500/40
-        px-2.5 py-1
-        text-xs font-semibold uppercase tracking-wider
-        text-amber-400
-        animate-pulse
-        pointer-events-none
-        select-none
-      "
+      className="glass glass-hairline rounded-full inline-flex items-center gap-2 px-3 py-1.5 pointer-events-none select-none"
       title="Ride replay from recorded FIT file"
     >
-      <Clapperboard className="h-3.5 w-3.5" />
-      Replay
+      <span className="relative flex h-2 w-2 shrink-0">
+        <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400/60 animate-[livePulse_1.6s_ease-in-out_infinite]" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+      </span>
+      <Clapperboard className="h-3.5 w-3.5 text-amber-400" />
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400">
+        Replay
+      </span>
     </div>
   );
 }

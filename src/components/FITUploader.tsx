@@ -46,10 +46,7 @@ export function FITUploader() {
   return (
     <div className="flex flex-col gap-3">
       <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -58,9 +55,9 @@ export function FITUploader() {
           if (f) void handleFile(f);
         }}
         className={cn(
-          'group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/20 px-4 py-5 text-center transition-colors cursor-pointer',
-          'hover:border-amber-500/60 hover:bg-amber-500/5',
-          dragOver && 'border-amber-500 bg-amber-500/10',
+          'group relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/70 bg-muted/20 px-4 py-7 text-center transition-all duration-200 cursor-pointer',
+          'hover:border-amber-500/50 hover:bg-amber-500/5',
+          dragOver && 'dropzone-active',
         )}
       >
         <input
@@ -75,21 +72,28 @@ export function FITUploader() {
             e.target.value = '';
           }}
         />
-        {busy ? (
-          <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
-        ) : (
-          <Clapperboard className="h-6 w-6 text-muted-foreground group-hover:text-amber-500 transition-colors" />
-        )}
-        <div className="mt-1.5 text-sm font-medium text-foreground">
-          {busy ? 'Parsing FIT…' : 'Drop a .FIT to replay'}
+        <div className={cn(
+          'flex items-center justify-center h-10 w-10 rounded-full transition-all duration-200',
+          'bg-muted/60 group-hover:bg-amber-500/12',
+          dragOver && 'bg-amber-500/15',
+        )}>
+          {busy
+            ? <Loader2 className="h-5 w-5 text-amber-500 animate-[spinSlow_1.5s_linear_infinite]" />
+            : <Clapperboard className={cn('h-5 w-5 transition-colors', dragOver ? 'text-amber-500' : 'text-muted-foreground group-hover:text-amber-500')} />
+          }
         </div>
-        <div className="text-xs text-muted-foreground">
-          GlobeRide, Strava, or Garmin export · click to browse
+        <div>
+          <div className="text-sm font-semibold text-foreground">
+            {busy ? 'Parsing FIT…' : 'Drop a .FIT to replay'}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Or click to browse · GlobeRide, Strava, or Garmin export
+          </div>
         </div>
       </label>
 
       {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+        <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2.5 text-xs text-destructive leading-snug">
           {error}
         </div>
       )}

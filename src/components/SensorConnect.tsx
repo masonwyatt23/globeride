@@ -305,7 +305,7 @@ function SensorRow({
           )}
           {status === 'reconnecting' && (
             <Badge variant="muted" className="num">
-              <Loader2 className="h-3 w-3 animate-spin" /> Reconnect
+              <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite]" /> Reconnect
             </Badge>
           )}
         </div>
@@ -316,7 +316,7 @@ function SensorRow({
 
       {/* Error panel */}
       {status === 'error' && error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2.5">
+        <div className="rounded-lg border border-destructive/35 bg-destructive/8 p-2.5">
           <div className="text-xs text-destructive leading-snug">{error}</div>
         </div>
       )}
@@ -369,7 +369,7 @@ function SensorStatusIcon({
     return <BluetoothConnected className="h-5 w-5 text-emerald-300 animate-pulseGlow" />;
   }
   if (status === 'connecting' || status === 'reconnecting') {
-    return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
+    return <Loader2 className="h-5 w-5 text-primary animate-[spinSlow_1.5s_linear_infinite]" />;
   }
   if (status === 'error' || !usable) {
     return <BluetoothOff className="h-5 w-5 text-destructive" />;
@@ -487,7 +487,7 @@ function SensorPill({
         isConnected ? 'ring-1 ring-emerald-500/40' : isBusy ? 'ring-1 ring-primary/30' : 'ring-1 ring-destructive/30',
       ].join(' ')}
     >
-      {isBusy ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : icon}
+      {isBusy ? <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite] text-primary" /> : icon}
       {isConnected && value ? (
         <span className="num text-xs font-semibold text-foreground tabular-nums">
           {value} <span className="text-[10px] text-muted-foreground">{unit}</span>
