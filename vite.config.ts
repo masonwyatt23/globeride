@@ -45,6 +45,25 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      // Proxy /strava-api/* → https://www.strava.com/* to work around browser CORS.
+      // In production, mirror this rewrite in your reverse-proxy / serverless function
+      // (nginx location ^~ /strava-api/, Cloudflare Worker, Netlify redirect, etc.).
+      '/strava-api': {
+        target: 'https://www.strava.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/strava-api/, ''),
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/strava-api': {
+        target: 'https://www.strava.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/strava-api/, ''),
+      },
+    },
   },
   build: {
     target: 'es2022',
