@@ -37,8 +37,13 @@ interface RideStoreState {
   deviceName: string | null;
   errorMessage: string | null;
 
+  // ---- Route library ----
+  /** Monotonic counter bumped whenever the library is mutated; subscribers re-fetch. */
+  libraryVersion: number;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
+  bumpLibrary: () => void;
   setMode: (mode: RideMode) => void;
   setConnection: (s: ConnectionState, deviceName?: string | null, err?: string | null) => void;
   ingestTrainerData: (data: TrainerData) => void;
@@ -98,6 +103,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   connection: 'disconnected',
   deviceName: null,
   errorMessage: null,
+
+  libraryVersion: 0,
+
+  bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
   setRoute: (route) =>
     set({

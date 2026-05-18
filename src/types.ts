@@ -35,6 +35,16 @@ export interface Route {
   loadedAt: number;
 }
 
+/** A Route persisted to the on-device library (IndexedDB). */
+export interface SavedRoute extends Route {
+  /** Unix ms the route was first saved to the library. */
+  savedAt: number;
+  /** Human-readable location label ("46.59°N, 7.91°E") derived from the first point. */
+  location: string;
+  /** Optional source tag — "gpx", "demo", "sample". */
+  source?: 'gpx' | 'demo' | 'sample';
+}
+
 /** One telemetry sample recorded during a ride (~1 Hz). */
 export interface TelemetrySample {
   /** Unix ms timestamp of the sample. */
