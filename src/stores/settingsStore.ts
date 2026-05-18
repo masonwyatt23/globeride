@@ -22,6 +22,8 @@ export interface RiderSettings {
   windDirectionDeg: number;
   /** Constant pedal power used by Demo Mode, W. */
   demoPowerW: number;
+  /** Functional Threshold Power, W — the basis for %FTP workout targets. */
+  ftpW: number;
   /** Display unit system. */
   units: UnitSystem;
 }
@@ -36,6 +38,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   windSpeedMs: 0,
   windDirectionDeg: 0,
   demoPowerW: 190,
+  ftpW: 220,
   units: 'metric',
 };
 
@@ -66,6 +69,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           windSpeedMs: s.windSpeedMs,
           windDirectionDeg: s.windDirectionDeg,
           demoPowerW: s.demoPowerW,
+          ftpW: s.ftpW,
           units: s.units,
         }) satisfies RiderSettings,
     },
