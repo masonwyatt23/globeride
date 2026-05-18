@@ -8,6 +8,8 @@ import {
   BluetoothOff,
   Cpu,
   Loader2,
+  Target,
+  Waves,
 } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
@@ -26,12 +28,14 @@ import { cn } from '@/lib/utils';
  * those — it's a status badge.
  */
 export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
-  const connection = useRideStore((s) => s.connection);
-  const deviceName = useRideStore((s) => s.deviceName);
-  const mode = useRideStore((s) => s.mode);
-  const battery = useRideStore((s) => s.batteryLevel);
-  const reconnectAttempt = useRideStore((s) => s.reconnectAttempt);
+  const connection         = useRideStore((s) => s.connection);
+  const deviceName         = useRideStore((s) => s.deviceName);
+  const mode               = useRideStore((s) => s.mode);
+  const battery            = useRideStore((s) => s.batteryLevel);
+  const reconnectAttempt   = useRideStore((s) => s.reconnectAttempt);
   const reconnectMaxAttempts = useRideStore((s) => s.reconnectMaxAttempts);
+  const trainerControlMode = useRideStore((s) => s.trainerControlMode);
+  const targetPowerW       = useRideStore((s) => s.targetPowerW);
 
   const tone = useTone(connection, mode);
 
@@ -43,7 +47,7 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
       )}
       role="status"
       aria-live="polite"
-      title={ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt })}
+      title={ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt, trainerControlMode, targetPowerW })}
     >
       <StatusIcon
         connection={connection}
@@ -56,11 +60,14 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
             {primaryLabel(connection, mode)}
           </span>
           <span className="text-xs font-semibold text-foreground truncate max-w-[160px]">
-            {secondaryLabel({ connection, mode, deviceName, reconnectAttempt, reconnectMaxAttempts })}
+            {secondaryLabel({ connection, mode, deviceName, reconnectAttempt, reconnectMaxAttempts, trainerControlMode, targetPowerW })}
           </span>
         </div>
         {battery !== null && connection !== 'disconnected' && (
           <BatteryBadge level={battery} />
+        )}
+        {connection === 'connected' && (
+          <ControlModeBadge mode={trainerControlMode} />
         )}
       </div>
     </div>
@@ -136,17 +143,25 @@ function secondaryLabel({
   deviceName,
   reconnectAttempt,
   reconnectMaxAttempts,
+  trainerControlMode,
+  targetPowerW,
 }: {
   connection: string;
   mode: string;
   deviceName: string | null;
   reconnectAttempt: number;
   reconnectMaxAttempts: number;
+  trainerControlMode: string;
+  targetPowerW: number | null;
 }): string {
   if (mode === 'demo' && connection !== 'connected') return 'Demo mode';
   switch (connection) {
-    case 'connected':
+    case 'connected': {
+      if (trainerControlMode === 'erg') {
+        return targetPowerW !== null ? `ERG · ${targetPowerW} W` : 'ERG mode';
+      }
       return deviceName ?? 'Live · streaming';
+    }
     case 'reconnecting':
       return `Attempt ${reconnectAttempt} of ${reconnectMaxAttempts || '—'}`;
     case 'connecting':
@@ -165,6 +180,8 @@ function ariaTitle(args: {
   deviceName: string | null;
   battery: number | null;
   reconnectAttempt: number;
+  trainerControlMode: string;
+  targetPowerW: number | null;
 }): string {
   const bits: string[] = [];
   if (args.mode === 'demo' && args.connection !== 'connected') {
@@ -173,9 +190,36 @@ function ariaTitle(args: {
     bits.push(`Trainer ${args.connection}`);
     if (args.deviceName) bits.push(`Device: ${args.deviceName}`);
     if (args.connection === 'reconnecting') bits.push(`Reconnect attempt ${args.reconnectAttempt}`);
+    if (args.connection === 'connected') {
+      bits.push(args.trainerControlMode === 'erg' ? 'ERG mode' : 'Simulation mode');
+      if (args.trainerControlMode === 'erg' && args.targetPowerW !== null) {
+        bits.push(`Target: ${args.targetPowerW} W`);
+      }
+    }
   }
   if (args.battery !== null) bits.push(`Battery ${args.battery}%`);
   return bits.join(' · ');
+}
+
+function ControlModeBadge({ mode }: { mode: string }) {
+  const isErg = mode === 'erg';
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+        isErg
+          ? 'bg-amber-500/20 text-amber-300'
+          : 'bg-muted/40 text-muted-foreground',
+      )}
+      aria-label={isErg ? 'ERG mode' : 'Simulation mode'}
+    >
+      {isErg
+        ? <Target className="h-3 w-3" />
+        : <Waves className="h-3 w-3" />
+      }
+      <span>{isErg ? 'ERG' : 'SIM'}</span>
+    </div>
+  );
 }
 
 function BatteryBadge({ level }: { level: number }) {
