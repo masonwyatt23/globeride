@@ -1,14 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
-import { solveVelocity } from '@/lib/physics';
-import { setGradient as ftmsSetGradient } from '@/lib/ftms';
+import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
+import { setSimulationParams } from '@/lib/ftms';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
  * rider along the route, computes live gradient, pushes it to the trainer at
  * a throttled rate, and records telemetry samples at 1 Hz.
+ *
+ * In Demo Mode it feeds the full cycling-power equation (gravity + rolling +
+ * aero + drivetrain + wind) so the simulated speed responds realistically to
+ * the user's bike/position/wind/weight settings.
  */
 export function useRideLoop(): void {
   const store = useRideStore;
@@ -16,7 +21,6 @@ export function useRideLoop(): void {
   const lastSentT = useRef<number>(0);
   const lastSampleT = useRef<number>(0);
   const smoother = useRef(new EmaSmoother(0.18));
-  const demoPower = useRef(190); // baseline rider power for demo mode
 
   useEffect(() => {
     let raf = 0;
@@ -43,11 +47,22 @@ export function useRideLoop(): void {
         s.route,
         Math.min(s.route.totalDistance, distanceNow + 6),
       );
-      // Stash ahead position on a stable global ref consumed by CesiumViewer.
       (window as unknown as { __globerideAhead?: typeof ahead }).__globerideAhead = ahead;
 
       const rawGrade = gradientAt(s.route, distanceNow);
       const grade = smoother.current.push(rawGrade);
+
+      const settings = useSettingsStore.getState();
+      const rider: RiderParams = {
+        riderMassKg: settings.riderMassKg,
+        bikeMassKg: settings.bikeMassKg,
+        bikeType: settings.bikeType,
+        riderPosition: settings.riderPosition,
+        drivetrainEff: settings.drivetrainEff,
+        rho: settings.rho,
+        windSpeedMs: settings.windSpeedMs,
+        windDirectionDeg: settings.windDirectionDeg,
+      };
 
       // ---- Determine speed source ----
       let speed: number;
@@ -59,18 +74,26 @@ export function useRideLoop(): void {
         speed = s.speed;
         power = s.power || null;
       } else {
-        // Demo: pretend the rider is producing baseline power, solve for v.
-        power = demoPower.current;
-        speed = solveVelocity(power, grade);
+        power = settings.demoPowerW;
+        speed = solveVelocity(power, grade, rider);
       }
 
-      // ---- Throttle grade updates to the trainer (1.2 Hz max) ----
+      // ---- Throttle simulation-param updates to the trainer (~1.2 Hz max) ----
       const now = Date.now();
       if (s.mode === 'trainer' && s.connection === 'connected') {
-        if (now - lastSentT.current > 850 || Math.abs(grade - s.lastSentGrade) > 0.5) {
+        const gradeChanged = Math.abs(grade - s.lastSentGrade) > 0.5;
+        if (now - lastSentT.current > 850 || gradeChanged) {
           lastSentT.current = now;
           useRideStore.setState({ lastSentGrade: grade });
-          ftmsSetGradient(grade).catch(() => undefined);
+          // Project headwind onto the rider's forward axis for the trainer.
+          const headwindMs =
+            settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
+          setSimulationParams({
+            gradePct: grade,
+            windMs: headwindMs,
+            crrScaled: ftmsCrr(rider),
+            cwScaled: ftmsCw(rider),
+          }).catch(() => undefined);
         }
       }
 

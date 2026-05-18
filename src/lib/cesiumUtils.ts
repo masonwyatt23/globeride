@@ -137,3 +137,156 @@ export function flyToPoint(
     orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0 },
   });
 }
+
+/**
+ * Compute heading (radians, clockwise from north) between two lat/lon points.
+ * Uses the rider's ENU frame for accuracy near the poles.
+ */
+export function headingBetween(
+  fromDeg: { lat: number; lon: number; ele: number },
+  toDeg: { lat: number; lon: number; ele: number },
+): number {
+  const from = Cesium.Cartesian3.fromDegrees(fromDeg.lon, fromDeg.lat, fromDeg.ele);
+  const to = Cesium.Cartesian3.fromDegrees(toDeg.lon, toDeg.lat, toDeg.ele);
+  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(from);
+  const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
+  const local = Cesium.Matrix4.multiplyByPoint(inv, to, new Cesium.Cartesian3());
+  return Math.atan2(local.x, local.y);
+}
+
+/** Group of Cesium entities that together render the rider on the globe. */
+export interface BikeAvatar {
+  /** The whole group — pass to viewer.entities.remove for cleanup. */
+  entities: Cesium.Entity[];
+  /** Update the avatar's position and forward heading. */
+  update: (pos: { lat: number; lon: number; ele: number }, heading: number) => void;
+}
+
+/**
+ * Build a multi-part rider avatar:
+ *  - oriented bike body (a narrow box) that rotates with heading
+ *  - a vertical "rider" cylinder above it
+ *  - a bright glow point on top, visible from any zoom
+ *  - a direction arrow trailing forward
+ *  - a soft circular shadow on the ground
+ *
+ * The whole group is positioned via CallbackProperty so the consumer only
+ * needs to call `update()` once per frame from preRender.
+ */
+export function createBikeAvatar(viewer: Cesium.Viewer): BikeAvatar {
+  let lon = 0;
+  let lat = 0;
+  let ele = 0;
+  let heading = 0;
+
+  const position = new Cesium.CallbackPositionProperty(
+    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.2),
+    false,
+  );
+  const positionRider = new Cesium.CallbackPositionProperty(
+    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.9),
+    false,
+  );
+  const positionGlow = new Cesium.CallbackPositionProperty(
+    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 1.9),
+    false,
+  );
+  const positionShadow = new Cesium.CallbackPositionProperty(
+    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.05),
+    false,
+  );
+
+  const orientation = new Cesium.CallbackProperty(() => {
+    const center = Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.2);
+    const hpr = new Cesium.HeadingPitchRoll(heading, 0, 0);
+    return Cesium.Transforms.headingPitchRollQuaternion(center, hpr);
+  }, false);
+
+  // Direction arrow: short polyline that extends ~3 m forward from the rider.
+  const arrowPositions = new Cesium.CallbackProperty(() => {
+    const here = Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.4);
+    const enu = Cesium.Transforms.eastNorthUpToFixedFrame(here);
+    const forwardLocal = new Cesium.Cartesian3(
+      Math.sin(heading) * 3.5,
+      Math.cos(heading) * 3.5,
+      0,
+    );
+    const tip = Cesium.Matrix4.multiplyByPoint(enu, forwardLocal, new Cesium.Cartesian3());
+    return [here, tip];
+  }, false);
+
+  const accent = Cesium.Color.fromCssColorString('#22d3ee');
+  const primary = Cesium.Color.fromCssColorString('#5eead4');
+  const shadow = Cesium.Color.fromCssColorString('#020617').withAlpha(0.45);
+
+  const body = viewer.entities.add({
+    name: 'Rider · bike',
+    position,
+    orientation,
+    box: {
+      dimensions: new Cesium.Cartesian3(0.55, 1.8, 0.25),
+      material: accent.withAlpha(0.95),
+      outline: true,
+      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
+    },
+  });
+
+  const rider = viewer.entities.add({
+    name: 'Rider · body',
+    position: positionRider,
+    orientation,
+    box: {
+      dimensions: new Cesium.Cartesian3(0.45, 0.5, 1.2),
+      material: primary.withAlpha(0.95),
+      outline: true,
+      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
+    },
+  });
+
+  const glow = viewer.entities.add({
+    name: 'Rider · marker',
+    position: positionGlow,
+    point: {
+      pixelSize: 14,
+      color: primary,
+      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
+      outlineWidth: 3,
+      heightReference: Cesium.HeightReference.NONE,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    },
+  });
+
+  const arrow = viewer.entities.add({
+    name: 'Rider · arrow',
+    polyline: {
+      positions: arrowPositions,
+      width: 5,
+      arcType: Cesium.ArcType.NONE,
+      material: new Cesium.PolylineArrowMaterialProperty(accent),
+      clampToGround: false,
+      depthFailMaterial: new Cesium.PolylineArrowMaterialProperty(accent.withAlpha(0.7)),
+    },
+  });
+
+  const shadowEntity = viewer.entities.add({
+    name: 'Rider · shadow',
+    position: positionShadow,
+    ellipse: {
+      semiMajorAxis: 1.6,
+      semiMinorAxis: 1.0,
+      material: shadow,
+      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      classificationType: Cesium.ClassificationType.TERRAIN,
+    },
+  });
+
+  return {
+    entities: [body, rider, glow, arrow, shadowEntity],
+    update(pos, h) {
+      lon = pos.lon;
+      lat = pos.lat;
+      ele = pos.ele;
+      heading = h;
+    },
+  };
+}
