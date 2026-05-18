@@ -4,60 +4,73 @@
 
 @layer base {
   :root {
-    /* Light theme — clean, paper-bright, designed for daylight indoor riding
-       where a tablet sits on a desk and ambient brightness is high. */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* -----------------------------------------------------------------------
+       GlobeRide Design System — Light theme
+       "Speed + Earth" palette: horizon-blue primary, summit-green accent.
+       Paper-bright for daylight indoor riding at high ambient brightness.
+    ----------------------------------------------------------------------- */
+    --background: 210 30% 97%;
+    --foreground: 220 40% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 42%;
-    --border: 214 32% 88%;
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 99%;
-    --accent: 161 84% 36%;
+    --card-foreground: 220 40% 10%;
+    --muted: 210 24% 93%;
+    --muted-foreground: 215 15% 46%;
+    --border: 214 24% 86%;
+
+    /* Brand — horizon blue / summit green */
+    --primary: 200 92% 42%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 158 80% 32%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 55%;
-    --destructive-foreground: 210 40% 99%;
+
+    /* Semantic */
+    --destructive: 4 84% 53%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Single radius source — lg cards, md buttons/inputs, sm chips */
     --radius: 0.875rem;
 
-    /* Glass surface tokens — distinct per-mode so the HUD always renders with
-       enough contrast against either a bright globe or a dark sky. */
+    /* Glass surface tokens */
     --glass-from: 255 255 255;
-    --glass-from-a: 0.78;
-    --glass-to: 248 250 252;
-    --glass-to-a: 0.68;
+    --glass-from-a: 0.82;
+    --glass-to: 246 249 253;
+    --glass-to-a: 0.72;
     --glass-hairline-top: 255 255 255;
-    --glass-hairline-top-a: 0.6;
+    --glass-hairline-top-a: 0.70;
     --glass-shadow: 15 23 42;
-    --glass-shadow-a: 0.18;
+    --glass-shadow-a: 0.13;
   }
 
   .dark {
-    /* Dark theme — the default. Deep slate background tuned for the kind of
-       low-ambient lighting most pain caves end up with. */
-    --background: 222 47% 5%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --muted: 215 28% 17%;
-    --muted-foreground: 215 20% 65%;
-    --border: 215 28% 22%;
-    --primary: 199 89% 56%;
-    --primary-foreground: 222 47% 5%;
-    --accent: 161 84% 39%;
-    --accent-foreground: 222 47% 5%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    /* -----------------------------------------------------------------------
+       Dark theme — pain-cave optimised.
+       Deep navy slate; brand glows stay crisp against the 3D globe.
+    ----------------------------------------------------------------------- */
+    --background: 220 42% 4%;
+    --foreground: 210 28% 96%;
+    --card: 220 40% 7%;
+    --card-foreground: 210 28% 96%;
+    --muted: 215 28% 13%;
+    --muted-foreground: 215 18% 58%;
+    --border: 215 26% 17%;
 
-    --glass-from: 15 23 42;
-    --glass-from-a: 0.78;
-    --glass-to: 2 6 23;
-    --glass-to-a: 0.72;
+    /* Boosted brightness for dark mode vibrancy */
+    --primary: 200 92% 56%;
+    --primary-foreground: 220 42% 4%;
+    --accent: 158 80% 42%;
+    --accent-foreground: 220 42% 4%;
+
+    --destructive: 4 80% 60%;
+    --destructive-foreground: 210 28% 96%;
+
+    --glass-from: 15 22 40;
+    --glass-from-a: 0.84;
+    --glass-to: 2 5 20;
+    --glass-to-a: 0.78;
     --glass-hairline-top: 255 255 255;
-    --glass-hairline-top-a: 0.06;
+    --glass-hairline-top-a: 0.07;
     --glass-shadow: 0 0 0;
-    --glass-shadow-a: 0.6;
+    --glass-shadow-a: 0.68;
   }
 
   * {
@@ -74,8 +87,8 @@
   html {
     color-scheme: light;
     transition:
-      background-color 200ms ease,
-      color 200ms ease;
+      background-color 220ms ease,
+      color 220ms ease;
   }
   html.dark {
     color-scheme: dark;
@@ -83,69 +96,161 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01', 'kern' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
     transition:
-      background-color 200ms ease,
-      color 200ms ease;
+      background-color 220ms ease,
+      color 220ms ease;
+  }
+
+  /* Consistent focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Styled range inputs */
+  input[type='range'] {
+    accent-color: hsl(var(--primary));
+    height: 0.375rem;
+    cursor: pointer;
   }
 }
 
 @layer utilities {
+  /* -------------------------------------------------------------------
+     Glass system — unified across all surfaces.
+     .glass       = HUD panels, floating cards
+     .glass-strong = modal overlays, prominent surfaces
+     .glass-hairline = inner top-edge highlight + outer shadow
+                       (always pair with .glass or .glass-strong)
+  ------------------------------------------------------------------- */
   .glass {
     background: linear-gradient(
-      180deg,
+      155deg,
       rgb(var(--glass-from) / var(--glass-from-a)),
       rgb(var(--glass-to) / var(--glass-to-a))
     );
-    backdrop-filter: blur(16px) saturate(160%);
-    -webkit-backdrop-filter: blur(16px) saturate(160%);
-    border: 1px solid hsl(var(--border) / 0.85);
+    backdrop-filter: blur(18px) saturate(165%);
+    -webkit-backdrop-filter: blur(18px) saturate(165%);
+    border: 1px solid hsl(var(--border) / 0.80);
     transition:
-      background 200ms ease,
-      border-color 200ms ease,
-      box-shadow 200ms ease;
+      background 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease;
   }
+
+  .glass-strong {
+    background: linear-gradient(
+      155deg,
+      rgb(var(--glass-from) / 0.95),
+      rgb(var(--glass-to) / 0.90)
+    );
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.90);
+    transition:
+      background 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+
   .glass-hairline {
     box-shadow:
       inset 0 1px 0 rgb(var(--glass-hairline-top) / var(--glass-hairline-top-a)),
-      0 18px 48px -20px rgb(var(--glass-shadow) / var(--glass-shadow-a));
+      0 20px 52px -22px rgb(var(--glass-shadow) / var(--glass-shadow-a)),
+      0 4px 16px -6px rgb(var(--glass-shadow) / 0.10);
   }
-  .glass-strong {
-    background: linear-gradient(
-      180deg,
-      rgb(var(--glass-from) / 0.92),
-      rgb(var(--glass-to) / 0.86)
-    );
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid hsl(var(--border) / 0.9);
-    transition:
-      background 200ms ease,
-      border-color 200ms ease,
-      box-shadow 200ms ease;
-  }
+
+  /* Tabular numerics — all live-data displays */
   .num {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
   }
-  /* Subtle gradient halo behind a focused HUD card — gives a sense of depth
-     without painting an opaque background that fights with the 3D scene. */
+
+  /* Gradient halo — focused HUD card */
   .ring-halo {
     box-shadow:
-      0 0 0 1px hsl(var(--border) / 0.6),
-      0 24px 60px -28px hsl(var(--primary) / 0.45),
-      0 12px 30px -12px rgb(var(--glass-shadow) / var(--glass-shadow-a));
+      0 0 0 1px hsl(var(--border) / 0.50),
+      0 0 0 4px hsl(var(--primary) / 0.07),
+      0 28px 64px -28px hsl(var(--primary) / 0.38),
+      0 14px 32px -12px rgb(var(--glass-shadow) / var(--glass-shadow-a));
+  }
+
+  /* Brand text gradient — wordmarks, headings */
+  .text-gradient {
+    background: linear-gradient(130deg, hsl(var(--primary)), hsl(var(--accent)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dropzone active state */
+  .dropzone-active {
+    border-color: hsl(var(--primary)) !important;
+    background-color: hsl(var(--primary) / 0.06) !important;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18) !important;
   }
 }
 
-/* Cesium widget styling overrides */
+/* -------------------------------------------------------------------------
+   Keyframe library — hand-rolled, no extra deps.
+------------------------------------------------------------------------- */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1;   filter: drop-shadow(0 0 4px currentColor); }
+  50%       { opacity: 0.6; filter: drop-shadow(0 0 11px currentColor); }
+}
+@keyframes fadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes fadeUp {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  0%   { opacity: 0; transform: scale(0.94) translateY(8px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes toastIn {
+  0%   { opacity: 0; transform: translateX(14px) scale(0.96); }
+  100% { opacity: 1; transform: translateX(0)    scale(1); }
+}
+@keyframes spinSlow {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.6); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Respect system motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Cesium widget overrides — strip the stock UI; keep attribution link.
+------------------------------------------------------------------------- */
 .cesium-viewer .cesium-widget-credits {
   position: absolute;
   bottom: 6px;
   right: 8px;
   font-size: 10px;
-  opacity: 0.55;
+  opacity: 0.45;
   pointer-events: auto;
 }
 .cesium-viewer-toolbar,
@@ -165,8 +270,8 @@
   height: 100% !important;
 }
 .cesium-viewer {
-  background: #0b1220;
+  background: #080e1c;
 }
 html:not(.dark) .cesium-viewer {
-  background: #dfe7f1;
+  background: #dce5f0;
 }
