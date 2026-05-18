@@ -7,6 +7,7 @@ import { CesiumTokenPrompt } from '@/components/CesiumTokenPrompt';
 import { RideHUD } from '@/components/RideHUD';
 import { RideControls } from '@/components/RideControls';
 import { ElevationProfile } from '@/components/ElevationProfile';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
@@ -60,32 +61,70 @@ export function Ride() {
   if (!route) return null;
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black">
+    <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
       <CesiumViewer ionToken={token} />
 
-      {/* Top-left: back / route title */}
-      <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4 pointer-events-none">
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full pointer-events-auto backdrop-blur"
-          onClick={() => navigate('/')}
-        >
-          <ChevronLeft className="h-4 w-4" /> exit
-        </Button>
-        <div className="pointer-events-none max-w-xs w-full sm:w-80">
+      {/* Top-left: exit + theme toggle (always visible). Pointer events scoped
+          so the rest of the overlay doesn't eat globe interactions. */}
+      <div
+        className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none"
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top), 0.75rem)',
+          paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
+          paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full glass glass-hairline border-transparent"
+            onClick={() => navigate('/')}
+          >
+            <ChevronLeft className="h-4 w-4" /> exit
+          </Button>
+          <ThemeToggle />
+        </div>
+
+        {/* Tablet+: HUD anchored top-right next to the action row. */}
+        <div className="hidden sm:block pointer-events-none w-full max-w-[22rem] md:max-w-[26rem] lg:max-w-[30rem] xl:max-w-[34rem]">
           <RideHUD />
         </div>
       </div>
 
-      {/* Bottom-center: controls */}
-      <div className="absolute left-1/2 bottom-6 -translate-x-1/2 pointer-events-auto">
+      {/* Mobile-only: HUD slides below the top bar so the row doesn't cram. */}
+      <div
+        className="sm:hidden absolute left-0 right-0 pointer-events-none"
+        style={{
+          top: 'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
+          paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
+          paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <RideHUD />
+      </div>
+
+      {/* Bottom-center: controls. Sits above safe-area + elevation card. */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-10"
+        style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
+      >
         <RideControls />
       </div>
 
-      {/* Bottom-left: elevation profile */}
-      <div className="absolute left-4 right-4 sm:right-auto sm:w-[420px] bottom-24 sm:bottom-6 pointer-events-auto glass glass-hairline rounded-2xl p-3">
-        <ElevationProfile />
+      {/* Bottom-left: elevation profile. Full-width on phones, fixed width
+          from sm: up so it doesn't smother the controls in landscape. */}
+      <div
+        className="absolute pointer-events-auto sm:right-auto"
+        style={{
+          left: 'max(env(safe-area-inset-left), 0.75rem)',
+          right: 'max(env(safe-area-inset-right), 0.75rem)',
+          bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 5rem)',
+        }}
+      >
+        <div className="glass glass-hairline rounded-2xl p-3 sm:p-4 w-full sm:w-[26rem] md:w-[30rem] lg:w-[34rem] xl:w-[38rem] transition-all duration-300">
+          <ElevationProfile />
+        </div>
       </div>
 
       {rideState === 'finished' && <FinishCard />}
@@ -109,13 +148,13 @@ function FinishCard() {
       : 0;
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm p-6 z-10">
-      <Card className="max-w-md w-full">
-        <CardContent className="p-6 flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-accent/15 p-3 text-accent">
+    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-md p-4 sm:p-6 z-20 animate-fadeIn">
+      <Card className="max-w-md w-full ring-halo animate-scaleIn">
+        <CardContent className="p-6 sm:p-8 flex flex-col items-center text-center gap-4">
+          <div className="rounded-full bg-accent/15 p-3.5 text-accent ring-1 ring-accent/30">
             <Trophy className="h-7 w-7" />
           </div>
-          <div className="text-xl font-bold text-foreground">Ride complete</div>
+          <div className="text-xl sm:text-2xl font-bold text-foreground">Ride complete</div>
           <div className="grid grid-cols-3 gap-4 w-full text-sm">
             <FinishStat label="distance" value={formatDistance(distance)} />
             <FinishStat label="time" value={formatDuration(elapsedMs / 1000)} />

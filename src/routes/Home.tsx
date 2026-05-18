@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Github, Globe2, Library, Search } from 'lucide-react';
+import { ArrowRight, Library, Search } from 'lucide-react';
 
+import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
 import { RouteSearch } from '@/components/RouteSearch';
 import { TrainerConnect } from '@/components/TrainerConnect';
@@ -13,7 +14,7 @@ import { useRideStore } from '@/stores/rideStore';
 
 /**
  * Landing / setup page. Three vertically-stacked panels on mobile, a 2-col
- * layout on desktop: pick a route, pair a trainer, jump into the ride.
+ * layout on tablet/desktop: pick a route, pair a trainer, jump into the ride.
  */
 export function Home() {
   const navigate = useNavigate();
@@ -25,36 +26,28 @@ export function Home() {
   const willUseDemo = mode === 'demo' || connection !== 'connected';
 
   return (
-    <div className="min-h-full w-full flex flex-col">
-      <header className="flex items-center justify-between px-6 py-5 border-b border-border/60">
-        <div className="flex items-center gap-3">
-          <Globe2 className="h-7 w-7 text-primary" />
-          <div>
-            <div className="text-lg font-bold tracking-tight text-foreground">GlobeRide</div>
-            <div className="text-xs text-muted-foreground">
-              Virtual cycling on a 3D Earth · open source
-            </div>
-          </div>
-        </div>
-        <a
-          href="https://github.com/masonwyatt23/globeride"
-          target="_blank"
-          rel="noreferrer"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="GitHub"
-        >
-          <Github className="h-5 w-5" />
-        </a>
-      </header>
+    <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
+      {/* Ambient gradient backdrop — purely decorative, gives the page a sense
+          of depth without an opaque hero image. Sits behind everything. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute -top-32 -left-32 h-[28rem] w-[28rem] rounded-full bg-primary/15 dark:bg-primary/20 blur-3xl" />
+        <div className="absolute top-1/3 -right-32 h-[26rem] w-[26rem] rounded-full bg-accent/15 dark:bg-accent/15 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-[22rem] w-[22rem] rounded-full bg-sky-400/10 dark:bg-sky-500/10 blur-3xl" />
+      </div>
 
-      <main className="flex-1 px-6 py-8 max-w-6xl w-full mx-auto grid gap-6 lg:grid-cols-[1.1fr_0.9fr] auto-rows-min">
-        <section className="space-y-5">
+      <AppHeader />
+
+      <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 w-full max-w-7xl mx-auto grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr] auto-rows-min">
+        <section className="space-y-5 md:col-span-2 lg:col-span-1">
           <div>
-            <Badge variant="default" className="mb-3">Phase 1 · MVP</Badge>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            <Badge variant="default" className="mb-3">Phase 2 · Polish</Badge>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05]">
               Ride anywhere on Earth.
             </h1>
-            <p className="mt-2 text-muted-foreground max-w-prose">
+            <p className="mt-3 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
               Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders
               the route on a photorealistic 3D globe, drives the real gradient
               into your smart trainer over Web Bluetooth, and exports a
@@ -90,7 +83,7 @@ export function Home() {
               </Button>
 
               {route && (
-                <div className="rounded-lg bg-muted/30 p-3">
+                <div className="rounded-lg bg-muted/40 p-3">
                   <ElevationProfile />
                 </div>
               )}
@@ -142,7 +135,7 @@ export function Home() {
           </Card>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="space-y-4 md:col-span-2 lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>What's in the box</CardTitle>
@@ -189,9 +182,9 @@ export function Home() {
         </aside>
       </main>
 
-      <footer className="px-6 py-4 border-t border-border/60 text-xs text-muted-foreground flex items-center justify-between">
+      <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/60 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
         <span>MIT-licensed · made for cyclists who like the open web.</span>
-        <span className="num">v0.1.0</span>
+        <span className="num">v0.2.0</span>
       </footer>
     </div>
   );
