@@ -496,7 +496,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elapsedMs,
         grade: input.gradeNow,
         elevation: input.elevationNow,
-        speed: st.mode === 'demo' ? input.speedNow : st.speed, // trainer-mode speed already set by ingest
+        // Demo Mode and replay drive speed from the loop's computed/recorded
+        // value; live trainer mode keeps the speed already set by ingest.
+        speed: st.mode === 'demo' || st.replayData ? input.speedNow : st.speed,
         power: input.powerNow ?? st.power,
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,
