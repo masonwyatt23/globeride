@@ -1,0 +1,62 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import cesium from 'vite-plugin-cesium';
+import { VitePWA } from 'vite-plugin-pwa';
+import { fileURLToPath, URL } from 'node:url';
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  plugins: [
+    react(),
+    cesium(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['icon.svg', 'favicon.ico'],
+      manifest: {
+        name: 'GlobeRide',
+        short_name: 'GlobeRide',
+        description:
+          'Virtual cycling on a 3D Earth — bring your own GPX route, your own smart trainer, your own ride.',
+        theme_color: '#0b1220',
+        background_color: '#0b1220',
+        display: 'standalone',
+        orientation: 'any',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+        ],
+      },
+      workbox: {
+        // Cesium ships some large WASM/JS chunks; bump the precache size limit.
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm}'],
+        navigateFallback: '/index.html',
+      },
+      devOptions: {
+        enabled: false,
+      },
+    }),
+  ],
+  server: {
+    port: 5173,
+    host: true,
+  },
+  build: {
+    target: 'es2022',
+    sourcemap: false,
+    chunkSizeWarningLimit: 4096,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+          react: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
+});

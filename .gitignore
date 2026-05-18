@@ -1,0 +1,27 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build artifacts
+node_modules/.tmp/
+*.tsbuildinfo
+
+# PWA generated assets
+dev-dist
+
+# Env
+.env
+.env.local
+.env.*.local

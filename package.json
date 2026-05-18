@@ -1,0 +1,59 @@
+{
+  "name": "globeride",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "type": "module",
+  "description": "Open-source browser-based virtual cycling simulator. Ride anywhere on Earth with real-world GPX routes, photorealistic 3D terrain, and live FTMS smart trainer integration.",
+  "author": "Mason Wyatt",
+  "homepage": "https://github.com/masonwyatt23/globeride",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/masonwyatt23/globeride.git"
+  },
+  "keywords": [
+    "cycling",
+    "virtual-cycling",
+    "cesium",
+    "gpx",
+    "fit",
+    "ftms",
+    "web-bluetooth",
+    "kickr",
+    "smart-trainer",
+    "pwa"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.1.1",
+    "cesium": "^1.131.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.460.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "recharts": "^3.0.0",
+    "tailwind-merge": "^2.5.4",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/web-bluetooth": "^0.0.20",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vite-plugin-cesium": "^1.2.23",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
