@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
+import { WorkoutBuilder } from '@/components/WorkoutBuilder';
+import { WorkoutLibrary } from '@/components/WorkoutLibrary';
 import { GPXUploader } from '@/components/GPXUploader';
 import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
@@ -14,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
+import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +30,10 @@ export function Home() {
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => s.mode);
   const settings = useSettingsStore();
+
+  const loadWorkout = useRideStore((s) => s.loadWorkout);
+  const clearWorkout = useRideStore((s) => s.clearWorkout);
+  const activeWorkout = useRideStore((s) => s.activeWorkout);
 
   const canRide = !!route;
   const willUseDemo = mode === 'demo' || connection !== 'connected';
@@ -130,6 +137,73 @@ export function Home() {
             </CardHeader>
             <CardContent>
               <RouteLibrary />
+            </CardContent>
+          </Card>
+
+          {/* Workout panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Dumbbell className="h-3.5 w-3.5 text-primary" />
+                Structured workout
+                <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
+                  (optional)
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Build a structured workout with ERG power targets and attach it to any route —
+                or ride it indoors on a scenic demo route. The engine holds your trainer at the
+                exact wattage for each segment.
+              </p>
+              {activeWorkout ? (
+                <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">{activeWorkout.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {activeWorkout.segments.length} segments · attached to ride
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={clearWorkout}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : null}
+              <WorkoutLibrary
+                onSelect={(w) => {
+                  loadWorkout(w);
+                  // If no route yet, load the demo route so there's scenery
+                  if (!route) {
+                    useRideStore.getState().setRoute(makeDemoRoute());
+                  }
+                }}
+              />
+              <details className="group">
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors list-none flex items-center gap-1.5">
+                  <span className="group-open:rotate-90 transition-transform inline-block">›</span>
+                  Build a new workout
+                </summary>
+                <div className="mt-3">
+                  <WorkoutBuilder
+                    onSaved={(w) => {
+                      loadWorkout(w);
+                    }}
+                    onRide={(w) => {
+                      loadWorkout(w);
+                      if (!route) {
+                        useRideStore.getState().setRoute(makeDemoRoute());
+                      }
+                      navigate('/ride');
+                    }}
+                  />
+                </div>
+              </details>
             </CardContent>
           </Card>
 

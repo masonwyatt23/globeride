@@ -34,7 +34,8 @@ export function useRideLoop(): void {
 
       const s = store.getState();
       // Replay loop handles frames when replayData is present — bail out here.
-      if (s.replayData || s.rideState !== 'running' || !s.route) {
+      // Workout engine handles frames when a workout is running — bail out here too.
+      if (s.replayData || s.workoutRunning || s.rideState !== 'running' || !s.route) {
         lastT.current = tHigh;
         return;
       }
