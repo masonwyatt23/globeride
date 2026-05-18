@@ -4,6 +4,7 @@ import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenL
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/WorkoutLibrary';
+import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
 import { GPXUploader } from '@/components/GPXUploader';
 import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
@@ -206,6 +207,9 @@ export function Home() {
               </details>
             </CardContent>
           </Card>
+
+          {/* AI Workout Designer */}
+          <AIWorkoutDesigner />
 
           {/* Step 2: Trainer */}
           <Card>
