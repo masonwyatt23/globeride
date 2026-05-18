@@ -8,6 +8,7 @@ import type {
   Toast,
   TrainerData,
 } from '@/types';
+import type { ParsedFit } from '@/lib/fitParser';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -66,6 +67,23 @@ interface RideStoreState {
   // ---- Route library ----
   /** Monotonic counter bumped whenever the library is mutated; subscribers re-fetch. */
   libraryVersion: number;
+
+  // ---- Replay (ADDITIVE) ----
+  /**
+   * When non-null the ride is a replay session. Contains the full parsed FIT
+   * telemetry track. The replay loop reads from this instead of computing
+   * physics. Null during a normal live ride.
+   */
+  replayData: ParsedFit | null;
+  /**
+   * Index into replayData.samples pointing at the "current" sample.
+   * Advances each frame in the replay loop.
+   */
+  replayIndex: number;
+  /** Action: load a parsed FIT as the replay source and enter ready state. */
+  loadReplay: (fit: ParsedFit) => void;
+  /** Action: clear replay data and return to normal ride state. */
+  clearReplay: () => void;
 
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
@@ -156,7 +174,50 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   libraryVersion: 0,
   flyToTarget: null,
 
+  // Replay initial state (ADDITIVE)
+  replayData: null,
+  replayIndex: 0,
+
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
+
+  // ---- Replay actions (ADDITIVE) ----
+  loadReplay: (fit) =>
+    set({
+      route: fit.route,
+      replayData: fit,
+      replayIndex: 0,
+      rideState: 'ready',
+      distance: 0,
+      elapsedMs: 0,
+      samples: [],
+      startedAt: null,
+      speed: 0,
+      power: 0,
+      cadence: 0,
+      heartRate: null,
+      grade: 0,
+      elevation: fit.route.points[0].ele,
+      lastSentGrade: NaN,
+    }),
+
+  clearReplay: () =>
+    set((st) => ({
+      replayData: null,
+      replayIndex: 0,
+      // Keep the route loaded so the globe still shows it; reset ride state.
+      rideState: st.route ? 'ready' : 'idle',
+      distance: 0,
+      elapsedMs: 0,
+      samples: [],
+      startedAt: null,
+      speed: 0,
+      power: 0,
+      cadence: 0,
+      heartRate: null,
+      grade: 0,
+      elevation: st.route?.points[0].ele ?? 0,
+      lastSentGrade: NaN,
+    })),
 
   setRoute: (route) =>
     set({
@@ -173,6 +234,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       grade: 0,
       elevation: route?.points[0].ele ?? 0,
       lastSentGrade: NaN,
+      // Clear any active replay when a new route is loaded normally
+      replayData: null,
+      replayIndex: 0,
     }),
 
   setMode: (mode) => set({ mode }),
@@ -275,6 +339,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       grade: 0,
       elevation: get().route?.points[0].ele ?? 0,
       lastSentGrade: NaN,
+      replayIndex: 0,
     }),
 
   tick: (input) =>

@@ -3,6 +3,7 @@ import { ArrowRight, Library, Search, Bike, Weight, Wind } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
+import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
 import { TrainerConnect } from '@/components/TrainerConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
@@ -74,6 +75,16 @@ export function Home() {
             </CardHeader>
             <CardContent className="space-y-4">
               <GPXUploader />
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border/60" />
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  or replay a .FIT
+                </span>
+                <div className="h-px flex-1 bg-border/60" />
+              </div>
+
+              <FITUploader />
 
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-border/60" />
