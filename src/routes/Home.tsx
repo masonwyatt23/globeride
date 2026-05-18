@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind, PenLine } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
+import { cn } from '@/lib/utils';
 
 /**
  * Landing / setup page. Three vertically-stacked panels on mobile, a 2-col
@@ -42,75 +43,68 @@ export function Home() {
 
   return (
     <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
-      {/* Ambient gradient backdrop — purely decorative, gives the page a sense
-          of depth without an opaque hero image. Sits behind everything. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      >
-        <div className="absolute -top-32 -left-32 h-[28rem] w-[28rem] rounded-full bg-primary/15 dark:bg-primary/20 blur-3xl" />
-        <div className="absolute top-1/3 -right-32 h-[26rem] w-[26rem] rounded-full bg-accent/15 dark:bg-accent/15 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-[22rem] w-[22rem] rounded-full bg-sky-400/10 dark:bg-sky-500/10 blur-3xl" />
+      {/* Ambient gradient backdrop — decorative depth, sits behind everything */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[32rem] w-[32rem] rounded-full bg-primary/10 dark:bg-primary/14 blur-[80px]" />
+        <div className="absolute top-1/3 -right-40 h-[28rem] w-[28rem] rounded-full bg-accent/10 dark:bg-accent/12 blur-[80px]" />
+        <div className="absolute bottom-0 left-1/4 h-[24rem] w-[24rem] rounded-full bg-sky-400/8 dark:bg-sky-500/8 blur-[80px]" />
       </div>
 
       <AppHeader />
 
-      <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-10 w-full max-w-7xl mx-auto grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr] auto-rows-min">
-        <section className="space-y-5 md:col-span-2 lg:col-span-1">
+      <main className="flex-1 px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 w-full max-w-7xl mx-auto grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr] auto-rows-min">
+        {/* ---- Left column: setup flow ---- */}
+        <section className="space-y-5 md:col-span-2 lg:col-span-1 animate-fadeUp">
+          {/* Hero */}
           <div>
-            <Badge variant="default" className="mb-3">Phase 2 · Polish</Badge>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05]">
-              Ride anywhere on Earth.
+            <Badge variant="default" className="mb-3 text-[10px]">
+              <Sparkles className="h-3 w-3" />
+              Open source · MIT licensed
+            </Badge>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05] [letter-spacing:-0.03em]">
+              Ride{' '}
+              <span className="text-gradient">anywhere on Earth.</span>
             </h1>
             <p className="mt-3 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
-              Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders
-              the route on a photorealistic 3D globe, drives the real gradient
-              into your smart trainer over Web Bluetooth, and exports a
-              Strava-compatible .FIT when you're done.
+              Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders the
+              route on a photorealistic 3D globe, drives real gradient into your
+              smart trainer over Web Bluetooth, and exports a Strava-compatible
+              .FIT when you're done.
             </p>
           </div>
 
+          {/* Step 1: Route */}
           <Card>
             <CardHeader>
-              <CardTitle>1 · Pick a route</CardTitle>
+              <CardTitle>
+                <StepBadge n={1} /> Pick a route
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <GPXUploader />
 
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/60" />
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  or replay a .FIT
-                </span>
-                <div className="h-px flex-1 bg-border/60" />
-              </div>
+              <Divider label="or replay a .FIT" />
 
               <FITUploader />
 
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-border/60" />
-                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                  or search a place
-                </span>
-                <div className="h-px flex-1 bg-border/60" />
-              </div>
+              <Divider label="or search a place" />
 
               <RouteSearch />
 
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full"
+                className="w-full text-muted-foreground hover:text-foreground"
                 onClick={() => navigate('/explore')}
               >
-                <Search className="h-4 w-4" />
-                Explore on the globe
+                <Globe2 className="h-4 w-4" />
+                Explore on the 3D globe
               </Button>
 
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full"
+                className="w-full text-muted-foreground hover:text-foreground"
                 onClick={() => navigate('/explore')}
                 title="Draw a custom route by clicking on the 3D globe"
               >
@@ -119,17 +113,18 @@ export function Home() {
               </Button>
 
               {route && (
-                <div className="rounded-lg bg-muted/40 p-3">
+                <div className="rounded-lg bg-muted/40 p-3 border border-border/60">
                   <ElevationProfile />
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* My Routes */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Library className="h-4 w-4 text-primary" />
+                <Library className="h-3.5 w-3.5 text-primary" />
                 My Routes
               </CardTitle>
             </CardHeader>
@@ -138,40 +133,54 @@ export function Home() {
             </CardContent>
           </Card>
 
+          {/* Step 2: Trainer */}
           <Card>
             <CardHeader>
-              <CardTitle>2 · Pair your smart trainer</CardTitle>
+              <CardTitle>
+                <StepBadge n={2} /> Pair your smart trainer
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <TrainerConnect />
             </CardContent>
           </Card>
 
+          {/* Optional: standalone HR / cadence sensors */}
           <Card>
             <CardHeader>
-              <CardTitle>2b · Pair sensors (optional)</CardTitle>
+              <CardTitle>
+                Pair sensors
+                <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
+                  (optional)
+                </span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-                Pair a standalone heart-rate monitor and/or cadence sensor.
-                When connected, they override the values from your trainer.
-                Useful if your trainer doesn't broadcast HR or cadence.
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                Pair a standalone heart-rate monitor and/or cadence sensor. When
+                connected, they override the values from your trainer — useful if
+                your trainer doesn't broadcast HR or cadence.
               </p>
               <SensorConnect />
             </CardContent>
           </Card>
 
-          <Card>
+          {/* Step 3: Roll out */}
+          <Card className={cn(canRide && 'ring-1 ring-accent/30')}>
             <CardHeader>
-              <CardTitle>3 · Roll out</CardTitle>
+              <CardTitle>
+                <StepBadge n={3} /> Roll out
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {willUseDemo
                   ? 'No trainer connected — Demo Mode will simulate power and speed for you.'
-                  : 'Trainer connected. Gradients will stream in real time.'}
+                  : 'Trainer connected. Gradients will stream in real time as you ride.'}
               </p>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
+
+              {/* Physics chips */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <Chip icon={<Weight className="h-3 w-3" />} label={totalMassDisplay} />
                 <Chip
                   icon={<Bike className="h-3 w-3" />}
@@ -180,45 +189,65 @@ export function Home() {
                 <Chip icon={<Wind className="h-3 w-3" />} label={windDisplay} />
                 <SettingsButton variant="ghost" size="sm" showLabel />
               </div>
-              <Button
-                size="lg"
-                variant="accent"
-                disabled={!canRide}
-                onClick={() => navigate('/ride')}
-                className="self-start"
-              >
-                {canRide ? 'Enter the world' : 'Pick a route first'}
-                <ArrowRight className="h-5 w-5" />
-              </Button>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  size="lg"
+                  variant={canRide ? 'accent' : 'outline'}
+                  disabled={!canRide}
+                  onClick={() => navigate('/ride')}
+                  className="rounded-pill"
+                >
+                  {canRide ? 'Enter the world' : 'Pick a route first'}
+                  {canRide && <ArrowRight className="h-5 w-5" />}
+                </Button>
+                {!canRide && (
+                  <span className="text-xs text-muted-foreground">Choose a route above to unlock</span>
+                )}
+              </div>
             </CardContent>
           </Card>
         </section>
 
-        <aside className="space-y-4 md:col-span-2 lg:col-span-1">
+        {/* ---- Right column: info ---- */}
+        <aside className="space-y-5 md:col-span-2 lg:col-span-1 animate-fadeUp [animation-delay:60ms]">
           <Card>
             <CardHeader>
               <CardTitle>What's in the box</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <Feature title="3D globe with terrain + OSM buildings">
-                Powered by Cesium ion. Sweeping camera follows your bike along
-                the route tangent.
+            <CardContent className="space-y-4 text-sm">
+              <Feature
+                icon="🌍"
+                title="3D globe with terrain + OSM buildings"
+              >
+                Powered by Cesium ion. Chase camera follows your bike along the route tangent.
               </Feature>
-              <Feature title="Real gradient → real resistance">
-                FTMS Simulation Mode is pushed every 1–2 s to your Kickr Core,
-                Tacx Neo, Saris H3, or any FTMS-compliant trainer.
+              <Feature
+                icon="⚡"
+                title="Real gradient → real resistance"
+              >
+                FTMS Simulation Mode pushed every 1–2 s to your Kickr Core, Tacx Neo, Saris H3,
+                or any FTMS trainer.
               </Feature>
-              <Feature title="Strava-ready .FIT export">
-                Per-second telemetry — position, power, cadence, HR, altitude.
-                Upload straight to Strava or Garmin Connect.
+              <Feature
+                icon="📊"
+                title="Strava-ready .FIT export"
+              >
+                Per-second telemetry: position, power, cadence, HR, altitude. Upload straight to
+                Strava or Garmin Connect.
               </Feature>
-              <Feature title="Demo Mode">
-                No trainer? GlobeRide will solve the cycling-power equation and
-                ride for you so you can test the experience.
+              <Feature
+                icon="🚀"
+                title="Demo Mode"
+              >
+                No trainer? GlobeRide solves the cycling-power equation and rides for you so you
+                can experience the full product immediately.
               </Feature>
-              <Feature title="Installable PWA">
-                Add to home screen on iPad next to the trainer; works fully
-                offline once cached.
+              <Feature
+                icon="📱"
+                title="Installable PWA"
+              >
+                Add to home screen on iPad next to the trainer. Works fully offline once cached.
               </Feature>
             </CardContent>
           </Card>
@@ -227,42 +256,72 @@ export function Home() {
             <CardHeader>
               <CardTitle>Browser support</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2">
+            <CardContent className="text-sm text-muted-foreground space-y-2 leading-relaxed">
               <p>
-                Web Bluetooth ships in <strong className="text-foreground">Chrome</strong> and{' '}
+                Web Bluetooth ships in{' '}
+                <strong className="text-foreground">Chrome</strong> and{' '}
                 <strong className="text-foreground">Edge</strong> on desktop &amp; Android.
                 Safari and iOS do not expose Web Bluetooth — use Demo Mode there.
               </p>
-              <p>
-                Cesium needs WebGL2; nearly every modern device qualifies.
-              </p>
+              <p>Cesium needs WebGL2; nearly every modern device qualifies.</p>
             </CardContent>
           </Card>
         </aside>
       </main>
 
-      <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/60 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
+      <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
         <span>MIT-licensed · made for cyclists who like the open web.</span>
-        <span className="num">v0.2.0</span>
+        <span className="num opacity-60">v0.2.0</span>
       </footer>
+    </div>
+  );
+}
+
+/* ---- Local components ---- */
+
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold shrink-0 mr-1.5">
+      {n}
+    </span>
+  );
+}
+
+function Divider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="h-px flex-1 bg-border/60" />
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70">{label}</span>
+      <div className="h-px flex-1 bg-border/60" />
     </div>
   );
 }
 
 function Chip({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card/40 px-2 py-0.5 text-foreground">
+    <span className="inline-flex items-center gap-1 rounded-pill border border-border/70 bg-card/50 px-2.5 py-0.5 text-foreground/80">
       {icon}
       <span className="num">{label}</span>
     </span>
   );
 }
 
-function Feature({ title, children }: { title: string; children: React.ReactNode }) {
+function Feature({
+  icon,
+  title,
+  children,
+}: {
+  icon: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="font-medium text-foreground">{title}</div>
-      <div className="text-muted-foreground leading-relaxed">{children}</div>
+    <div className="flex gap-3">
+      <span className="text-base leading-none mt-0.5 shrink-0" aria-hidden>{icon}</span>
+      <div className="flex flex-col gap-0.5">
+        <div className="font-semibold text-foreground leading-snug">{title}</div>
+        <div className="text-muted-foreground leading-relaxed text-[13px]">{children}</div>
+      </div>
     </div>
   );
 }

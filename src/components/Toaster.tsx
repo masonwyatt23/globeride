@@ -8,13 +8,7 @@ import type { Toast } from '@/types';
 
 /**
  * Stacked, auto-dismissing toast notifications. Mounted once at the route
- * level; consumers push messages via `useRideStore.getState().pushToast(...)`.
- *
- * Sticky behaviour:
- *   - `durationMs: null`  → never auto-dismisses (e.g. a "still trying to
- *     reconnect" notice that updates in-place).
- *   - `durationMs: 0`     → coerced to default 5s so callers can't pin a
- *     toast by accident.
+ * level; consumers push via `useRideStore.getState().pushToast(...)`.
  */
 export function Toaster() {
   const toasts = useRideStore((s) => s.toasts);
@@ -48,13 +42,15 @@ function ToastCard({ toast }: { toast: Toast }) {
   return (
     <div
       className={cn(
-        'pointer-events-auto glass glass-hairline rounded-xl px-3 py-2.5 flex items-start gap-2.5',
-        'animate-[toastIn_180ms_ease-out]',
+        'pointer-events-auto glass-strong glass-hairline rounded-xl px-3.5 py-3 flex items-start gap-3',
+        'animate-toastIn',
         toneRing(toast.kind),
       )}
       role={toast.kind === 'error' ? 'alert' : 'status'}
     >
-      <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', toneText(toast.kind))} />
+      <div className={cn('mt-0.5 shrink-0 p-1 rounded-md', toneIconBg(toast.kind))}>
+        <Icon className={cn('h-3.5 w-3.5', toneText(toast.kind))} />
+      </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-foreground leading-tight">{toast.title}</div>
         {toast.message && (
@@ -67,6 +63,7 @@ function ToastCard({ toast }: { toast: Toast }) {
             <Button
               size="sm"
               variant="outline"
+              className="h-7 text-xs px-2"
               onClick={() => {
                 toast.action?.onClick();
                 dismiss(toast.id);
@@ -80,7 +77,7 @@ function ToastCard({ toast }: { toast: Toast }) {
       <button
         type="button"
         onClick={() => dismiss(toast.id)}
-        className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+        className="shrink-0 rounded-md p-1 text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors"
         aria-label="Dismiss notification"
       >
         <X className="h-3.5 w-3.5" />
@@ -91,42 +88,36 @@ function ToastCard({ toast }: { toast: Toast }) {
 
 function iconFor(kind: Toast['kind']) {
   switch (kind) {
-    case 'success':
-      return CheckCircle2;
-    case 'warning':
-      return AlertTriangle;
-    case 'error':
-      return AlertCircle;
-    case 'info':
-    default:
-      return Info;
+    case 'success': return CheckCircle2;
+    case 'warning': return AlertTriangle;
+    case 'error':   return AlertCircle;
+    default:        return Info;
   }
 }
 
 function toneText(kind: Toast['kind']): string {
   switch (kind) {
-    case 'success':
-      return 'text-emerald-300';
-    case 'warning':
-      return 'text-amber-300';
-    case 'error':
-      return 'text-destructive';
-    case 'info':
-    default:
-      return 'text-primary';
+    case 'success': return 'text-emerald-600 dark:text-emerald-300';
+    case 'warning': return 'text-amber-600 dark:text-amber-300';
+    case 'error':   return 'text-destructive';
+    default:        return 'text-primary';
+  }
+}
+
+function toneIconBg(kind: Toast['kind']): string {
+  switch (kind) {
+    case 'success': return 'bg-emerald-500/12';
+    case 'warning': return 'bg-amber-500/12';
+    case 'error':   return 'bg-destructive/12';
+    default:        return 'bg-primary/12';
   }
 }
 
 function toneRing(kind: Toast['kind']): string {
   switch (kind) {
-    case 'success':
-      return 'ring-1 ring-emerald-500/30';
-    case 'warning':
-      return 'ring-1 ring-amber-500/30';
-    case 'error':
-      return 'ring-1 ring-destructive/40';
-    case 'info':
-    default:
-      return 'ring-1 ring-primary/25';
+    case 'success': return 'ring-1 ring-emerald-500/25';
+    case 'warning': return 'ring-1 ring-amber-500/25';
+    case 'error':   return 'ring-1 ring-destructive/35';
+    default:        return 'ring-1 ring-primary/20';
   }
 }

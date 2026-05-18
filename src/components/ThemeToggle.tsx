@@ -4,12 +4,11 @@ import { useThemeStore } from '@/stores/themeStore';
 import { cn } from '@/lib/utils';
 
 /**
- * Animated dark/light toggle. Two icons stacked in the same slot with their
- * own scale + rotation transitions so the swap feels tactile rather than a
- * straight icon replacement. Preference is persisted via the theme store.
+ * Animated dark/light toggle. Two icons stacked with independent scale +
+ * rotation transitions for a tactile feel. Preference persisted via theme store.
  */
 export function ThemeToggle({ className }: { className?: string }) {
-  const theme = useThemeStore((s) => s.theme);
+  const theme  = useThemeStore((s) => s.theme);
   const toggle = useThemeStore((s) => s.toggleTheme);
   const isDark = theme === 'dark';
 
@@ -21,10 +20,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-pressed={isDark}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       className={cn(
-        'relative inline-flex h-10 w-10 items-center justify-center rounded-full',
-        'border border-border bg-card/60 text-foreground',
-        'transition-all duration-200 hover:bg-card hover:border-primary/40',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ring-offset-background',
+        'relative inline-flex h-9 w-9 items-center justify-center rounded-full overflow-hidden',
+        'border border-border bg-card/70 text-foreground',
+        'transition-all duration-200 hover:bg-card hover:border-primary/40 hover:shadow-sm',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'active:scale-95',
         className,
       )}
@@ -32,13 +31,17 @@ export function ThemeToggle({ className }: { className?: string }) {
       <Sun
         className={cn(
           'absolute h-4 w-4 transition-all duration-300',
-          isDark ? 'scale-0 -rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100 text-amber-500',
+          isDark
+            ? 'scale-0 -rotate-90 opacity-0'
+            : 'scale-100 rotate-0 opacity-100 text-amber-500',
         )}
       />
       <Moon
         className={cn(
           'absolute h-4 w-4 transition-all duration-300',
-          isDark ? 'scale-100 rotate-0 opacity-100 text-sky-300' : 'scale-0 rotate-90 opacity-0',
+          isDark
+            ? 'scale-100 rotate-0 opacity-100 text-sky-300'
+            : 'scale-0 rotate-90 opacity-0',
         )}
       />
     </button>

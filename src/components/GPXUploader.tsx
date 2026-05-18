@@ -9,37 +9,28 @@ import { Button } from '@/components/ui/button';
 import { cn, formatDistance } from '@/lib/utils';
 
 /**
- * Drag-and-drop GPX import. Also offers a one-click built-in demo route so
+ * Drag-and-drop GPX import. Also offers a one-click demo route so
  * first-time users have something to ride immediately.
  */
 export function GPXUploader() {
-  const setRoute = useRideStore((s) => s.setRoute);
-  const route = useRideStore((s) => s.route);
-  const bumpLibrary = useRideStore((s) => s.bumpLibrary);
+  const setRoute       = useRideStore((s) => s.setRoute);
+  const route          = useRideStore((s) => s.route);
+  const bumpLibrary    = useRideStore((s) => s.bumpLibrary);
   const libraryVersion = useRideStore((s) => s.libraryVersion);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [dragOver, setDragOver] = useState(false);
+  const inputRef       = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy]               = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [dragOver, setDragOver]       = useState(false);
   const [savedInLibrary, setSavedInLibrary] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]           = useState(false);
 
   useEffect(() => {
     let alive = true;
-    if (!route) {
-      setSavedInLibrary(false);
-      return;
-    }
+    if (!route) { setSavedInLibrary(false); return; }
     hasRoute(route.id)
-      .then((exists) => {
-        if (alive) setSavedInLibrary(exists);
-      })
-      .catch(() => {
-        if (alive) setSavedInLibrary(false);
-      });
-    return () => {
-      alive = false;
-    };
+      .then((exists) => { if (alive) setSavedInLibrary(exists); })
+      .catch(() => { if (alive) setSavedInLibrary(false); });
+    return () => { alive = false; };
   }, [route, libraryVersion]);
 
   const handleSave = useCallback(async () => {
@@ -75,11 +66,9 @@ export function GPXUploader() {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Dropzone */}
       <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
@@ -88,9 +77,9 @@ export function GPXUploader() {
           if (f) void handleFile(f);
         }}
         className={cn(
-          'group relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/20 px-4 py-6 text-center transition-colors cursor-pointer',
-          'hover:border-primary/60 hover:bg-primary/5',
-          dragOver && 'border-primary bg-primary/10',
+          'group relative flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/70 bg-muted/20 px-4 py-7 text-center transition-all duration-200 cursor-pointer',
+          'hover:border-primary/50 hover:bg-primary/4',
+          dragOver && 'dropzone-active',
         )}
       >
         <input
@@ -103,75 +92,78 @@ export function GPXUploader() {
             if (f) void handleFile(f);
           }}
         />
-        {busy ? (
-          <Loader2 className="h-7 w-7 text-primary animate-spin" />
-        ) : (
-          <Upload className="h-7 w-7 text-muted-foreground group-hover:text-primary transition-colors" />
-        )}
-        <div className="mt-2 text-sm font-medium text-foreground">
-          {busy ? 'Parsing…' : 'Drop a GPX file here'}
+        <div className={cn(
+          'flex items-center justify-center h-10 w-10 rounded-full transition-all duration-200',
+          'bg-muted/60 group-hover:bg-primary/10',
+          dragOver && 'bg-primary/15',
+        )}>
+          {busy
+            ? <Loader2 className="h-5 w-5 text-primary animate-[spinSlow_1.5s_linear_infinite]" />
+            : <Upload className={cn('h-5 w-5 transition-colors', dragOver ? 'text-primary' : 'text-muted-foreground group-hover:text-primary')} />
+          }
         </div>
-        <div className="text-xs text-muted-foreground">
-          Or click to browse · Strava, Komoot, Garmin, RideWithGPS all work
+        <div>
+          <div className="text-sm font-semibold text-foreground">
+            {busy ? 'Parsing route…' : 'Drop a GPX file here'}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Or click to browse · Strava, Komoot, Garmin, RideWithGPS
+          </div>
         </div>
       </label>
 
+      {/* Error */}
       {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive-foreground">
+        <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2.5 text-xs text-destructive leading-snug">
           {error}
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex-1"
-          onClick={() => {
-            const r = makeDemoRoute();
-            setRoute(r);
-          }}
-        >
-          <Sparkles className="h-4 w-4" />
-          Load demo route
-        </Button>
-      </div>
+      {/* Demo route button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full text-muted-foreground hover:text-foreground"
+        onClick={() => {
+          const r = makeDemoRoute();
+          setRoute(r);
+        }}
+      >
+        <Sparkles className="h-3.5 w-3.5" />
+        Load demo route
+      </Button>
 
+      {/* Loaded route card */}
       {route && (
-        <div className="rounded-lg border border-border bg-card/40 p-3">
+        <div className="rounded-xl border border-border/70 bg-card/50 p-3.5 animate-fadeUp">
           <div className="flex items-start justify-between gap-2">
-            <div className="text-sm font-semibold text-foreground truncate flex-1">{route.name}</div>
+            <div className="text-sm font-semibold text-foreground truncate flex-1 leading-snug">
+              {route.name}
+            </div>
             <Button
               variant={savedInLibrary ? 'ghost' : 'outline'}
               size="sm"
               disabled={savedInLibrary || saving}
               onClick={() => void handleSave()}
-              className="shrink-0"
+              className="shrink-0 h-7 px-2 text-xs"
               title={savedInLibrary ? 'Already in My Routes' : 'Save to My Routes'}
             >
-              {saving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : savedInLibrary ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-400" />
-                  Saved
-                </>
-              ) : (
-                <>
-                  <BookmarkPlus className="h-3.5 w-3.5" />
-                  Save to Library
-                </>
-              )}
+              {saving
+                ? <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite]" />
+                : savedInLibrary
+                  ? <><Check className="h-3 w-3 text-accent" /> Saved</>
+                  : <><BookmarkPlus className="h-3 w-3" /> Save</>
+              }
             </Button>
           </div>
-          <div className="mt-1.5 grid grid-cols-3 gap-3 text-xs">
-            <RouteStat icon={<MapPin className="h-3.5 w-3.5" />} label="Distance">
+          <div className="mt-2.5 grid grid-cols-3 gap-3 text-xs">
+            <RouteStat icon={<MapPin className="h-3.5 w-3.5 text-primary" />} label="Distance">
               {formatDistance(route.totalDistance)}
             </RouteStat>
-            <RouteStat icon={<Mountain className="h-3.5 w-3.5 text-emerald-400" />} label="Ascent">
+            <RouteStat icon={<Mountain className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />} label="Ascent">
               +{Math.round(route.ascent)} m
             </RouteStat>
-            <RouteStat icon={<Mountain className="h-3.5 w-3.5 -scale-y-100 text-sky-400" />} label="Descent">
+            <RouteStat icon={<Mountain className="h-3.5 w-3.5 -scale-y-100 text-sky-500 dark:text-sky-400" />} label="Descent">
               −{Math.round(route.descent)} m
             </RouteStat>
           </div>
