@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
 import { RouteSearch } from '@/components/RouteSearch';
 import { TrainerConnect } from '@/components/TrainerConnect';
+import { SensorConnect } from '@/components/SensorConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { RouteLibrary } from '@/components/RouteLibrary';
 import { SettingsButton } from '@/components/SettingsPanel';
@@ -121,6 +122,20 @@ export function Home() {
             </CardHeader>
             <CardContent>
               <TrainerConnect />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>2b · Pair sensors (optional)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                Pair a standalone heart-rate monitor and/or cadence sensor.
+                When connected, they override the values from your trainer.
+                Useful if your trainer doesn't broadcast HR or cadence.
+              </p>
+              <SensorConnect />
             </CardContent>
           </Card>
 

@@ -9,6 +9,7 @@ import { RideControls } from '@/components/RideControls';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { SensorStatusPills } from '@/components/SensorConnect';
 import { SettingsButton } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -95,6 +96,7 @@ export function Ride() {
             />
           </div>
           <ConnectionStatus compact />
+          <SensorStatusPills />
         </div>
 
         {/* Tablet+: HUD anchored top-right next to the action row. */}
