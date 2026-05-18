@@ -8,6 +8,7 @@ import { RideHUD } from '@/components/RideHUD';
 import { RideControls } from '@/components/RideControls';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
@@ -64,8 +65,9 @@ export function Ride() {
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
       <CesiumViewer ionToken={token} />
 
-      {/* Top-left: exit + theme toggle (always visible). Pointer events scoped
-          so the rest of the overlay doesn't eat globe interactions. */}
+      {/* Top-left: exit + theme toggle + connection status (always visible).
+          Pointer events scoped so the rest of the overlay doesn't eat globe
+          interactions. */}
       <div
         className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none"
         style={{
@@ -74,16 +76,19 @@ export function Ride() {
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full glass glass-hairline border-transparent"
-            onClick={() => navigate('/')}
-          >
-            <ChevronLeft className="h-4 w-4" /> exit
-          </Button>
-          <ThemeToggle />
+        <div className="flex flex-col gap-2 items-start pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full glass glass-hairline border-transparent"
+              onClick={() => navigate('/')}
+            >
+              <ChevronLeft className="h-4 w-4" /> exit
+            </Button>
+            <ThemeToggle />
+          </div>
+          <ConnectionStatus compact />
         </div>
 
         {/* Tablet+: HUD anchored top-right next to the action row. */}

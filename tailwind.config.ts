@@ -40,11 +40,21 @@ export default {
           '0%': { opacity: '0', transform: 'scale(0.96) translateY(6px)' },
           '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
         },
+        toastIn: {
+          '0%': { opacity: '0', transform: 'translateY(-8px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        spinSlow: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
         pulseGlow: 'pulseGlow 2.2s ease-in-out infinite',
         fadeIn: 'fadeIn 250ms ease-out',
         scaleIn: 'scaleIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        toastIn: 'toastIn 180ms ease-out',
+        spinSlow: 'spinSlow 1.6s linear infinite',
       },
     },
   },

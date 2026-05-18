@@ -84,5 +84,24 @@ export interface TrainerData {
 }
 
 export type RideState = 'idle' | 'ready' | 'running' | 'paused' | 'finished';
-export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type ConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
 export type RideMode = 'trainer' | 'demo';
+
+/** One transient notification shown by the Toaster. */
+export interface Toast {
+  id: string;
+  /** Visual tone — drives color + icon. */
+  kind: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  /** Optional second line, e.g. the underlying error message. */
+  message?: string;
+  /** When provided, the toast renders a CTA button. */
+  action?: { label: string; onClick: () => void };
+  /** Auto-dismiss after this many ms. `null` = sticky. */
+  durationMs: number | null;
+}
