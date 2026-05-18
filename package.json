@@ -27,7 +27,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
@@ -55,6 +57,7 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-cesium": "^1.2.23",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^2.1.9"
   }
 }
