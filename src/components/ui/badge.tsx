@@ -12,7 +12,7 @@ const badgeVariants = cva(
         muted: 'border-border bg-muted/50 text-muted-foreground',
         outline: 'border-border text-foreground',
         destructive: 'border-transparent bg-destructive/15 text-destructive',
-        success: 'border-transparent bg-emerald-500/15 text-emerald-300',
+        success: 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
       },
     },
     defaultVariants: { variant: 'default' },

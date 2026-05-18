@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { useRideStore } from '@/stores/rideStore';
+import { useThemeStore } from '@/stores/themeStore';
 import {
   applyFollowCam,
   flyToPoint,
@@ -31,6 +32,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const route = useRideStore((s) => s.route);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
+  const theme = useThemeStore((s) => s.theme);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
@@ -58,7 +60,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = true;
     viewer.scene.fog.enabled = true;
     viewer.scene.globe.enableLighting = true;
-    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0b1220');
 
     // Cesium World Terrain (ion asset 1) — shared so the route generator
     // can sample elevations from the same provider.
@@ -80,7 +81,16 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         // Fail silently — no buildings, but the rest of the scene works.
       });
 
+    // Cesium normally listens for window resize, but when the container is
+    // collapsed/expanded by a layout change (sidebar open, breakpoint shift)
+    // we have to nudge it explicitly so the canvas refits.
+    const ro = new ResizeObserver(() => {
+      viewer.resize();
+    });
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       removeTickRef.current?.();
       removeTickRef.current = null;
       if (tilesetRef.current) {
@@ -94,6 +104,17 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // changes mid-session require a full reload (covered by the prompt UI).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ---- Theme-driven scene background ----
+  // Cesium clears with this color before the globe renders, so it shows
+  // through during loading and at the poles where the atmosphere thins.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(
+      theme === 'dark' ? '#0b1220' : '#dfe7f1',
+    );
+  }, [theme]);
 
   // ---- Rebuild route entities when route changes ----
   useEffect(() => {
@@ -249,5 +270,5 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     };
   }, []);
 
-  return <div ref={containerRef} className="absolute inset-0" />;
+  return <div ref={containerRef} className="absolute inset-0 h-full w-full" />;
 }

@@ -4,6 +4,38 @@
 
 @layer base {
   :root {
+    /* Light theme — clean, paper-bright, designed for daylight indoor riding
+       where a tablet sits on a desk and ambient brightness is high. */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 42%;
+    --border: 214 32% 88%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 210 40% 99%;
+    --accent: 161 84% 36%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 210 40% 99%;
+    --radius: 0.875rem;
+
+    /* Glass surface tokens — distinct per-mode so the HUD always renders with
+       enough contrast against either a bright globe or a dark sky. */
+    --glass-from: 255 255 255;
+    --glass-from-a: 0.78;
+    --glass-to: 248 250 252;
+    --glass-to-a: 0.68;
+    --glass-hairline-top: 255 255 255;
+    --glass-hairline-top-a: 0.6;
+    --glass-shadow: 15 23 42;
+    --glass-shadow-a: 0.18;
+  }
+
+  .dark {
+    /* Dark theme — the default. Deep slate background tuned for the kind of
+       low-ambient lighting most pain caves end up with. */
     --background: 222 47% 5%;
     --foreground: 210 40% 98%;
     --card: 222 47% 8%;
@@ -17,7 +49,15 @@
     --accent-foreground: 222 47% 5%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --radius: 0.875rem;
+
+    --glass-from: 15 23 42;
+    --glass-from-a: 0.78;
+    --glass-to: 2 6 23;
+    --glass-to-a: 0.72;
+    --glass-hairline-top: 255 255 255;
+    --glass-hairline-top-a: 0.06;
+    --glass-shadow: 0 0 0;
+    --glass-shadow-a: 0.6;
   }
 
   * {
@@ -31,28 +71,71 @@
     overscroll-behavior: none;
   }
 
+  html {
+    color-scheme: light;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
     -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
   }
 }
 
 @layer utilities {
   .glass {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.72));
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--glass-from) / var(--glass-from-a)),
+      rgb(var(--glass-to) / var(--glass-to-a))
+    );
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
     border: 1px solid hsl(var(--border) / 0.85);
+    transition:
+      background 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
   }
   .glass-hairline {
     box-shadow:
-      inset 0 1px 0 hsl(0 0% 100% / 0.06),
-      0 16px 40px -16px rgba(0, 0, 0, 0.6);
+      inset 0 1px 0 rgb(var(--glass-hairline-top) / var(--glass-hairline-top-a)),
+      0 18px 48px -20px rgb(var(--glass-shadow) / var(--glass-shadow-a));
+  }
+  .glass-strong {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--glass-from) / 0.92),
+      rgb(var(--glass-to) / 0.86)
+    );
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    border: 1px solid hsl(var(--border) / 0.9);
+    transition:
+      background 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
   }
   .num {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum' 1;
+  }
+  /* Subtle gradient halo behind a focused HUD card — gives a sense of depth
+     without painting an opaque background that fights with the 3D scene. */
+  .ring-halo {
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.6),
+      0 24px 60px -28px hsl(var(--primary) / 0.45),
+      0 12px 30px -12px rgb(var(--glass-shadow) / var(--glass-shadow-a));
   }
 }
 
@@ -77,7 +160,13 @@
 }
 .cesium-widget canvas {
   outline: none;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
 }
 .cesium-viewer {
   background: #0b1220;
+}
+html:not(.dark) .cesium-viewer {
+  background: #dfe7f1;
 }

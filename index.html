@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -10,6 +10,25 @@
       content="GlobeRide — open-source virtual cycling simulator. Ride anywhere on Earth in your browser, with your own GPX routes and your own FTMS smart trainer."
     />
     <title>GlobeRide — Virtual cycling on a 3D Earth</title>
+    <script>
+      // Pre-paint theme bootstrap. Mirrors the logic in src/stores/themeStore.ts
+      // so the correct background is up before React mounts and we never flash
+      // the wrong palette. Defaults to dark (cyclists ride in dim rooms).
+      (function () {
+        try {
+          var t = localStorage.getItem('globeride.theme');
+          if (t !== 'light') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document
+              .querySelector('meta[name="theme-color"]')
+              .setAttribute('content', '#f8fafc');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body class="bg-background text-foreground antialiased">
     <div id="root"></div>

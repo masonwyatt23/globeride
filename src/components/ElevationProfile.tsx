@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 
 import { useRideStore } from '@/stores/rideStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 /**
  * A live elevation profile across the entire route, with the rider's current
@@ -19,6 +20,8 @@ import { useRideStore } from '@/stores/rideStore';
 export function ElevationProfile() {
   const route = useRideStore((s) => s.route);
   const distance = useRideStore((s) => s.distance);
+  const theme = useThemeStore((s) => s.theme);
+  const isDark = theme === 'dark';
 
   const series = useMemo(() => {
     if (!route) return [];
@@ -38,14 +41,21 @@ export function ElevationProfile() {
 
   if (!route || series.length === 0) return null;
 
+  const axisColor = isDark ? 'hsl(215 20% 65%)' : 'hsl(215 16% 42%)';
+  const primary = isDark ? 'hsl(199 89% 56%)' : 'hsl(199 89% 48%)';
+  const accent = isDark ? 'hsl(161 84% 39%)' : 'hsl(161 84% 36%)';
+  const tooltipBg = isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.96)';
+  const tooltipBorder = isDark ? 'hsl(215 28% 22%)' : 'hsl(214 32% 88%)';
+  const tooltipColor = isDark ? 'hsl(210 40% 98%)' : 'hsl(222 47% 11%)';
+
   return (
-    <div className="h-32 w-full">
+    <div className="h-28 sm:h-32 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={series} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="elevFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(199 89% 56%)" stopOpacity={0.55} />
-              <stop offset="100%" stopColor="hsl(199 89% 56%)" stopOpacity={0.05} />
+              <stop offset="0%" stopColor={primary} stopOpacity={isDark ? 0.55 : 0.42} />
+              <stop offset="100%" stopColor={primary} stopOpacity={0.05} />
             </linearGradient>
           </defs>
           <XAxis
@@ -53,16 +63,16 @@ export function ElevationProfile() {
             type="number"
             domain={[0, route.totalDistance]}
             tickFormatter={(v) => `${(v / 1000).toFixed(1)}km`}
-            stroke="hsl(215 20% 65%)"
-            tick={{ fontSize: 10 }}
+            stroke={axisColor}
+            tick={{ fontSize: 10, fill: axisColor }}
             tickLine={false}
             axisLine={false}
             height={18}
           />
           <YAxis
             dataKey="ele"
-            stroke="hsl(215 20% 65%)"
-            tick={{ fontSize: 10 }}
+            stroke={axisColor}
+            tick={{ fontSize: 10, fill: axisColor }}
             tickLine={false}
             axisLine={false}
             width={32}
@@ -71,30 +81,32 @@ export function ElevationProfile() {
           />
           <Tooltip
             contentStyle={{
-              background: 'rgba(15, 23, 42, 0.92)',
-              border: '1px solid hsl(215 28% 22%)',
+              background: tooltipBg,
+              border: `1px solid ${tooltipBorder}`,
               borderRadius: 8,
-              color: 'hsl(210 40% 98%)',
+              color: tooltipColor,
               fontSize: 12,
+              boxShadow: '0 10px 30px -12px rgba(0, 0, 0, 0.3)',
             }}
+            labelStyle={{ color: tooltipColor }}
             labelFormatter={(v) => `${(Number(v) / 1000).toFixed(2)} km`}
             formatter={(value) => [`${Math.round(Number(value))} m`, 'elevation']}
           />
           <Area
             dataKey="ele"
             type="monotone"
-            stroke="hsl(199 89% 56%)"
+            stroke={primary}
             strokeWidth={1.5}
             fill="url(#elevFill)"
             isAnimationActive={false}
           />
           <ReferenceLine
             x={distance}
-            stroke="hsl(161 84% 39%)"
+            stroke={accent}
             strokeWidth={2}
             label={{
               value: '●',
-              fill: 'hsl(161 84% 39%)',
+              fill: accent,
               position: 'top',
               fontSize: 16,
             }}

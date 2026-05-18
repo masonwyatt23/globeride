@@ -32,9 +32,19 @@ export default {
           '0%,100%': { opacity: '1', filter: 'drop-shadow(0 0 4px currentColor)' },
           '50%': { opacity: '0.6', filter: 'drop-shadow(0 0 12px currentColor)' },
         },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.96) translateY(6px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
       },
       animation: {
         pulseGlow: 'pulseGlow 2.2s ease-in-out infinite',
+        fadeIn: 'fadeIn 250ms ease-out',
+        scaleIn: 'scaleIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
       },
     },
   },
