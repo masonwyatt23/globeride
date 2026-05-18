@@ -9,6 +9,7 @@ import type {
   TrainerData,
 } from '@/types';
 import type { ParsedFit } from '@/lib/fitParser';
+import type { SensorConnectionStatus } from '@/lib/bleSensors';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -91,6 +92,50 @@ interface RideStoreState {
   /** Action: clear replay data and return to normal ride state. */
   clearReplay: () => void;
 
+  // ---- ADDITIVE: Standalone BLE sensor state ----
+  /**
+   * Connection status for the dedicated Heart Rate Monitor sensor.
+   * Independent of the FTMS trainer connection.
+   *
+   * Override/fallback rule:
+   *   - When hrSensorStatus === 'connected', heartRate is sourced from
+   *     hrSensorValue (set by ingestHrSensorData).
+   *   - When hrSensorStatus !== 'connected', heartRate falls back to
+   *     whatever ingestTrainerData / tick provides from the FTMS stream.
+   *   - On sensor disconnect/error, hrSensorValue is cleared to null so
+   *     the HUD immediately shows the trainer-derived value (or '—' if
+   *     the trainer also has none).
+   */
+  hrSensorStatus: SensorConnectionStatus;
+  /** Device name of the paired HR sensor, or null when not paired. */
+  hrSensorDeviceName: string | null;
+  /**
+   * Live HR value from the dedicated sensor (bpm).
+   * null = no reading yet / sensor disconnected.
+   */
+  hrSensorValue: number | null;
+
+  /**
+   * Connection status for the dedicated Cadence/Speed sensor.
+   * Independent of the FTMS trainer connection.
+   *
+   * Override/fallback rule:
+   *   - When cadenceSensorStatus === 'connected', cadence is sourced from
+   *     cadenceSensorValue (set by ingestCadenceSensorData).
+   *   - When cadenceSensorStatus !== 'connected', cadence falls back to
+   *     whatever ingestTrainerData / tick provides from the FTMS stream.
+   *   - On sensor disconnect/error, cadenceSensorValue is cleared to null
+   *     so the HUD immediately falls back to the trainer-derived value.
+   */
+  cadenceSensorStatus: SensorConnectionStatus;
+  /** Device name of the paired cadence sensor, or null when not paired. */
+  cadenceSensorDeviceName: string | null;
+  /**
+   * Live cadence value from the dedicated sensor (rpm).
+   * null = no reading yet / sensor disconnected.
+   */
+  cadenceSensorValue: number | null;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -113,6 +158,16 @@ interface RideStoreState {
 
   /** Called once per frame by useRideLoop. */
   tick: (input: TickInput) => void;
+
+  // ---- ADDITIVE: Sensor actions ----
+  /** Update HR sensor connection status and optionally set device name. */
+  setHrSensorStatus: (status: SensorConnectionStatus, deviceName?: string | null) => void;
+  /** Push a new HR reading from the dedicated sensor. */
+  ingestHrSensorData: (bpm: number) => void;
+  /** Update cadence sensor connection status and optionally set device name. */
+  setCadenceSensorStatus: (status: SensorConnectionStatus, deviceName?: string | null) => void;
+  /** Push a new cadence reading from the dedicated sensor. */
+  ingestCadenceSensorData: (rpm: number) => void;
 
   // ---- Toasts ----
   pushToast: (toast: Omit<Toast, 'id'> & { id?: string }) => string;
@@ -185,6 +240,14 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // Replay initial state (ADDITIVE)
   replayData: null,
   replayIndex: 0,
+
+  // ---- ADDITIVE: Sensor initial state ----
+  hrSensorStatus: 'disconnected',
+  hrSensorDeviceName: null,
+  hrSensorValue: null,
+  cadenceSensorStatus: 'disconnected',
+  cadenceSensorDeviceName: null,
+  cadenceSensorValue: null,
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
@@ -292,8 +355,14 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     set((st) => ({
       speed: d.speed ?? st.speed,
       power: d.power ?? st.power,
-      cadence: d.cadence ?? st.cadence,
-      heartRate: d.heartRate ?? st.heartRate,
+      // Cadence: dedicated sensor value wins when sensor is live; fall back to trainer.
+      cadence: st.cadenceSensorStatus === 'connected'
+        ? st.cadence
+        : (d.cadence ?? st.cadence),
+      // Heart rate: dedicated sensor value wins when sensor is live; fall back to trainer.
+      heartRate: st.hrSensorStatus === 'connected'
+        ? st.heartRate
+        : (d.heartRate ?? st.heartRate),
     })),
 
   requestFlyTo: (target) =>
@@ -302,6 +371,43 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         ? { ...target, id: (st.flyToTarget?.id ?? 0) + 1 }
         : null,
     })),
+
+  // ---- ADDITIVE: Sensor actions ----
+
+  setHrSensorStatus: (status, deviceName) =>
+    set((st) => ({
+      hrSensorStatus: status,
+      hrSensorDeviceName: deviceName !== undefined ? deviceName : st.hrSensorDeviceName,
+      // On disconnect/error, clear the sensor value so the HUD falls back to the trainer.
+      hrSensorValue:
+        status === 'disconnected' || status === 'error' ? null : st.hrSensorValue,
+      // When sensor disconnects, let heartRate fall back to whatever trainer provides next tick.
+      heartRate:
+        status === 'disconnected' || status === 'error' ? null : st.heartRate,
+    })),
+
+  ingestHrSensorData: (bpm) =>
+    set({
+      hrSensorValue: bpm,
+      // Override the canonical heartRate field — this is what the HUD and FIT recorder read.
+      heartRate: bpm,
+    }),
+
+  setCadenceSensorStatus: (status, deviceName) =>
+    set((st) => ({
+      cadenceSensorStatus: status,
+      cadenceSensorDeviceName: deviceName !== undefined ? deviceName : st.cadenceSensorDeviceName,
+      // On disconnect/error, clear sensor value so the HUD falls back to the trainer.
+      cadenceSensorValue:
+        status === 'disconnected' || status === 'error' ? null : st.cadenceSensorValue,
+    })),
+
+  ingestCadenceSensorData: (rpm) =>
+    set({
+      cadenceSensorValue: rpm,
+      // Override the canonical cadence field — this is what the HUD and FIT recorder read.
+      cadence: rpm,
+    }),
 
   prepare: () => {
     const { route } = get();
