@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Github, Globe2, Library } from 'lucide-react';
+import { ArrowRight, Github, Globe2, Library, Search } from 'lucide-react';
 
 import { GPXUploader } from '@/components/GPXUploader';
+import { RouteSearch } from '@/components/RouteSearch';
 import { TrainerConnect } from '@/components/TrainerConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { RouteLibrary } from '@/components/RouteLibrary';
@@ -67,6 +68,27 @@ export function Home() {
             </CardHeader>
             <CardContent className="space-y-4">
               <GPXUploader />
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border/60" />
+                <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  or search a place
+                </span>
+                <div className="h-px flex-1 bg-border/60" />
+              </div>
+
+              <RouteSearch />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => navigate('/explore')}
+              >
+                <Search className="h-4 w-4" />
+                Explore on the globe
+              </Button>
+
               {route && (
                 <div className="rounded-lg bg-muted/30 p-3">
                   <ElevationProfile />
