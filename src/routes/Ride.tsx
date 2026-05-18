@@ -17,7 +17,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
+import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { WorkoutHUD } from '@/components/WorkoutHUD';
 import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
@@ -32,12 +34,14 @@ export function Ride() {
   const route      = useRideStore((s) => s.route);
   const rideState  = useRideStore((s) => s.rideState);
   const replayData = useRideStore((s) => s.replayData);
+  const activeWorkout = useRideStore((s) => s.activeWorkout);
 
   // Run the replay loop when replay data is present; otherwise the live loop.
   // Both hooks are always called (Rules of Hooks) — each guards on its own
   // condition internally so only one does real work at a time.
   useRideLoop();
   useReplayLoop();
+  useWorkoutEngine();
   useWakeLock(rideState === 'running');
 
   const [token, setToken] = useState<string | null>(() => {
@@ -108,6 +112,11 @@ export function Ride() {
         {/* Right: HUD (tablet+) */}
         <div className="hidden sm:block pointer-events-none w-full max-w-[22rem] md:max-w-[26rem] lg:max-w-[30rem] xl:max-w-[34rem]">
           <RideHUD />
+          {activeWorkout && (
+            <div className="mt-2">
+              <WorkoutHUD />
+            </div>
+          )}
         </div>
       </div>
 
@@ -121,6 +130,11 @@ export function Ride() {
         }}
       >
         <RideHUD />
+        {activeWorkout && (
+          <div className="mt-2">
+            <WorkoutHUD />
+          </div>
+        )}
       </div>
 
       {/* Bottom-center: transport controls */}

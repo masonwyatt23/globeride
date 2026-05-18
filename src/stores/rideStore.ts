@@ -10,6 +10,7 @@ import type {
 } from '@/types';
 import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
+import type { Workout } from '@/lib/workout';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -136,6 +137,34 @@ interface RideStoreState {
    */
   cadenceSensorValue: number | null;
 
+  // ---- ADDITIVE: Workout engine state ----
+  /**
+   * The workout currently bound to this ride session.
+   * null = normal free-ride (no structured workout active).
+   * Set before starting a ride via loadWorkout / clearWorkout.
+   */
+  activeWorkout: Workout | null;
+  /**
+   * True while the workout engine is driving the trainer.
+   * Acts as a mutual-exclusion guard: useRideLoop bails when this is true
+   * (same pattern as replayData), and useWorkoutEngine owns tick() instead.
+   */
+  workoutRunning: boolean;
+  /** Elapsed seconds into the active workout (driven by useWorkoutEngine). */
+  workoutElapsedSec: number;
+  /** Last resolved target watts for the HUD. null = no ERG target (grade/free). */
+  workoutTargetWatts: number | null;
+  /** Action: attach a workout to the current ride session. */
+  loadWorkout: (workout: Workout) => void;
+  /** Action: detach the workout and return to free-ride. */
+  clearWorkout: () => void;
+  /** Action: set workoutRunning flag (called by useWorkoutEngine). */
+  setWorkoutRunning: (running: boolean) => void;
+  /** Action: advance workout elapsed time (called each frame by useWorkoutEngine). */
+  advanceWorkoutElapsed: (dt: number) => void;
+  /** Action: update the last resolved ERG target for the HUD. */
+  setWorkoutTargetWatts: (watts: number | null) => void;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -248,6 +277,36 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   cadenceSensorStatus: 'disconnected',
   cadenceSensorDeviceName: null,
   cadenceSensorValue: null,
+
+  // ---- ADDITIVE: Workout engine initial state ----
+  activeWorkout: null,
+  workoutRunning: false,
+  workoutElapsedSec: 0,
+  workoutTargetWatts: null,
+
+  // ---- ADDITIVE: Workout actions ----
+  loadWorkout: (workout) =>
+    set({
+      activeWorkout: workout,
+      workoutRunning: false,
+      workoutElapsedSec: 0,
+      workoutTargetWatts: null,
+    }),
+
+  clearWorkout: () =>
+    set({
+      activeWorkout: null,
+      workoutRunning: false,
+      workoutElapsedSec: 0,
+      workoutTargetWatts: null,
+    }),
+
+  setWorkoutRunning: (running) => set({ workoutRunning: running }),
+
+  advanceWorkoutElapsed: (dt) =>
+    set((st) => ({ workoutElapsedSec: st.workoutElapsedSec + dt })),
+
+  setWorkoutTargetWatts: (watts) => set({ workoutTargetWatts: watts }),
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
@@ -456,6 +515,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       elevation: get().route?.points[0].ele ?? 0,
       lastSentGrade: NaN,
       replayIndex: 0,
+      // Reset workout engine state but keep the bound workout so user can re-ride
+      workoutRunning: false,
+      workoutElapsedSec: 0,
+      workoutTargetWatts: null,
     }),
 
   tick: (input) =>
@@ -498,7 +561,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elevation: input.elevationNow,
         // Demo Mode and replay drive speed from the loop's computed/recorded
         // value; live trainer mode keeps the speed already set by ingest.
-        speed: st.mode === 'demo' || st.replayData ? input.speedNow : st.speed,
+        speed: st.mode === 'demo' || st.replayData || st.workoutRunning ? input.speedNow : st.speed,
         power: input.powerNow ?? st.power,
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,
