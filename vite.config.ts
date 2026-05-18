@@ -57,6 +57,14 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/xai/, ''),
         secure: true,
       },
+      // Proxy /strava-api/* → https://www.strava.com/* to work around browser CORS.
+      // In production, mirror this rewrite in your reverse-proxy / serverless function
+      // (nginx location ^~ /strava-api/, Cloudflare Worker, Netlify redirect, etc.).
+      '/strava-api': {
+        target: 'https://www.strava.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/strava-api/, ''),
+      },
     },
   },
   preview: {
@@ -66,6 +74,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/xai/, ''),
         secure: true,
+      },
+      '/strava-api': {
+        target: 'https://www.strava.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/strava-api/, ''),
       },
     },
   },
