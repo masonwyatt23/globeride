@@ -13,6 +13,7 @@ import {
   headingBetween,
   routeToCartesians,
   setIonToken,
+  setActiveViewer,
   type BikeAvatar,
 } from '@/lib/cesiumUtils';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
@@ -57,6 +58,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       navigationInstructionsInitiallyVisible: false,
     });
     viewerRef.current = viewer;
+    setActiveViewer(viewer);
 
     viewer.scene.globe.depthTestAgainstTerrain = true;
     if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = true;
@@ -94,6 +96,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         viewer.scene.primitives.remove(tilesetRef.current);
         tilesetRef.current = null;
       }
+      setActiveViewer(null);
       viewer.destroy();
       viewerRef.current = null;
     };

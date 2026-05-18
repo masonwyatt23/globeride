@@ -67,6 +67,12 @@ interface RideStoreState {
   /** Monotonic counter bumped whenever the library is mutated; subscribers re-fetch. */
   libraryVersion: number;
 
+  // ---- Draw-route mode ----
+  /** Whether the user is actively drawing a route on the globe. */
+  drawModeActive: boolean;
+  /** Actions to toggle draw mode from any component. */
+  setDrawModeActive: (active: boolean) => void;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -156,7 +162,11 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   libraryVersion: 0,
   flyToTarget: null,
 
+  drawModeActive: false,
+
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
+
+  setDrawModeActive: (active) => set({ drawModeActive: active }),
 
   setRoute: (route) =>
     set({

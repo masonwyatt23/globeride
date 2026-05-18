@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft } from 'lucide-react';
 import { CesiumViewer } from '@/components/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/CesiumTokenPrompt';
 import { RouteSearch } from '@/components/RouteSearch';
+import { RouteDrawer } from '@/components/RouteDrawer';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
 
@@ -66,6 +67,7 @@ export function Explore() {
         <div className="pointer-events-auto w-full max-w-sm">
           <RouteSearch variant="overlay" />
         </div>
+        <RouteDrawer variant="overlay" onRouteReady={() => navigate('/ride')} />
       </div>
 
       {route && (

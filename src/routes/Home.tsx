@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind, PenLine } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
@@ -93,6 +93,17 @@ export function Home() {
               >
                 <Search className="h-4 w-4" />
                 Explore on the globe
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full"
+                onClick={() => navigate('/explore')}
+                title="Draw a custom route by clicking on the 3D globe"
+              >
+                <PenLine className="h-4 w-4" />
+                Draw a route on the map
               </Button>
 
               {route && (
