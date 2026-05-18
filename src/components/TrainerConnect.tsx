@@ -5,6 +5,8 @@ import {
   BluetoothOff,
   HelpCircle,
   Loader2,
+  Target,
+  Waves,
   Zap,
 } from 'lucide-react';
 
@@ -16,6 +18,9 @@ import {
   disconnect as ftmsDisconnect,
   FtmsError,
   getDeviceName,
+  setTrainerControlMode as ftmsSetMode,
+  getTrainerControlMode,
+  type TrainerControlMode,
 } from '@/lib/ftms';
 import {
   detectBluetoothSupport,
@@ -30,15 +35,18 @@ import { cn } from '@/lib/utils';
  * Shows capability state, current device, error remediation, and a pairing guide.
  */
 export function TrainerConnect() {
-  const connection     = useRideStore((s) => s.connection);
-  const deviceName     = useRideStore((s) => s.deviceName);
-  const error          = useRideStore((s) => s.errorMessage);
-  const errorCode      = useRideStore((s) => s.errorCode);
-  const battery        = useRideStore((s) => s.batteryLevel);
-  const mode           = useRideStore((s) => s.mode);
-  const setConnection  = useRideStore((s) => s.setConnection);
-  const setMode        = useRideStore((s) => s.setMode);
-  const pushToast      = useRideStore((s) => s.pushToast);
+  const connection          = useRideStore((s) => s.connection);
+  const deviceName          = useRideStore((s) => s.deviceName);
+  const error               = useRideStore((s) => s.errorMessage);
+  const errorCode           = useRideStore((s) => s.errorCode);
+  const battery             = useRideStore((s) => s.batteryLevel);
+  const mode                = useRideStore((s) => s.mode);
+  const trainerControlMode  = useRideStore((s) => s.trainerControlMode);
+  const targetPowerW        = useRideStore((s) => s.targetPowerW);
+  const setConnection       = useRideStore((s) => s.setConnection);
+  const setMode             = useRideStore((s) => s.setMode);
+  const storeSetCtrlMode    = useRideStore((s) => s.setTrainerControlMode);
+  const pushToast           = useRideStore((s) => s.pushToast);
 
   const [report, setReport]                     = useState<BluetoothSupportReport>(() => detectBluetoothSupport());
   const [troubleshootOpen, setTroubleshootOpen] = useState(false);
@@ -90,14 +98,35 @@ export function TrainerConnect() {
     pushToast({ kind: 'info', title: 'Trainer disconnected', durationMs: 3_000 });
   }, [setConnection, pushToast]);
 
+  const handleToggleControlMode = useCallback(() => {
+    const next: TrainerControlMode = trainerControlMode === 'erg' ? 'sim' : 'erg';
+    ftmsSetMode(next);
+    storeSetCtrlMode(next);
+    pushToast({
+      kind: 'info',
+      title: next === 'erg' ? 'ERG mode active' : 'Simulation mode active',
+      message: next === 'erg'
+        ? 'Trainer will hold target power from the workout.'
+        : 'Trainer resistance follows the route gradient.',
+      durationMs: 3_000,
+    });
+  }, [trainerControlMode, storeSetCtrlMode, pushToast]);
+
   const statusLine = useMemo(() => {
-    if (connection === 'connected')    return 'Streaming · simulation mode';
+    if (connection === 'connected') {
+      if (trainerControlMode === 'erg') {
+        return targetPowerW !== null
+          ? `ERG mode · ${targetPowerW} W target`
+          : 'ERG mode · awaiting target';
+      }
+      return 'Streaming · simulation mode';
+    }
     if (connection === 'connecting')   return 'Negotiating control…';
     if (connection === 'reconnecting') return 'Reconnecting to trainer…';
     if (connection === 'error')        return error ?? 'Connection failed';
     if (!report.usable)                return report.reason ?? 'Web Bluetooth not available';
     return 'FTMS-compatible · ready to pair';
-  }, [connection, error, report]);
+  }, [connection, error, report, trainerControlMode, targetPowerW]);
 
   const isConnected   = connection === 'connected';
   const isBusy        = connection === 'connecting' || connection === 'reconnecting';
@@ -133,6 +162,17 @@ export function TrainerConnect() {
             {isConnected && (
               <Badge variant="success" className="num">
                 <Zap className="h-3 w-3" /> LIVE
+              </Badge>
+            )}
+            {isConnected && (
+              <Badge
+                variant={trainerControlMode === 'erg' ? 'warning' : 'muted'}
+                className="num"
+              >
+                {trainerControlMode === 'erg'
+                  ? <><Target className="h-3 w-3" /> ERG</>
+                  : <><Waves className="h-3 w-3" /> SIM</>
+                }
               </Badge>
             )}
             {connection === 'reconnecting' && (
@@ -183,6 +223,23 @@ export function TrainerConnect() {
             {mode === 'demo' ? 'Demo on' : 'Demo mode'}
           </Button>
         </div>
+        {/* ERG / SIM mode toggle -- only shown when a trainer is connected */}
+        {isConnected && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleControlMode}
+            className="w-full justify-start gap-2 text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            title={trainerControlMode === 'erg'
+              ? 'Switch to Simulation mode (gradient-based resistance)'
+              : 'Switch to ERG mode (structured workout power control)'}
+          >
+            {trainerControlMode === 'erg'
+              ? <><Target className="h-3.5 w-3.5 text-amber-400" /> ERG mode active &mdash; tap to switch to SIM</>
+              : <><Waves className="h-3.5 w-3.5" /> SIM mode active &mdash; tap to switch to ERG</>
+            }
+          </Button>
+        )}
 
         {/* Help link */}
         <button

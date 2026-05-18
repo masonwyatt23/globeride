@@ -4,7 +4,11 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
-import { setSimulationParams } from '@/lib/ftms';
+import {
+  setSimulationParams,
+  setTargetPower,
+  getTrainerControlMode,
+} from '@/lib/ftms';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -79,22 +83,35 @@ export function useRideLoop(): void {
         speed = solveVelocity(power, grade, rider);
       }
 
-      // ---- Throttle simulation-param updates to the trainer (~1.2 Hz max) ----
+      // ---- Throttle trainer updates (~1.2 Hz max) ----
+      // ERG mode: send opcode 0x05 Set Target Power.
+      // SIM mode: send opcode 0x11 Set Indoor Bike Simulation Parameters.
       const now = Date.now();
       if (s.mode === 'trainer' && s.connection === 'connected') {
-        const gradeChanged = Math.abs(grade - s.lastSentGrade) > 0.5;
-        if (now - lastSentT.current > 850 || gradeChanged) {
-          lastSentT.current = now;
-          useRideStore.setState({ lastSentGrade: grade });
-          // Project headwind onto the rider's forward axis for the trainer.
-          const headwindMs =
-            settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
-          setSimulationParams({
-            gradePct: grade,
-            windMs: headwindMs,
-            crrScaled: ftmsCrr(rider),
-            cwScaled: ftmsCw(rider),
-          }).catch(() => undefined);
+        const controlMode = getTrainerControlMode();
+        if (controlMode === 'erg') {
+          // ERG: only push if we have a target power configured in the store.
+          const targetW = s.targetPowerW;
+          if (targetW !== null && now - lastSentT.current > 850) {
+            lastSentT.current = now;
+            setTargetPower(targetW).catch(() => undefined);
+          }
+        } else {
+          // SIM: push gradient (+ physics coefficients) to trainer.
+          const gradeChanged = Math.abs(grade - s.lastSentGrade) > 0.5;
+          if (now - lastSentT.current > 850 || gradeChanged) {
+            lastSentT.current = now;
+            useRideStore.setState({ lastSentGrade: grade });
+            // Project headwind onto the rider's forward axis for the trainer.
+            const headwindMs =
+              settings.windSpeedMs * Math.cos((settings.windDirectionDeg * Math.PI) / 180);
+            setSimulationParams({
+              gradePct: grade,
+              windMs: headwindMs,
+              crrScaled: ftmsCrr(rider),
+              cwScaled: ftmsCw(rider),
+            }).catch(() => undefined);
+          }
         }
       }
 

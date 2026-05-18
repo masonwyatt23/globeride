@@ -10,6 +10,7 @@ import type {
 } from '@/types';
 import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
+import type { TrainerControlMode } from '@/lib/ftms';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -136,6 +137,21 @@ interface RideStoreState {
    */
   cadenceSensorValue: number | null;
 
+  // ---- ADDITIVE: ERG/SIM trainer control state ----
+  /**
+   * Current trainer control mode.
+   *   'erg' = the workout engine drives power via setTargetPower (opcode 0x05).
+   *   'sim' = the ride loop drives gradient via setSimulationParams (opcode 0x11).
+   * Defaults to 'sim' so existing behaviour is unchanged.
+   */
+  trainerControlMode: TrainerControlMode;
+  /**
+   * The power target most recently sent to the trainer in ERG mode, watts.
+   * null when not in ERG mode or no target has been set yet.
+   * Read by ConnectionStatus / TrainerConnect to show current target in the HUD.
+   */
+  targetPowerW: number | null;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -168,6 +184,12 @@ interface RideStoreState {
   setCadenceSensorStatus: (status: SensorConnectionStatus, deviceName?: string | null) => void;
   /** Push a new cadence reading from the dedicated sensor. */
   ingestCadenceSensorData: (rpm: number) => void;
+
+  // ---- ADDITIVE: ERG control actions ----
+  /** Set trainer control mode (erg or sim). Reflects to ftms module. */
+  setTrainerControlMode: (mode: TrainerControlMode) => void;
+  /** Update the current ERG target power displayed in the HUD. */
+  setTargetPowerW: (watts: number | null) => void;
 
   // ---- Toasts ----
   pushToast: (toast: Omit<Toast, 'id'> & { id?: string }) => string;
@@ -248,6 +270,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   cadenceSensorStatus: 'disconnected',
   cadenceSensorDeviceName: null,
   cadenceSensorValue: null,
+
+  // ---- ADDITIVE: ERG/SIM initial state ----
+  trainerControlMode: 'sim',
+  targetPowerW: null,
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
@@ -525,6 +551,12 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     });
     return id;
   },
+
+  // ---- ADDITIVE: ERG control action implementations ----
+
+  setTrainerControlMode: (mode) => set({ trainerControlMode: mode }),
+
+  setTargetPowerW: (watts) => set({ targetPowerW: watts }),
 
   dismissToast: (id) => set((st) => ({ toasts: st.toasts.filter((t) => t.id !== id) })),
 }));
