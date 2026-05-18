@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
+import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
 import { GPXUploader } from '@/components/GPXUploader';
 import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
@@ -132,6 +133,9 @@ export function Home() {
               <RouteLibrary />
             </CardContent>
           </Card>
+
+          {/* AI Workout Designer */}
+          <AIWorkoutDesigner />
 
           {/* Step 2: Trainer */}
           <Card>

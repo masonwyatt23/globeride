@@ -45,6 +45,29 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    proxy: {
+      // xAI proxy — routes /xai/* → https://api.x.ai/* to avoid CORS in the
+      // browser during dev. In production, expose the same /xai path via your
+      // hosting proxy (e.g. Vercel rewrites, Cloudflare Workers) or a
+      // serverless function that adds the Authorization header server-side
+      // so the API key is never sent from the browser to a public endpoint.
+      '/xai': {
+        target: 'https://api.x.ai',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/xai/, ''),
+        secure: true,
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/xai': {
+        target: 'https://api.x.ai',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/xai/, ''),
+        secure: true,
+      },
+    },
   },
   build: {
     target: 'es2022',
