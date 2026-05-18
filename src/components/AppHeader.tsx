@@ -1,6 +1,7 @@
 import { Github, Globe2 } from 'lucide-react';
 
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SettingsButton } from '@/components/SettingsPanel';
 import { cn } from '@/lib/utils';
 
 /**
@@ -54,6 +55,7 @@ export function AppHeader({
         >
           <Github className="h-4 w-4" />
         </a>
+        <SettingsButton variant="outline" size="icon" />
         <ThemeToggle />
       </div>
     </header>

@@ -330,24 +330,47 @@ export async function disconnect(): Promise<void> {
 
 // --- Send simulation params ---------------------------------------------
 
+export interface SimParams {
+  /** Grade in percent, + uphill. */
+  gradePct: number;
+  /** Headwind speed in m/s, + against rider (subtracted from rider's perceived speed). */
+  windMs?: number;
+  /** Crr × 10000, e.g. 40 = 0.0040 (road tarmac). 0–255. */
+  crrScaled?: number;
+  /** Cw × 100, e.g. 51 = 0.51 (hoods position). 0–255. */
+  cwScaled?: number;
+}
+
 /**
- * Push a new simulated gradient to the trainer. Most trainers ignore wind
- * speed; we always send 0 m/s. Crr and Cw use realistic road-bike defaults.
+ * Push a new simulated gradient + (optionally) wind/Crr/Cw to the trainer.
+ * Most trainers fold wind into the perceived resistance; some ignore it.
  *
- * @param gradePct Slope in percent (+ uphill, − downhill). Internally
- *                 clamped to [-25, +25] for safety.
+ * Internally clamps grade to ±25 % for safety.
  */
-export async function setGradient(gradePct: number): Promise<void> {
+export async function setSimulationParams(params: SimParams): Promise<void> {
   if (!controlPoint) return;
-  const clamped = Math.max(-25, Math.min(25, gradePct));
+  const grade = Math.max(-25, Math.min(25, params.gradePct));
+  // Wind: int16 LE in millimetres per second. Spec range −32.768..+32.767 m/s.
+  const windMmS = Math.round(Math.max(-32, Math.min(32, params.windMs ?? 0)) * 1000);
+  const crrByte = Math.max(0, Math.min(255, params.crrScaled ?? 40));
+  const cwByte = Math.max(0, Math.min(255, params.cwScaled ?? 51));
+
   const buf = new ArrayBuffer(7);
   const view = new DataView(buf);
   view.setUint8(0, OP_SET_SIM_PARAMS);
-  view.setInt16(1, 0, true); // wind speed, m/s * 1000 — always 0
-  view.setInt16(3, Math.round(clamped * 100), true); // grade %, scaled ×100
-  view.setUint8(5, 40); // Crr = 0.0040  (×10000)
-  view.setUint8(6, 51); // Cw  = 0.51    (×100), drag area for hoods
+  view.setInt16(1, windMmS, true);
+  view.setInt16(3, Math.round(grade * 100), true);
+  view.setUint8(5, crrByte);
+  view.setUint8(6, cwByte);
   await writeControl(new Uint8Array(buf));
+}
+
+/**
+ * Back-compat shim — kept so older call sites keep working. New code should
+ * use `setSimulationParams` so user-tuned Crr/Cw/wind reach the trainer.
+ */
+export async function setGradient(gradePct: number): Promise<void> {
+  await setSimulationParams({ gradePct });
 }
 
 /** Internal: serialized write to the control point. */

@@ -9,6 +9,7 @@ import { RideControls } from '@/components/RideControls';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { SettingsButton } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
@@ -65,9 +66,9 @@ export function Ride() {
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
       <CesiumViewer ionToken={token} />
 
-      {/* Top-left: exit + theme toggle + connection status (always visible).
-          Pointer events scoped so the rest of the overlay doesn't eat globe
-          interactions. */}
+      {/* Top-left: exit + theme toggle + settings + connection status (always
+          visible). Pointer events scoped so the rest of the overlay doesn't
+          eat globe interactions. */}
       <div
         className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none"
         style={{
@@ -87,6 +88,11 @@ export function Ride() {
               <ChevronLeft className="h-4 w-4" /> exit
             </Button>
             <ThemeToggle />
+            <SettingsButton
+              variant="outline"
+              size="icon"
+              className="rounded-full glass glass-hairline border-transparent"
+            />
           </div>
           <ConnectionStatus compact />
         </div>

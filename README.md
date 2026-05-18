@@ -40,6 +40,26 @@ gradient as you ride. Record the ride, export a `.FIT`, push to Strava.
 
 ---
 
+## Phase 2 — what's new
+
+- 🚴 **Full cycling physics model.** Gravity, rolling resistance, aerodynamic
+  drag, drivetrain losses, and wind (speed + direction) are all simulated
+  per Martin et al., 1998. Demo Mode now responds realistically to every
+  rider knob — climb a 6 % grade in the drops at 250 W and you'll arrive
+  at the same speed you would in real life.
+- 🛠️ **Settings panel.** Persistent rider config (localStorage) — body
+  weight, bike weight, bike type (road / gravel / MTB → Crr), rider
+  position (drops / hoods / tops → CdA), drivetrain efficiency, wind, and
+  Demo-mode target power. Unit toggle (kg/km/h ↔ lb/mph).
+- 📡 **Settings-aware FTMS push.** The user's Crr / CdA / wind values are
+  packed into the trainer's `Set Simulation Parameters` opcode so the
+  resistance feel matches what you configured.
+- 🎨 **Upgraded 3D avatar.** A heading-oriented bike body + rider, a glow
+  marker visible from far away, a directional arrow showing where you're
+  pointing, and a soft ground shadow clamped to terrain.
+
+---
+
 ## Quick start
 
 ```bash
@@ -205,18 +225,31 @@ emits:
 CRC is computed with the table from the FIT SDK. The resulting `.fit`
 uploads cleanly to Strava and most third-party services.
 
-### Demo Mode
+### Demo Mode (full physics)
 
-When no trainer is connected, GlobeRide solves the cycling-power equation
-each frame to derive realistic speed from the rider's grade:
+When no trainer is connected, GlobeRide solves the steady-state cycling
+power balance every frame:
 
 ```
-P = m·g·(sinθ + Crr·cosθ)·v + ½·ρ·CdA·v³
+P_pedal · η_drive = (m·g·sinθ  +  m·g·cosθ·Crr  +  ½·ρ·CdA·v_air·|v_air|) · v
+v_air = v + v_headwind
 ```
 
-Defaults: 80 kg combined mass, Crr = 0.005, CdA = 0.32 m², ρ = 1.225 kg/m³,
-target rider power = 190 W. Newton-Raphson solves for v in a handful of
-iterations.
+All five coefficients are user-configurable from the settings panel:
+
+| Knob              | Source                                       | Range / preset                          |
+|---|---|---|
+| Combined mass `m` | Rider + bike weight                          | kg or lb                                 |
+| Crr               | Bike type                                    | road 0.004 · gravel 0.008 · MTB 0.014    |
+| CdA               | Rider position                               | drops 0.27 · hoods 0.32 · tops 0.40 m²   |
+| η_drive           | Drivetrain efficiency slider                 | 88 – 100 % (default 97 %)               |
+| Wind              | Speed + direction (0 ° = headwind)           | 0–50 km/h, any heading                  |
+| ρ                 | Air density                                  | 1.225 kg/m³ (sea level, 15 °C)          |
+
+Newton-Raphson on the cubic-like force balance converges in 3–6 iterations
+per frame. In trainer mode the same coefficients are packed into the FTMS
+`Set Simulation Parameters` payload (opcode `0x11`), so the resistance
+feel on real hardware matches the configured rider.
 
 ---
 

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { GPXUploader } from '@/components/GPXUploader';
@@ -7,10 +7,12 @@ import { RouteSearch } from '@/components/RouteSearch';
 import { TrainerConnect } from '@/components/TrainerConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { RouteLibrary } from '@/components/RouteLibrary';
+import { SettingsButton } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
 
 /**
  * Landing / setup page. Three vertically-stacked panels on mobile, a 2-col
@@ -21,9 +23,20 @@ export function Home() {
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => s.mode);
+  const settings = useSettingsStore();
 
   const canRide = !!route;
   const willUseDemo = mode === 'demo' || connection !== 'connected';
+  const imperial = settings.units === 'imperial';
+  const totalMassDisplay = imperial
+    ? `${Math.round(kgToLb(settings.riderMassKg + settings.bikeMassKg))} lb`
+    : `${Math.round(settings.riderMassKg + settings.bikeMassKg)} kg`;
+  const windDisplay =
+    settings.windSpeedMs === 0
+      ? 'calm'
+      : imperial
+        ? `${msToMph(settings.windSpeedMs).toFixed(1)} mph`
+        : `${msToKmh(settings.windSpeedMs).toFixed(1)} km/h`;
 
   return (
     <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
@@ -121,6 +134,15 @@ export function Home() {
                   ? 'No trainer connected — Demo Mode will simulate power and speed for you.'
                   : 'Trainer connected. Gradients will stream in real time.'}
               </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Chip icon={<Weight className="h-3 w-3" />} label={totalMassDisplay} />
+                <Chip
+                  icon={<Bike className="h-3 w-3" />}
+                  label={`${settings.bikeType.toUpperCase()} · ${settings.riderPosition}`}
+                />
+                <Chip icon={<Wind className="h-3 w-3" />} label={windDisplay} />
+                <SettingsButton variant="ghost" size="sm" showLabel />
+              </div>
               <Button
                 size="lg"
                 variant="accent"
@@ -187,6 +209,15 @@ export function Home() {
         <span className="num">v0.2.0</span>
       </footer>
     </div>
+  );
+}
+
+function Chip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card/40 px-2 py-0.5 text-foreground">
+      {icon}
+      <span className="num">{label}</span>
+    </span>
   );
 }
 

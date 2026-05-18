@@ -6,25 +6,28 @@ import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
 import {
   applyFollowCam,
+  createBikeAvatar,
   flyToPoint,
   flyToRoute,
   getTerrainProvider,
+  headingBetween,
   routeToCartesians,
   setIonToken,
+  type BikeAvatar,
 } from '@/lib/cesiumUtils';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
- * polyline + a bike avatar that tracks the rider's current distance. The
- * camera follows the avatar when riding, and frames the entire route when
- * idle so the user can preview before clicking Start.
+ * polyline + a multi-part bike avatar that tracks the rider's current
+ * distance and heading. The camera follows the avatar when riding, and frames
+ * the entire route when idle so the user can preview before clicking Start.
  */
 export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
-  const bikeRef = useRef<Cesium.Entity | null>(null);
+  const avatarRef = useRef<BikeAvatar | null>(null);
   const cartesianRouteRef = useRef<Cesium.Cartesian3[] | null>(null);
   const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
@@ -52,7 +55,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       selectionIndicator: false,
       navigationHelpButton: false,
       navigationInstructionsInitiallyVisible: false,
-      // Use the default Bing/EarthAtNight imagery from ion when we have a token.
     });
     viewerRef.current = viewer;
 
@@ -67,19 +69,14 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       .then((terrain) => {
         viewer.scene.terrainProvider = terrain;
       })
-      .catch(() => {
-        // Without a token, terrain will be flat ellipsoid — still usable.
-      });
+      .catch(() => undefined);
 
-    // OSM Buildings (ion asset 96188).
     Cesium.createOsmBuildingsAsync()
       .then((tileset) => {
         viewer.scene.primitives.add(tileset);
         tilesetRef.current = tileset;
       })
-      .catch(() => {
-        // Fail silently — no buildings, but the rest of the scene works.
-      });
+      .catch(() => undefined);
 
     // Cesium normally listens for window resize, but when the container is
     // collapsed/expanded by a layout change (sidebar open, breakpoint shift)
@@ -100,8 +97,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       viewer.destroy();
       viewerRef.current = null;
     };
-    // ionToken intentionally not in deps — we only bootstrap once. Token
-    // changes mid-session require a full reload (covered by the prompt UI).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,7 +111,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     );
   }, [theme]);
 
-  // ---- Rebuild route entities when route changes ----
+  // ---- Rebuild route entities + avatar when route changes ----
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -125,9 +120,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       viewer.entities.remove(routePolylineRef.current);
       routePolylineRef.current = null;
     }
-    if (bikeRef.current) {
-      viewer.entities.remove(bikeRef.current);
-      bikeRef.current = null;
+    if (avatarRef.current) {
+      for (const e of avatarRef.current.entities) viewer.entities.remove(e);
+      avatarRef.current = null;
     }
     cartesianRouteRef.current = null;
 
@@ -149,30 +144,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       },
     });
 
+    const avatar = createBikeAvatar(viewer);
+    avatarRef.current = avatar;
+
     const start = route.points[0];
-    bikeRef.current = viewer.entities.add({
-      name: 'Rider',
-      position: Cesium.Cartesian3.fromDegrees(start.lon, start.lat, start.ele + 2),
-      point: {
-        pixelSize: 16,
-        color: Cesium.Color.fromCssColorString('#5eead4'),
-        outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
-        outlineWidth: 3,
-        heightReference: Cesium.HeightReference.NONE,
-      },
-      label: {
-        text: '▲',
-        font: 'bold 18px sans-serif',
-        fillColor: Cesium.Color.fromCssColorString('#0b1220'),
-        outlineColor: Cesium.Color.fromCssColorString('#5eead4'),
-        outlineWidth: 0,
-        verticalOrigin: Cesium.VerticalOrigin.CENTER,
-        horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-        pixelOffset: new Cesium.Cartesian2(0, 0),
-        showBackground: false,
-        scale: 0.0,
-      },
-    });
+    const next = route.points[Math.min(1, route.points.length - 1)];
+    const initialHeading = headingBetween(start, next);
+    avatar.update({ lat: start.lat, lon: start.lon, ele: start.ele }, initialHeading);
 
     flyToRoute(viewer, positions);
   }, [route]);
@@ -237,7 +215,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const handler = () => {
       const state = useRideStore.getState();
       const r = state.route;
-      if (!r || !bikeRef.current) return;
+      if (!r || !avatarRef.current) return;
 
       const sampled = sampleRouteAtDistance(r, state.distance);
       const ahead =
@@ -245,10 +223,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           .__globerideAhead ??
         sampleRouteAtDistance(r, Math.min(r.totalDistance, state.distance + 6));
 
-      // Park the avatar slightly above terrain so it isn't z-fought.
-      bikeRef.current.position = new Cesium.ConstantPositionProperty(
-        Cesium.Cartesian3.fromDegrees(sampled.lon, sampled.lat, sampled.ele + 2),
+      const heading = headingBetween(
+        { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
+        { lat: ahead.lat, lon: ahead.lon, ele: ahead.ele },
       );
+      avatarRef.current.update({ lat: sampled.lat, lon: sampled.lon, ele: sampled.ele }, heading);
 
       if (state.rideState === 'running' || state.rideState === 'paused') {
         applyFollowCam(
