@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Github, Globe2 } from 'lucide-react';
+import { ArrowRight, Github, Globe2, Library } from 'lucide-react';
 
 import { GPXUploader } from '@/components/GPXUploader';
 import { TrainerConnect } from '@/components/TrainerConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
+import { RouteLibrary } from '@/components/RouteLibrary';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +72,18 @@ export function Home() {
                   <ElevationProfile />
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Library className="h-4 w-4 text-primary" />
+                My Routes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RouteLibrary />
             </CardContent>
           </Card>
 

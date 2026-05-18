@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
-import { Upload, MapPin, Mountain, Loader2, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Upload, MapPin, Mountain, Loader2, Sparkles, BookmarkPlus, Check } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { parseGpx } from '@/lib/gpxParser';
 import { makeDemoRoute } from '@/lib/sampleRoutes';
+import { hasRoute, saveRoute } from '@/lib/routeLibrary';
 import { Button } from '@/components/ui/button';
 import { cn, formatDistance } from '@/lib/utils';
 
@@ -14,10 +15,46 @@ import { cn, formatDistance } from '@/lib/utils';
 export function GPXUploader() {
   const setRoute = useRideStore((s) => s.setRoute);
   const route = useRideStore((s) => s.route);
+  const bumpLibrary = useRideStore((s) => s.bumpLibrary);
+  const libraryVersion = useRideStore((s) => s.libraryVersion);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [savedInLibrary, setSavedInLibrary] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    if (!route) {
+      setSavedInLibrary(false);
+      return;
+    }
+    hasRoute(route.id)
+      .then((exists) => {
+        if (alive) setSavedInLibrary(exists);
+      })
+      .catch(() => {
+        if (alive) setSavedInLibrary(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [route, libraryVersion]);
+
+  const handleSave = useCallback(async () => {
+    if (!route || savedInLibrary || saving) return;
+    setSaving(true);
+    try {
+      await saveRoute(route, 'gpx');
+      setSavedInLibrary(true);
+      bumpLibrary();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save route');
+    } finally {
+      setSaving(false);
+    }
+  }, [route, savedInLibrary, saving, bumpLibrary]);
 
   const handleFile = useCallback(
     async (file: File) => {
@@ -102,7 +139,31 @@ export function GPXUploader() {
 
       {route && (
         <div className="rounded-lg border border-border bg-card/40 p-3">
-          <div className="text-sm font-semibold text-foreground truncate">{route.name}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-sm font-semibold text-foreground truncate flex-1">{route.name}</div>
+            <Button
+              variant={savedInLibrary ? 'ghost' : 'outline'}
+              size="sm"
+              disabled={savedInLibrary || saving}
+              onClick={() => void handleSave()}
+              className="shrink-0"
+              title={savedInLibrary ? 'Already in My Routes' : 'Save to My Routes'}
+            >
+              {saving ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : savedInLibrary ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-400" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <BookmarkPlus className="h-3.5 w-3.5" />
+                  Save to Library
+                </>
+              )}
+            </Button>
+          </div>
           <div className="mt-1.5 grid grid-cols-3 gap-3 text-xs">
             <RouteStat icon={<MapPin className="h-3.5 w-3.5" />} label="Distance">
               {formatDistance(route.totalDistance)}
