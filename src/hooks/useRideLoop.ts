@@ -29,7 +29,8 @@ export function useRideLoop(): void {
       raf = requestAnimationFrame(frame);
 
       const s = store.getState();
-      if (s.rideState !== 'running' || !s.route) {
+      // Replay loop handles frames when replayData is present — bail out here.
+      if (s.replayData || s.rideState !== 'running' || !s.route) {
         lastT.current = tHigh;
         return;
       }

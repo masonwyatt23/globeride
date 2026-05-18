@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
+import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { ReplayBadge } from '@/components/ReplayBadge';
 import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
@@ -28,8 +30,13 @@ export function Ride() {
   const navigate = useNavigate();
   const route = useRideStore((s) => s.route);
   const rideState = useRideStore((s) => s.rideState);
+  const replayData = useRideStore((s) => s.replayData);
 
+  // Run the replay loop when replay data is present; otherwise the live loop.
+  // Both hooks are always called (Rules of Hooks) — each guards on its own
+  // condition internally so only one does real work at a time.
   useRideLoop();
+  useReplayLoop();
   useWakeLock(rideState === 'running');
 
   // Cesium ion token bootstrap: env var → localStorage → prompt.
@@ -95,6 +102,7 @@ export function Ride() {
             />
           </div>
           <ConnectionStatus compact />
+          {replayData && <ReplayBadge />}
         </div>
 
         {/* Tablet+: HUD anchored top-right next to the action row. */}
