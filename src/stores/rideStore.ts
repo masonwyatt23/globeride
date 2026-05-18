@@ -5,6 +5,7 @@ import type {
   RideState,
   Route,
   TelemetrySample,
+  Toast,
   TrainerData,
 } from '@/types';
 
@@ -50,6 +51,17 @@ interface RideStoreState {
   connection: ConnectionState;
   deviceName: string | null;
   errorMessage: string | null;
+  errorCode: string | null;
+  /** 0 when not reconnecting; 1..N during the auto-reconnect loop. */
+  reconnectAttempt: number;
+  reconnectMaxAttempts: number;
+  /** Trainer battery 0..100 when GATT exposes the Battery Service; else null. */
+  batteryLevel: number | null;
+  /** Wall-clock ms of the last `connected` transition — drives uptime UI. */
+  connectedAt: number | null;
+
+  // ---- Toast queue ----
+  toasts: Toast[];
 
   // ---- Route library ----
   /** Monotonic counter bumped whenever the library is mutated; subscribers re-fetch. */
@@ -59,7 +71,12 @@ interface RideStoreState {
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
   setMode: (mode: RideMode) => void;
-  setConnection: (s: ConnectionState, deviceName?: string | null, err?: string | null) => void;
+  setConnection: (
+    s: ConnectionState,
+    info?: { deviceName?: string | null; error?: string | null; code?: string | null },
+  ) => void;
+  setBatteryLevel: (level: number | null) => void;
+  setReconnect: (attempt: number, maxAttempts: number) => void;
   ingestTrainerData: (data: TrainerData) => void;
   requestFlyTo: (target: Omit<FlyToTarget, 'id'> | null) => void;
 
@@ -72,6 +89,10 @@ interface RideStoreState {
 
   /** Called once per frame by useRideLoop. */
   tick: (input: TickInput) => void;
+
+  // ---- Toasts ----
+  pushToast: (toast: Omit<Toast, 'id'> & { id?: string }) => string;
+  dismissToast: (id: string) => void;
 }
 
 export interface TickInput {
@@ -97,6 +118,12 @@ export interface TickInput {
   heartRateNow: number | null;
 }
 
+let toastCounter = 0;
+function genToastId(): string {
+  toastCounter += 1;
+  return `t-${Date.now().toString(36)}-${toastCounter}`;
+}
+
 export const useRideStore = create<RideStoreState>((set, get) => ({
   route: null,
   rideState: 'idle',
@@ -118,6 +145,13 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   connection: 'disconnected',
   deviceName: null,
   errorMessage: null,
+  errorCode: null,
+  reconnectAttempt: 0,
+  reconnectMaxAttempts: 0,
+  batteryLevel: null,
+  connectedAt: null,
+
+  toasts: [],
 
   libraryVersion: 0,
   flyToTarget: null,
@@ -143,12 +177,42 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   setMode: (mode) => set({ mode }),
 
-  setConnection: (s, deviceName, err) =>
-    set({
-      connection: s,
-      deviceName: deviceName ?? get().deviceName,
-      errorMessage: err ?? (s === 'error' ? get().errorMessage : null),
+  setConnection: (s, info) =>
+    set((st) => {
+      const next: Partial<RideStoreState> = {
+        connection: s,
+        deviceName: info?.deviceName !== undefined ? info.deviceName : st.deviceName,
+      };
+      if (s === 'error') {
+        next.errorMessage = info?.error ?? st.errorMessage;
+        next.errorCode = info?.code ?? st.errorCode;
+      } else if (s === 'connected') {
+        next.errorMessage = null;
+        next.errorCode = null;
+        next.connectedAt = Date.now();
+        next.reconnectAttempt = 0;
+        next.reconnectMaxAttempts = 0;
+      } else if (s === 'disconnected') {
+        next.errorMessage = info?.error ?? null;
+        next.errorCode = info?.code ?? null;
+        next.batteryLevel = null;
+        next.connectedAt = null;
+        next.reconnectAttempt = 0;
+        next.reconnectMaxAttempts = 0;
+      } else if (s === 'reconnecting') {
+        next.errorMessage = info?.error ?? st.errorMessage;
+        next.errorCode = info?.code ?? st.errorCode;
+      } else if (s === 'connecting') {
+        next.errorMessage = null;
+        next.errorCode = null;
+      }
+      return next;
     }),
+
+  setBatteryLevel: (level) => set({ batteryLevel: level }),
+
+  setReconnect: (attempt, maxAttempts) =>
+    set({ reconnectAttempt: attempt, reconnectMaxAttempts: maxAttempts }),
 
   ingestTrainerData: (d) =>
     set((st) => ({
@@ -258,4 +322,26 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         samples: nextSamples,
       };
     }),
+
+  pushToast: (t) => {
+    const id = t.id ?? genToastId();
+    const toast: Toast = { ...t, id };
+    set((st) => {
+      // De-dupe: replace any existing toast with the same id so callers that
+      // pass a stable id (e.g. 'reconnect') get an updating notification
+      // rather than a stack.
+      const existing = st.toasts.findIndex((x) => x.id === id);
+      if (existing >= 0) {
+        const next = st.toasts.slice();
+        next[existing] = toast;
+        return { toasts: next };
+      }
+      // Cap at 5 to keep the stack from running off-screen.
+      const trimmed = st.toasts.length >= 5 ? st.toasts.slice(-4) : st.toasts;
+      return { toasts: [...trimmed, toast] };
+    });
+    return id;
+  },
+
+  dismissToast: (id) => set((st) => ({ toasts: st.toasts.filter((t) => t.id !== id) })),
 }));
