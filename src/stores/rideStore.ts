@@ -8,6 +8,18 @@ import type {
   TrainerData,
 } from '@/types';
 
+/** A camera target requested by the route-search flow. */
+export interface FlyToTarget {
+  /** Bumps every time a new fly-to is requested, even to the same coords. */
+  id: number;
+  lat: number;
+  lon: number;
+  /** [south, north, west, east] in degrees. */
+  boundingBox?: [number, number, number, number];
+  /** Human label shown as an overlay pin. */
+  label?: string;
+}
+
 interface RideStoreState {
   // ---- Route & ride lifecycle ----
   route: Route | null;
@@ -18,6 +30,8 @@ interface RideStoreState {
   elapsedMs: number;
   /** Cumulative distance ridden, m. */
   distance: number;
+  /** Pending camera fly-to request — consumed by the Cesium viewer. */
+  flyToTarget: FlyToTarget | null;
 
   // ---- Live telemetry (last sample) ----
   speed: number;          // m/s
@@ -47,6 +61,7 @@ interface RideStoreState {
   setMode: (mode: RideMode) => void;
   setConnection: (s: ConnectionState, deviceName?: string | null, err?: string | null) => void;
   ingestTrainerData: (data: TrainerData) => void;
+  requestFlyTo: (target: Omit<FlyToTarget, 'id'> | null) => void;
 
   prepare: () => void;
   start: () => void;
@@ -105,6 +120,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   errorMessage: null,
 
   libraryVersion: 0,
+  flyToTarget: null,
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
@@ -140,6 +156,13 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       power: d.power ?? st.power,
       cadence: d.cadence ?? st.cadence,
       heartRate: d.heartRate ?? st.heartRate,
+    })),
+
+  requestFlyTo: (target) =>
+    set((st) => ({
+      flyToTarget: target
+        ? { ...target, id: (st.flyToTarget?.id ?? 0) + 1 }
+        : null,
     })),
 
   prepare: () => {

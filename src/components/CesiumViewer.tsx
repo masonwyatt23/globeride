@@ -3,7 +3,14 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { useRideStore } from '@/stores/rideStore';
-import { applyFollowCam, flyToRoute, routeToCartesians, setIonToken } from '@/lib/cesiumUtils';
+import {
+  applyFollowCam,
+  flyToPoint,
+  flyToRoute,
+  getTerrainProvider,
+  routeToCartesians,
+  setIonToken,
+} from '@/lib/cesiumUtils';
 import { sampleRouteAtDistance } from '@/lib/gpxParser';
 
 /**
@@ -22,6 +29,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const removeTickRef = useRef<(() => void) | null>(null);
 
   const route = useRideStore((s) => s.route);
+  const flyToTarget = useRideStore((s) => s.flyToTarget);
+  const searchPinRef = useRef<Cesium.Entity | null>(null);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
@@ -51,8 +60,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     viewer.scene.globe.enableLighting = true;
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0b1220');
 
-    // Cesium World Terrain (ion asset 1).
-    Cesium.createWorldTerrainAsync()
+    // Cesium World Terrain (ion asset 1) — shared so the route generator
+    // can sample elevations from the same provider.
+    getTerrainProvider()
       .then((terrain) => {
         viewer.scene.terrainProvider = terrain;
       })
@@ -144,6 +154,58 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     });
 
     flyToRoute(viewer, positions);
+  }, [route]);
+
+  // ---- React to route-search fly-to requests ----
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !flyToTarget) return;
+
+    if (searchPinRef.current) {
+      viewer.entities.remove(searchPinRef.current);
+      searchPinRef.current = null;
+    }
+
+    searchPinRef.current = viewer.entities.add({
+      name: flyToTarget.label ?? 'Search target',
+      position: Cesium.Cartesian3.fromDegrees(flyToTarget.lon, flyToTarget.lat),
+      point: {
+        pixelSize: 14,
+        color: Cesium.Color.fromCssColorString('#f59e0b'),
+        outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
+        outlineWidth: 3,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+      label: flyToTarget.label
+        ? {
+            text: flyToTarget.label,
+            font: '14px sans-serif',
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          }
+        : undefined,
+    });
+
+    flyToPoint(viewer, {
+      lat: flyToTarget.lat,
+      lon: flyToTarget.lon,
+      boundingBox: flyToTarget.boundingBox,
+    });
+  }, [flyToTarget]);
+
+  // Drop the pin once a real route loads — it's redundant alongside the polyline.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !route) return;
+    if (searchPinRef.current) {
+      viewer.entities.remove(searchPinRef.current);
+      searchPinRef.current = null;
+    }
   }, [route]);
 
   // ---- Per-frame follow-cam + avatar update ----

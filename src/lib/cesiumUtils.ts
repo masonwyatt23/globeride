@@ -13,6 +13,27 @@ export function setIonToken(token: string | null | undefined): void {
   }
 }
 
+let terrainPromise: Promise<Cesium.TerrainProvider> | null = null;
+/**
+ * Lazy, shared Cesium World Terrain provider. The viewer and the route
+ * generator both need terrain — but only the first caller pays the network
+ * cost. If the ion token is missing or revoked this rejects; callers should
+ * treat that as "no DEM available" and fall back gracefully.
+ *
+ * Pass `reset: true` to invalidate the cached promise (e.g. after the user
+ * pastes a new ion token).
+ */
+export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvider> {
+  if (reset) terrainPromise = null;
+  if (!terrainPromise) {
+    terrainPromise = Cesium.createWorldTerrainAsync().catch((err) => {
+      terrainPromise = null;
+      throw err;
+    });
+  }
+  return terrainPromise;
+}
+
 /** Convert a Route into a packed array of Cartesian3 positions. */
 export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
   const out: Cesium.Cartesian3[] = new Array(route.points.length);
@@ -78,5 +99,41 @@ export function flyToRoute(viewer: Cesium.Viewer, positions: Cesium.Cartesian3[]
   viewer.camera.flyToBoundingSphere(sphere, {
     duration: 1.4,
     offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-35), sphere.radius * 2.8),
+  });
+}
+
+/**
+ * Fly the camera to a (lat, lon) target — used by the route-search flow to
+ * preview a geocoded place before the user commits to generating a ride.
+ *
+ * `boundingBox` (south, north, west, east in degrees) is honored when present
+ * so cities frame at city scale and peaks frame tightly; without it we fall
+ * back to a fixed 4 km altitude that feels right for a single point.
+ */
+export function flyToPoint(
+  viewer: Cesium.Viewer,
+  target: {
+    lat: number;
+    lon: number;
+    boundingBox?: [number, number, number, number];
+  },
+): void {
+  const { lat, lon, boundingBox } = target;
+
+  if (boundingBox) {
+    const [south, north, west, east] = boundingBox;
+    const rect = Cesium.Rectangle.fromDegrees(west, south, east, north);
+    viewer.camera.flyTo({
+      destination: rect,
+      duration: 1.6,
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0 },
+    });
+    return;
+  }
+
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(lon, lat, 4000),
+    duration: 1.6,
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0 },
   });
 }
