@@ -69,12 +69,19 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // can sample elevations from the same provider.
     getTerrainProvider()
       .then((terrain) => {
+        // StrictMode (or a fast unmount) may have destroyed this viewer
+        // before the async terrain provider resolved.
+        if (viewer.isDestroyed()) return;
         viewer.scene.terrainProvider = terrain;
       })
       .catch(() => undefined);
 
     Cesium.createOsmBuildingsAsync()
       .then((tileset) => {
+        if (viewer.isDestroyed()) {
+          tileset.destroy?.();
+          return;
+        }
         viewer.scene.primitives.add(tileset);
         tilesetRef.current = tileset;
       })
@@ -92,12 +99,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       ro.disconnect();
       removeTickRef.current?.();
       removeTickRef.current = null;
-      if (tilesetRef.current) {
+      if (tilesetRef.current && !viewer.isDestroyed()) {
         viewer.scene.primitives.remove(tilesetRef.current);
-        tilesetRef.current = null;
       }
+      tilesetRef.current = null;
       setActiveViewer(null);
-      viewer.destroy();
+      if (!viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,9 +252,14 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     };
 
     viewer.scene.preRender.addEventListener(handler);
-    removeTickRef.current = () => viewer.scene.preRender.removeEventListener(handler);
+    removeTickRef.current = () => {
+      if (!viewer.isDestroyed()) viewer.scene.preRender.removeEventListener(handler);
+    };
     return () => {
-      viewer.scene.preRender.removeEventListener(handler);
+      // The bootstrap effect's cleanup may have already destroyed the viewer
+      // (React StrictMode remount, or navigating away from the ride). Touching
+      // viewer.scene after destroy throws — guard it.
+      if (!viewer.isDestroyed()) viewer.scene.preRender.removeEventListener(handler);
       removeTickRef.current = null;
     };
   }, []);
