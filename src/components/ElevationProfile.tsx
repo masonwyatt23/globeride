@@ -47,8 +47,8 @@ export function ElevationProfile() {
   const tooltipFg   = isDark ? 'hsl(210 28% 96%)' : 'hsl(220 40% 10%)';
 
   return (
-    <div className="h-28 sm:h-32 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-28 sm:h-32 w-full min-w-0" style={{ minHeight: '6rem' }}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={60} minHeight={80}>
         <AreaChart data={series} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id="elevFill" x1="0" y1="0" x2="0" y2="1">

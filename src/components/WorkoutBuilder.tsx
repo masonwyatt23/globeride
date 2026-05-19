@@ -330,8 +330,10 @@ export function WorkoutBuilder({
           />
         ))}
         {segments.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-            No segments yet — add one below.
+          <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 p-8 text-center">
+            <Activity className="h-7 w-7 mx-auto mb-2.5 text-muted-foreground/35" aria-hidden="true" />
+            <p className="text-sm font-medium text-muted-foreground">No segments yet</p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">Add a segment using the buttons below.</p>
           </div>
         )}
       </div>
@@ -406,8 +408,12 @@ export function WorkoutBuilder({
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2.5 text-xs text-destructive">
-          {error}
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/8 px-3.5 py-3 text-sm text-destructive"
+        >
+          <span className="mt-0.5 shrink-0" aria-hidden="true">⚠</span>
+          <p>{error}</p>
         </div>
       )}
 
@@ -416,22 +422,24 @@ export function WorkoutBuilder({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5"
+          className="h-9 gap-1.5 min-w-[7rem] focus-visible:ring-2 focus-visible:ring-ring"
           disabled={saving || segments.length === 0}
           onClick={() => void handleSave()}
+          aria-label={saving ? 'Saving workout' : saved ? 'Workout saved' : 'Save workout to library'}
         >
-          <Save className="h-3.5 w-3.5" />
+          <Save className="h-3.5 w-3.5" aria-hidden="true" />
           {saving ? 'Saving…' : saved ? 'Saved!' : 'Save workout'}
         </Button>
         {onRide && (
           <Button
             variant="accent"
             size="sm"
-            className="gap-1.5"
+            className="h-9 gap-1.5 focus-visible:ring-2 focus-visible:ring-ring"
             disabled={segments.length === 0}
             onClick={handleRide}
+            aria-label="Start riding this workout"
           >
-            <Play className="h-3.5 w-3.5" fill="currentColor" />
+            <Play className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" />
             Ride this workout
           </Button>
         )}
@@ -556,33 +564,33 @@ function SegmentRow({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Move up/down + delete */}
+        {/* Move up/down + delete — ≥40px hit targets */}
         <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => dispatch({ type: 'move', index, dir: 'up' })}
             disabled={index === 0}
-            aria-label="Move up"
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            aria-label="Move segment up"
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ChevronUp className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => dispatch({ type: 'move', index, dir: 'down' })}
             disabled={index === total - 1}
-            aria-label="Move down"
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            aria-label="Move segment down"
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={() => dispatch({ type: 'remove', index })}
             aria-label="Delete segment"
-            className="rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>

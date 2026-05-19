@@ -193,49 +193,50 @@ function WorkoutPreview({ workout, ftpW }: { workout: Workout; ftpW: number }) {
   const tss = estimateTSS(workout, ftpW);
 
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 overflow-hidden">
-      {/* Header */}
+    <div className="glass glass-hairline rounded-xl overflow-hidden">
+      {/* Header — accordion toggle */}
       <button
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
+        aria-controls="ai-workout-preview-body"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <Bike className="h-4 w-4 text-primary shrink-0" />
+          <Bike className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
           <span className="font-semibold text-sm text-foreground truncate">{workout.name}</span>
         </div>
-        <div className="flex items-center gap-3 ml-2 shrink-0">
+        <div className="flex items-center gap-2.5 ml-2 shrink-0">
           <span className="flex items-center gap-1 text-xs text-muted-foreground num tabular-nums">
-            <Clock className="h-3 w-3" />
+            <Clock className="h-3 w-3" aria-hidden="true" />
             {formatDurShort(totalSec)}
           </span>
           {tss > 0 && (
             <span className="flex items-center gap-1 text-xs text-muted-foreground num tabular-nums">
-              <Activity className="h-3 w-3" />
+              <Activity className="h-3 w-3" aria-hidden="true" />
               {tss} TSS
             </span>
           )}
           {expanded
-            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
         </div>
       </button>
 
-      {/* Description */}
-      {expanded && workout.description && (
-        <p className="px-4 pb-1 text-xs text-muted-foreground leading-relaxed">
-          {workout.description}
-        </p>
-      )}
+      <div id="ai-workout-preview-body" hidden={!expanded}>
+        {/* Description */}
+        {workout.description && (
+          <p className="px-4 pb-1 text-xs text-muted-foreground leading-relaxed border-t border-border/30 pt-2">
+            {workout.description}
+          </p>
+        )}
 
-      {/* Segment list */}
-      {expanded && (
-        <div className="px-4 pb-3 divide-y divide-border/30">
+        {/* Segment list */}
+        <div className="px-4 pb-3 divide-y divide-border/20">
           {workout.segments.map((seg) => (
             <SegmentRow key={seg.id} seg={seg} ftpW={ftpW} />
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -388,22 +389,36 @@ export function AIWorkoutDesigner() {
         <Button
           onClick={handleGenerate}
           disabled={loading || !prompt.trim()}
-          className="w-full"
+          className="w-full h-10 focus-visible:ring-2 focus-visible:ring-ring"
           variant={workout ? 'outline' : 'default'}
           size="default"
+          aria-label={loading ? 'Generating workout, please wait' : 'Generate workout from description'}
         >
           {loading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
               Generating…
             </>
           ) : (
             <>
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
               Generate Workout
             </>
           )}
         </Button>
+
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="flex flex-col gap-2" aria-hidden="true">
+            {[80, 60, 70, 55].map((w, i) => (
+              <div
+                key={i}
+                className="h-3 rounded-full bg-muted/60 animate-pulse"
+                style={{ width: `${w}%`, animationDelay: `${i * 100}ms` }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Error state */}
         {error && (
