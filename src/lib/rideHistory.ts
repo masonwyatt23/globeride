@@ -1,20 +1,17 @@
 /**
  * Ride history — IndexedDB persistence for completed ride records.
  *
- * Uses the same 'globeride' IDB database, bumped to version 3 to add the
- * 'rides' object store. Upgrade is strictly additive:
- *   v1 → routes store (routeLibrary.ts)
- *   v2 → workouts store (workoutLibrary.ts)
- *   v3 → rides store (this file)
- * The onupgradeneeded handler only creates stores that are missing, so
- * existing data in earlier stores is never touched.
+ * Storage lives in the shared 'globeride' database opened by @/lib/db
+ * (single version, single connection, idempotent all-store upgrade — see
+ * that file). This module owns the 'rides' store's CRUD and the pure
+ * aggregate helpers.
  *
  * Keep this file pure (no React/store imports) so it is trivially
  * unit-testable and safe to import anywhere.
  */
 
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { TelemetrySample } from '@/types';
+import { getDb, RIDES_STORE } from '@/lib/db';
 
 export type RideSource = 'route' | 'workout' | 'replay';
 
@@ -44,63 +41,6 @@ export interface RideRecord {
   samples: TelemetrySample[];
   /** How the ride was sourced. */
   source: RideSource;
-}
-
-// ---------------------------------------------------------------------------
-// DB schema
-// ---------------------------------------------------------------------------
-
-const DB_NAME = 'globeride';
-const DB_VERSION = 3;
-const RIDES_STORE = 'rides';
-
-interface GlobeRideDBv3 extends DBSchema {
-  routes: {
-    key: string;
-    value: Record<string, unknown>;
-    indexes: { 'by-savedAt': number };
-  };
-  workouts: {
-    key: string;
-    value: Record<string, unknown>;
-    indexes: { 'by-createdAt': number };
-  };
-  rides: {
-    key: string;
-    value: RideRecord;
-    indexes: { 'by-startedAt': number };
-  };
-}
-
-let dbPromise: Promise<IDBPDatabase<GlobeRideDBv3>> | null = null;
-
-function getDb(): Promise<IDBPDatabase<GlobeRideDBv3>> {
-  if (!dbPromise) {
-    dbPromise = openDB<GlobeRideDBv3>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        // Each version branch is additive — only create stores that don't exist.
-        if (oldVersion < 1) {
-          if (!db.objectStoreNames.contains('routes')) {
-            const store = db.createObjectStore('routes', { keyPath: 'id' });
-            store.createIndex('by-savedAt', 'savedAt');
-          }
-        }
-        if (oldVersion < 2) {
-          if (!db.objectStoreNames.contains('workouts')) {
-            const store = db.createObjectStore('workouts', { keyPath: 'id' });
-            store.createIndex('by-createdAt', 'createdAt');
-          }
-        }
-        if (oldVersion < 3) {
-          if (!db.objectStoreNames.contains(RIDES_STORE)) {
-            const store = db.createObjectStore(RIDES_STORE, { keyPath: 'id' });
-            store.createIndex('by-startedAt', 'startedAt');
-          }
-        }
-      },
-    });
-  }
-  return dbPromise;
 }
 
 // ---------------------------------------------------------------------------

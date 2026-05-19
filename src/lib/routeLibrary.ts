@@ -1,34 +1,10 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Route, SavedRoute } from '@/types';
 import { SAMPLE_ROUTES } from '@/lib/sampleRoutes';
+import { getDb, ROUTES_STORE } from '@/lib/db';
 
-const DB_NAME = 'globeride';
-const DB_VERSION = 1;
-const STORE = 'routes';
-
-interface GlobeRideDB extends DBSchema {
-  routes: {
-    key: string;
-    value: SavedRoute;
-    indexes: { 'by-savedAt': number };
-  };
-}
-
-let dbPromise: Promise<IDBPDatabase<GlobeRideDB>> | null = null;
-
-function getDb(): Promise<IDBPDatabase<GlobeRideDB>> {
-  if (!dbPromise) {
-    dbPromise = openDB<GlobeRideDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE)) {
-          const store = db.createObjectStore(STORE, { keyPath: 'id' });
-          store.createIndex('by-savedAt', 'savedAt');
-        }
-      },
-    });
-  }
-  return dbPromise;
-}
+// All three persistence modules share one 'globeride' IDB opened by
+// @/lib/db at a single version — see that file for why this can't be local.
+const STORE = ROUTES_STORE;
 
 /** Format a coordinate pair as "46.59°N, 7.91°E" for display. */
 function formatLocation(lat: number, lon: number): string {

@@ -1,49 +1,15 @@
 /**
  * Workout library — IndexedDB persistence for Workout objects.
  *
- * Mirrors routeLibrary.ts pattern exactly: same DB name ('globeride'),
- * upgraded to version 2 to add the 'workouts' object store; the version 1
- * upgrade branch is a no-op so existing route data is untouched.
+ * Storage lives in the shared 'globeride' database opened by @/lib/db
+ * (single version, single connection, idempotent all-store upgrade). This
+ * module just owns the 'workouts' store's CRUD.
  */
 
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Workout } from '@/lib/workout';
+import { getDb, WORKOUTS_STORE } from '@/lib/db';
 
-const DB_NAME = 'globeride';
-const DB_VERSION = 2;
-const WORKOUT_STORE = 'workouts';
-
-interface GlobeRideDBv2 extends DBSchema {
-  routes: {
-    key: string;
-    value: Record<string, unknown>;
-    indexes: { 'by-savedAt': number };
-  };
-  workouts: {
-    key: string;
-    value: Workout;
-    indexes: { 'by-createdAt': number };
-  };
-}
-
-let dbPromise: Promise<IDBPDatabase<GlobeRideDBv2>> | null = null;
-
-function getDb(): Promise<IDBPDatabase<GlobeRideDBv2>> {
-  if (!dbPromise) {
-    dbPromise = openDB<GlobeRideDBv2>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        // v1 → v2: add workouts store. The routes store already exists.
-        if (oldVersion < 2) {
-          if (!db.objectStoreNames.contains(WORKOUT_STORE)) {
-            const store = db.createObjectStore(WORKOUT_STORE, { keyPath: 'id' });
-            store.createIndex('by-createdAt', 'createdAt');
-          }
-        }
-      },
-    });
-  }
-  return dbPromise;
-}
+const WORKOUT_STORE = WORKOUTS_STORE;
 
 /** Persist a workout. Overwrites any existing entry with the same id. */
 export async function saveWorkout(workout: Workout): Promise<void> {
