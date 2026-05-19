@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell, History, FlaskConical } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/WorkoutLibrary';
 import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
+import { RideHistory } from '@/components/RideHistory';
 import { GPXUploader } from '@/components/GPXUploader';
 import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRideStore } from '@/stores/rideStore';
 import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
+import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { cn } from '@/lib/utils';
 
 /**
@@ -141,6 +143,19 @@ export function Home() {
             </CardContent>
           </Card>
 
+          {/* Training Log */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-3.5 w-3.5 text-primary" />
+                Training Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RideHistory />
+            </CardContent>
+          </Card>
+
           {/* Workout panel */}
           <Card>
             <CardHeader>
@@ -176,6 +191,47 @@ export function Home() {
                   </Button>
                 </div>
               ) : null}
+
+              {/* FTP Test entry point */}
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                  <FlaskConical className="h-3.5 w-3.5 text-accent" />
+                  FTP Test
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Find your Functional Threshold Power. Choose a protocol, ride it,
+                  and GlobeRide will suggest a new FTP when you finish.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      const w = buildRampTest();
+                      loadWorkout(w);
+                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                    }}
+                  >
+                    <FlaskConical className="h-3 w-3" />
+                    Ramp Test
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => {
+                      const w = build20MinTest(useSettingsStore.getState().ftpW);
+                      loadWorkout(w);
+                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                    }}
+                  >
+                    <FlaskConical className="h-3 w-3" />
+                    20-Min Test
+                  </Button>
+                </div>
+              </div>
+
               <WorkoutLibrary
                 onSelect={(w) => {
                   loadWorkout(w);
