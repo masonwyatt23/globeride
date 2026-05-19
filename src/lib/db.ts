@@ -62,19 +62,23 @@ let dbPromise: Promise<IDBPDatabase<GlobeRideDB>> | null = null;
 export function getDb(): Promise<IDBPDatabase<GlobeRideDB>> {
   if (!dbPromise) {
     dbPromise = openDB<GlobeRideDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        // Strictly additive. Each branch only creates a store if it is
-        // missing, so the upgrade is safe to run from any version
-        // (including a brand-new DB where oldVersion === 0).
-        if (oldVersion < 1 && !db.objectStoreNames.contains(ROUTES_STORE)) {
+      upgrade(db) {
+        // Pure store creation, no data migrations — so each branch is
+        // guarded only by "does this store exist yet?" rather than by
+        // version. That makes the upgrade fully idempotent AND
+        // self-healing: it (re)creates any missing store regardless of
+        // how the DB reached its current version (brand-new, legacy
+        // v1/v2, or a partially-created state). createObjectStore is
+        // therefore only ever called when the store is genuinely absent.
+        if (!db.objectStoreNames.contains(ROUTES_STORE)) {
           const store = db.createObjectStore(ROUTES_STORE, { keyPath: 'id' });
           store.createIndex('by-savedAt', 'savedAt');
         }
-        if (oldVersion < 2 && !db.objectStoreNames.contains(WORKOUTS_STORE)) {
+        if (!db.objectStoreNames.contains(WORKOUTS_STORE)) {
           const store = db.createObjectStore(WORKOUTS_STORE, { keyPath: 'id' });
           store.createIndex('by-createdAt', 'createdAt');
         }
-        if (oldVersion < 3 && !db.objectStoreNames.contains(RIDES_STORE)) {
+        if (!db.objectStoreNames.contains(RIDES_STORE)) {
           const store = db.createObjectStore(RIDES_STORE, { keyPath: 'id' });
           store.createIndex('by-startedAt', 'startedAt');
         }
