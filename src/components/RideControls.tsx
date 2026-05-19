@@ -1,11 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Play, Pause, Square, Save, RotateCcw, Upload, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Play, Pause, Square, Save, RotateCcw, Upload, CheckCircle2, AlertCircle, Loader2, Settings } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { buildFit, downloadFit } from '@/lib/fitExporter';
-import { uploadFit, stravaCredsPresent, StravaError, type UploadState } from '@/lib/strava';
+import { uploadFit, stravaCredsPresent, StravaError, type UploadState, type StravaErrorKind } from '@/lib/strava';
 
 /**
  * Start / pause / stop transport for the ride, plus end-of-ride export.
@@ -49,13 +49,20 @@ export function RideControls() {
         (state) => setUploadState(state),
       );
     } catch (err) {
-      const message =
-        err instanceof StravaError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : 'Upload failed — check console for details.';
-      setUploadState({ phase: 'error', errorMessage: message });
+      if (err instanceof StravaError) {
+        setUploadState({
+          phase: 'error',
+          errorMessage: err.message,
+          errorKind: err.kind,
+          actionUrl: err.actionUrl,
+        });
+      } else {
+        setUploadState({
+          phase: 'error',
+          errorMessage: err instanceof Error ? err.message : 'Upload failed — check console for details.',
+          errorKind: 'unknown',
+        });
+      }
     }
   }, [startedAt, samples, route?.name, uploadState.phase]);
 
@@ -136,9 +143,21 @@ interface StravaUploadButtonProps {
   onReset: () => void;
 }
 
+/** Returns actionable button label copy for a given error kind. */
+function errorButtonLabel(kind: StravaErrorKind | undefined): string {
+  switch (kind) {
+    case 'creds_missing':      return 'Configure Strava';
+    case 'refresh_failed':     return 'Re-authorize Strava';
+    case 'insufficient_scope': return 'Fix Strava permission';
+    case 'network_error':      return 'Network error — retry?';
+    case 'timeout':            return 'Timed out — retry?';
+    default:                   return 'Upload failed';
+  }
+}
+
 function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButtonProps) {
   const credsPresent = stravaCredsPresent();
-  const { phase, activityId } = uploadState;
+  const { phase, activityId, errorKind, actionUrl } = uploadState;
 
   const isLoading = phase === 'uploading' || phase === 'polling';
 
@@ -163,34 +182,53 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     );
   }
 
-  // Error: allow retry by resetting state
+  // Error with a Settings action URL (scope / creds issues) — show link to settings
+  if (phase === 'error' && actionUrl) {
+    return (
+      <Button
+        variant="outline"
+        size="lg"
+        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40"
+        asChild
+      >
+        <a href={actionUrl}>
+          <Settings className="h-4 w-4" />
+          {errorButtonLabel(errorKind)}
+        </a>
+      </Button>
+    );
+  }
+
+  // Generic error: allow retry by resetting state
   if (phase === 'error') {
     return (
       <Button
         variant="outline"
         size="lg"
-        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10"
+        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40"
         onClick={onReset}
         title="Click to dismiss and retry"
       >
         <AlertCircle className="h-4 w-4" />
-        Upload failed
+        {errorButtonLabel(errorKind)}
       </Button>
     );
   }
 
-  // Disabled state when credentials are not configured
+  // Disabled state when credentials are not configured — link to settings
   if (!credsPresent) {
     return (
       <Button
         variant="outline"
         size="lg"
-        className="rounded-pill"
-        disabled
-        title="Set VITE_STRAVA_CLIENT_ID, VITE_STRAVA_CLIENT_SECRET, and VITE_STRAVA_REFRESH_TOKEN in .env.local to enable direct Strava upload."
+        className="rounded-pill opacity-60"
+        asChild
+        title="Strava credentials not configured — open Settings to connect"
       >
-        <Upload className="h-4 w-4" />
-        Upload to Strava
+        <a href="#settings-strava">
+          <Upload className="h-4 w-4" />
+          Upload to Strava
+        </a>
       </Button>
     );
   }
@@ -248,10 +286,25 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
   }
 
   if (state.phase === 'error' && state.errorMessage) {
+    // For scope / creds issues, surface the settings link in the badge too
+    const isSettingsIssue =
+      state.errorKind === 'insufficient_scope' ||
+      state.errorKind === 'creds_missing' ||
+      state.errorKind === 'refresh_failed';
+
     return (
-      <Badge variant="destructive" className="text-[10px] max-w-[24rem] truncate" title={state.errorMessage}>
+      <Badge
+        variant="destructive"
+        className="text-[10px] max-w-[28rem] truncate cursor-pointer"
+        title={state.errorMessage}
+        {...(isSettingsIssue && state.actionUrl
+          ? { onClick: () => { window.location.hash = state.actionUrl!.replace(/^#/, ''); } }
+          : {})}
+      >
         <AlertCircle className="h-3 w-3 shrink-0" />
-        {state.errorMessage}
+        {isSettingsIssue
+          ? `${state.errorMessage.split('.')[0]} — fix in Settings`
+          : state.errorMessage}
       </Badge>
     );
   }
