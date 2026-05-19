@@ -19,6 +19,8 @@ import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
+import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { WorkoutHUD } from '@/components/WorkoutHUD';
 import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
 
@@ -42,6 +44,8 @@ export function Ride() {
   useRideLoop();
   useReplayLoop();
   useWorkoutEngine();
+  useRideHistoryRecorder();
+  useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
   const [token, setToken] = useState<string | null>(() => {
