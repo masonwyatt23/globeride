@@ -23,7 +23,9 @@ import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
 import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
+import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { WorkoutHUD } from '@/components/WorkoutHUD';
+import { RideShortcutsHelp } from '@/components/RideShortcutsHelp';
 import { formatDistance, formatDuration, msToKmh, cn } from '@/lib/utils';
 import { computeMetrics } from '@/lib/metrics';
 
@@ -50,6 +52,9 @@ export function Ride() {
   useRideHistoryRecorder();
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
+
+  const [helpOpen, setHelpOpen] = useState(false);
+  useRideKeyboardShortcuts({ onToggleHelp: () => setHelpOpen((o) => !o) });
 
   const [token, setToken] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -168,6 +173,9 @@ export function Ride() {
 
       {/* Finish overlay */}
       {rideState === 'finished' && <FinishCard />}
+
+      {/* Keyboard shortcuts overlay (toggled by `?` / `h`) */}
+      <RideShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
