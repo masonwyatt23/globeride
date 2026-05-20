@@ -2,6 +2,7 @@ import { Globe2, Github } from 'lucide-react';
 
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SettingsButton } from '@/components/SettingsPanel';
+import { InstallPWAButton } from '@/components/InstallPWAButton';
 import { cn } from '@/lib/utils';
 
 /**
@@ -55,6 +56,7 @@ export function AppHeader({
         >
           <Github className="h-4 w-4" />
         </a>
+        <InstallPWAButton />
         <SettingsButton variant="outline" size="icon" />
         <ThemeToggle />
       </div>
