@@ -39,6 +39,7 @@ import {
 } from '@/lib/workout';
 import { saveWorkout } from '@/lib/workoutLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Segment color palette by kind
@@ -312,9 +313,12 @@ export function WorkoutBuilder({
         </div>
       </div>
 
-      {/* Visual timeline bar */}
+      {/* Workout shape preview + kind-color ribbon */}
       {segments.length > 0 && (
-        <TimelineBar segments={segments} ftpW={ftpW} totalSec={totalSec} />
+        <div className="flex flex-col gap-1.5">
+          <WorkoutPowerProfile workout={workout} ftpW={ftpW} variant="full" />
+          <TimelineBar segments={segments} ftpW={ftpW} totalSec={totalSec} />
+        </div>
       )}
 
       {/* Segment list */}

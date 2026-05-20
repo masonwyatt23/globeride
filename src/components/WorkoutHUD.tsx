@@ -18,6 +18,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { segmentAt, resolveTargetWatts } from '@/lib/workout';
 import { totalDurationSec } from '@/lib/workout';
 import { cn } from '@/lib/utils';
+import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
 
 // Segment kind → color class (must match WorkoutBuilder palette)
 const KIND_COLORS: Record<string, { bg: string; text: string; ring: string }> = {
@@ -171,6 +172,16 @@ export function WorkoutHUD() {
             })()}
           </div>
         )}
+      </div>
+
+      {/* Power-shape preview with live cursor at current elapsed */}
+      <div className="pointer-events-auto glass glass-hairline rounded-xl px-2 py-1.5">
+        <WorkoutPowerProfile
+          workout={activeWorkout}
+          ftpW={ftpW}
+          cursorSec={workoutElapsedSec}
+          variant="compact"
+        />
       </div>
 
       {/* Overall progress bar */}

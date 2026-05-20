@@ -14,6 +14,7 @@ import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
+import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
 
 function formatDurSec(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -127,6 +128,13 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
                 : 'border-border/50 hover:border-border/80',
             )}
           >
+            {/* Thumbnail shape preview — at-a-glance scan of the workout.
+                Hidden on phones (<640px) to keep the list compact; iPad and
+                larger get a 64–80px thumbnail. */}
+            <div className="hidden sm:block shrink-0 w-16 md:w-20" aria-hidden="true">
+              <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-10" />
+            </div>
+
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
