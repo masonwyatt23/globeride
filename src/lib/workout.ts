@@ -57,7 +57,7 @@ export interface Workout {
   routeId?: string;
   segments: WorkoutSegment[];
   createdAt: number;
-  source: 'manual' | 'ai' | 'imported';
+  source: 'manual' | 'ai' | 'imported' | 'preset';
 }
 
 // ---------------------------------------------------------------------------

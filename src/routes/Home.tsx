@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell, History, FlaskConical } from 'lucide-react';
+import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell, History, FlaskConical, Calendar } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
@@ -21,6 +21,8 @@ import { useRideStore } from '@/stores/rideStore';
 import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
 import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
+import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
+import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { cn } from '@/lib/utils';
 
 /**
@@ -173,6 +175,20 @@ export function Home() {
                 or ride it indoors on a scenic demo route. The engine holds your trainer at the
                 exact wattage for each segment.
               </p>
+              {/* Daily ride — one-tap flagship preset */}
+              {!activeWorkout && (
+                <DailyRideCard
+                  ftpW={settings.ftpW}
+                  onStart={() => {
+                    const preset = getPreset(DAILY_WORKOUT_ID);
+                    if (!preset) return;
+                    loadWorkout(preset);
+                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                    navigate('/ride');
+                  }}
+                />
+              )}
+
               {activeWorkout ? (
                 <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-center justify-between gap-3">
                   <div>
@@ -437,6 +453,62 @@ function Chip({ icon, label }: { icon: React.ReactNode; label: string }) {
       {icon}
       <span className="num">{label}</span>
     </span>
+  );
+}
+
+function DailyRideCard({
+  ftpW,
+  onStart,
+}: {
+  ftpW: number;
+  onStart: () => void;
+}) {
+  const daily = getPreset(DAILY_WORKOUT_ID);
+  if (!daily) return null;
+  const minutes = Math.round(totalDurationSec(daily) / 60);
+  const tss = estimateTSS(daily, ftpW);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/12 via-accent/4 to-transparent p-4 sm:p-5 ring-1 ring-accent/20">
+      <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-accent/15 blur-3xl pointer-events-none" aria-hidden />
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-accent" />
+            <span className="text-[10px] uppercase tracking-widest font-semibold text-accent">
+              Daily ride
+            </span>
+          </div>
+          <div className="mt-1.5 text-base sm:text-lg font-bold text-foreground tracking-tight leading-snug">
+            {daily.name}
+          </div>
+          <p className="mt-1 text-xs sm:text-[13px] text-muted-foreground leading-relaxed max-w-prose">
+            {daily.description}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+            <span className="num font-semibold text-foreground/90">{minutes} min</span>
+            <span className="opacity-40">·</span>
+            <span>Z2 endurance</span>
+            <span className="opacity-40">·</span>
+            <span>ERG-guided</span>
+            {tss > 0 && (
+              <>
+                <span className="opacity-40">·</span>
+                <span className="num">{tss} TSS</span>
+              </>
+            )}
+          </div>
+        </div>
+        <Button
+          variant="accent"
+          size="lg"
+          onClick={onStart}
+          className="rounded-pill shrink-0 shadow-[0_8px_28px_-10px_hsl(var(--accent)/0.6)]"
+        >
+          Start
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

@@ -9,7 +9,7 @@ import { Dumbbell, Trash2, Play, Clock, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { listWorkouts, deleteWorkout } from '@/lib/workoutLibrary';
+import { listWorkouts, deleteWorkout, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -39,7 +39,11 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
   const reload = useCallback(() => {
     setLoading(true);
     setError(null);
-    listWorkouts()
+    // Seed the curated preset catalog on first launch (idempotent — guarded
+    // by a localStorage flag so users who deleted presets keep them gone).
+    seedPresetWorkoutsIfMissing()
+      .catch(() => undefined) // non-fatal: surfacing list errors is enough
+      .then(() => listWorkouts())
       .then(setWorkouts)
       .catch((err) => {
         setWorkouts([]);
@@ -149,6 +153,11 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
                 {w.source === 'ai' && (
                   <Badge variant="muted" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
                     AI
+                  </Badge>
+                )}
+                {w.source === 'preset' && (
+                  <Badge variant="default" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                    Preset
                   </Badge>
                 )}
               </div>
