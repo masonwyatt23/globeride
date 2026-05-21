@@ -33,15 +33,16 @@ getval() {
   printf '%s' "$line"
 }
 
-# push NAME VALUE -> idempotently set an env var on Vercel (rm then add).
+# push NAME VALUE -> idempotently set an env var on Vercel. --force
+# overwrites any existing value; --yes skips the confirmation prompt;
+# the value is streamed over stdin so it never lands in process args.
 push() {
   local name="$1" value="$2"
   if [[ -z "$value" ]]; then
     echo "  skip  $name  (not set in $ENVFILE)"
     return 0
   fi
-  vercel env rm "$name" "$TARGET" --yes --scope "$SCOPE" >/dev/null 2>&1 || true
-  printf '%s' "$value" | vercel env add "$name" "$TARGET" --scope "$SCOPE" >/dev/null 2>&1
+  printf '%s' "$value" | vercel env add "$name" "$TARGET" --force --yes --scope "$SCOPE" >/dev/null
   echo "  set   $name"
 }
 
