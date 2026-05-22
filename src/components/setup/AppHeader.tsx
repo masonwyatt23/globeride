@@ -1,9 +1,9 @@
 import { Globe2, Github } from 'lucide-react';
 
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { SettingsButton } from '@/components/SettingsPanel';
-import { ProfileButton } from '@/components/ProfilePanel';
-import { InstallPWAButton } from '@/components/InstallPWAButton';
+import { ThemeToggle } from '@/components/setup/ThemeToggle';
+import { SettingsButton } from '@/components/profile/SettingsPanel';
+import { ProfileButton } from '@/components/profile/ProfilePanel';
+import { InstallPWAButton } from '@/components/setup/InstallPWAButton';
 import { cn } from '@/lib/utils';
 
 /**

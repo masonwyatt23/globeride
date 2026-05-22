@@ -4,10 +4,10 @@ import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
 import { Ride } from '@/routes/Ride';
 import { Explore } from '@/routes/Explore';
-import { Toaster } from '@/components/Toaster';
-import { TrainerEventBridge } from '@/components/TrainerEventBridge';
-import { Onboarding } from '@/components/Onboarding';
-import { AchievementToast } from '@/components/AchievementToast';
+import { Toaster } from '@/components/setup/Toaster';
+import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
+import { Onboarding } from '@/components/profile/Onboarding';
+import { AchievementToast } from '@/components/ride/AchievementToast';
 
 export default function App() {
   return (

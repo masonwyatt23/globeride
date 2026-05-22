@@ -12,7 +12,7 @@
  * Mounting: import and render inside the Home page alongside RideHistory,
  * wrapped in a route-aware guard (only show when a route is loaded).
  *
- *   import { SegmentLeaderboard } from '@/components/SegmentLeaderboard';
+ *   import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
  *   // in Home.tsx, after the RideHistory section:
  *   {route && <SegmentLeaderboard route={route} className="..." />}
  */

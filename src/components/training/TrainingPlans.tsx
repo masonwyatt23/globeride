@@ -32,6 +32,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDurMin } from '@/lib/format';
 
 import {
   TRAINING_PLANS,
@@ -45,9 +46,9 @@ import { getPreset } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { usePlanStore } from '@/stores/planStore';
-import { TrainingCalendar } from '@/components/TrainingCalendar';
+import { TrainingCalendar } from '@/components/training/TrainingCalendar';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Category colours (mirrors WorkoutPicker)
@@ -72,13 +73,6 @@ const LEVEL_META: Record<string, { label: string; color: string }> = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatMin(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m} min`;
-}
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
@@ -244,7 +238,7 @@ function ActivePlanDashboard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {formatMin(totalDurationSec(nextWorkout))}
+              {formatDurMin(totalDurationSec(nextWorkout))}
             </span>
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Zap className="h-3 w-3" />
@@ -527,7 +521,7 @@ function DayRow({
             <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-0.5">
                 <Clock className="h-2.5 w-2.5" />
-                {formatMin(totalDurationSec(workout))}
+                {formatDurMin(totalDurationSec(workout))}
               </span>
               <span className="flex items-center gap-0.5">
                 <Zap className="h-2.5 w-2.5" />
@@ -816,7 +810,7 @@ function PlanDetail({
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-foreground truncate">{w.name}</span>
                   <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground shrink-0">
-                    <span>{formatMin(totalDurationSec(w))}</span>
+                    <span>{formatDurMin(totalDurationSec(w))}</span>
                     <span>·</span>
                     <span>{estimateTSS(w, ftpW)} TSS</span>
                   </div>
@@ -863,7 +857,7 @@ function PlanDetail({
                     </span>
                     {workout && (
                       <span className="text-[10px] text-muted-foreground/60 shrink-0">
-                        {formatMin(totalDurationSec(workout))}
+                        {formatDurMin(totalDurationSec(workout))}
                       </span>
                     )}
                   </div>

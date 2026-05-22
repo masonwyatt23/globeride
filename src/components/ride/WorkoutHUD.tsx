@@ -14,7 +14,8 @@ import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { segmentAt, resolveTargetWatts, totalDurationSec } from '@/lib/workout';
 import { cn } from '@/lib/utils';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { formatSec } from '@/lib/format';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Segment-kind palette (matches WorkoutBuilder)
@@ -39,13 +40,6 @@ const KIND_LABELS: Record<string, string> = {
   cooldown: 'Cool-down',
   freeride: 'Free ride',
 };
-
-function formatSec(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, '0')}`;
-}
 
 // ---------------------------------------------------------------------------
 // Main export

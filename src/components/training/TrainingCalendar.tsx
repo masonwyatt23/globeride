@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDurMin } from '@/lib/format';
 
 import {
   type TrainingPlan,
@@ -50,7 +51,7 @@ import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { usePlanStore } from '@/stores/planStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Category colours
@@ -69,13 +70,6 @@ const FOCUS_META: Record<string, { label: string; color: string; bg: string; bor
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatMin(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m} min`;
-}
 
 const SHORT_DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
@@ -472,7 +466,7 @@ function TodayHero({
           <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <Clock className="h-3 w-3" />
-              {formatMin(totalDurationSec(heroWorkout))}
+              {formatDurMin(totalDurationSec(heroWorkout))}
             </span>
             <span className="flex items-center gap-0.5">
               <Zap className="h-3 w-3" />
@@ -558,7 +552,7 @@ function TodayHero({
           <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <Clock className="h-3 w-3" />
-              {formatMin(totalDurationSec(nextWorkout))}
+              {formatDurMin(totalDurationSec(nextWorkout))}
             </span>
             <span className="flex items-center gap-0.5">
               <Zap className="h-3 w-3" />
@@ -799,7 +793,7 @@ function CalendarDayRow({
             <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-0.5">
                 <Clock className="h-2.5 w-2.5" />
-                {formatMin(totalDurationSec(workout))}
+                {formatDurMin(totalDurationSec(workout))}
               </span>
               <span className="flex items-center gap-0.5">
                 <Zap className="h-2.5 w-2.5" />

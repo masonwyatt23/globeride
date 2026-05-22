@@ -26,7 +26,7 @@ import { detectSegments, computeSegmentTimes } from '@/lib/segments';
 import { useSegmentStore } from '@/stores/segmentStore';
 // ADDITIVE: achievement evaluation
 import { useAchievementStore } from '@/stores/achievementStore';
-import { enqueueAchievementToast } from '@/components/AchievementToast';
+import { enqueueAchievementToast } from '@/components/ride/AchievementToast';
 
 const MIN_DURATION_SEC = 30;
 

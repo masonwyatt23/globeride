@@ -14,9 +14,10 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Achievements } from '@/components/Achievements';
+import { Achievements } from '@/components/training/Achievements';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Section } from '@/components/ui/section-header';
 import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { xpProgressInLevel, xpForLevel } from '@/lib/progression';
@@ -363,30 +364,6 @@ function GearCard({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Shared layout helpers (mirrors SettingsPanel's Section component style)
-// ---------------------------------------------------------------------------
-
-function Section({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        {icon}
-        <span>{title}</span>
-      </div>
-      {children}
     </div>
   );
 }

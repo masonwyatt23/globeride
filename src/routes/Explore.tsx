@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 
-import { CesiumViewer } from '@/components/CesiumViewer';
-import { CesiumTokenPrompt } from '@/components/CesiumTokenPrompt';
-import { RouteSearch } from '@/components/RouteSearch';
-import { RouteDrawer } from '@/components/RouteDrawer';
+import { CesiumViewer } from '@/components/ride/CesiumViewer';
+import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
+import { RouteSearch } from '@/components/setup/RouteSearch';
+import { RouteDrawer } from '@/components/routes/RouteDrawer';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
 

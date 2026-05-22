@@ -10,7 +10,7 @@
  * Integration: mount anywhere inside the Ride screen, e.g. next to
  * <ThemeToggle /> in the top-left control cluster in Ride.tsx:
  *
- *   import { SoundToggle } from '@/components/SoundToggle';
+ *   import { SoundToggle } from '@/components/ride/SoundToggle';
  *   // …inside the JSX cluster:
  *   <ThemeToggle />
  *   <SoundToggle />

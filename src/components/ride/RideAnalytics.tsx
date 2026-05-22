@@ -22,7 +22,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ChevronDown, ChevronUp, BarChart2, Layers, ListOrdered } from 'lucide-react';
+import { BarChart2, Layers, ListOrdered } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -35,47 +35,7 @@ import {
   type RideSplit,
 } from '@/lib/rideAnalytics';
 import { formatDuration, cn } from '@/lib/utils';
-
-// ---------------------------------------------------------------------------
-// Section toggle button
-// ---------------------------------------------------------------------------
-
-function SectionHeader({
-  icon,
-  title,
-  open,
-  onToggle,
-  id,
-  panelId,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  id: string;
-  panelId: string;
-}) {
-  return (
-    <button
-      type="button"
-      id={id}
-      aria-expanded={open}
-      aria-controls={panelId}
-      onClick={onToggle}
-      className="w-full flex items-center justify-between gap-2 group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors"
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-accent" aria-hidden="true">{icon}</span>
-        <span className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-          {title}
-        </span>
-      </div>
-      {open
-        ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground transition-transform" aria-hidden="true" />
-        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform" aria-hidden="true" />}
-    </button>
-  );
-}
+import { SectionHeader } from '@/components/ui/section-header';
 
 // ---------------------------------------------------------------------------
 // Shared tooltip style

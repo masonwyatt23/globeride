@@ -9,19 +9,15 @@ import { Dumbbell, Trash2, Play, Clock, Zap, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDurMin } from '@/lib/format';
 import { listWorkouts, deleteWorkout, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
-function formatDurSec(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m} min`;
-}
+
 
 interface WorkoutLibraryProps {
   /** Called when user clicks "Select" for a workout — receives the workout. */
@@ -164,7 +160,7 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
               <div className="mt-1 flex items-center gap-2.5 text-[11px] text-muted-foreground">
                 <span className="flex items-center gap-0.5">
                   <Clock className="h-3 w-3" aria-hidden="true" />
-                  {formatDurSec(dur)}
+                  {formatDurMin(dur)}
                 </span>
                 <span className="flex items-center gap-0.5">
                   <Zap className="h-3 w-3" aria-hidden="true" />

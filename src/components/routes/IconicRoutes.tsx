@@ -7,7 +7,7 @@
  * optional `onPicked` callback lets the parent navigate away.
  *
  * Usage (Home.tsx):
- *   import { IconicRoutes } from '@/components/IconicRoutes';
+ *   import { IconicRoutes } from '@/components/routes/IconicRoutes';
  *   <IconicRoutes onPicked={() => navigate('/ride')} />
  */
 
