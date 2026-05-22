@@ -42,10 +42,10 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  * wake lock for the duration of the run.
  */
 export function Ride() {
-  const navigate   = useNavigate();
-  const route      = useRideStore((s) => s.route);
-  const rideState  = useRideStore((s) => s.rideState);
-  const replayData = useRideStore((s) => s.replayData);
+  const navigate      = useNavigate();
+  const route         = useRideStore((s) => s.route);
+  const rideState     = useRideStore((s) => s.rideState);
+  const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
 
   // Run the replay loop when replay data is present; otherwise the live loop.
@@ -82,8 +82,14 @@ export function Ride() {
             setToken(t);
           }}
         />
-        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-          <ChevronLeft className="h-4 w-4" /> Back to setup
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Go back to route setup"
+          onClick={() => navigate('/')}
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          Back to setup
         </Button>
       </div>
     );
@@ -97,7 +103,10 @@ export function Ride() {
 
       {/* Paused dim veil — subtle darkening when ride is paused */}
       {rideState === 'paused' && (
-        <div className="absolute inset-0 bg-background/30 backdrop-blur-[2px] pointer-events-none z-[1] transition-opacity duration-300" />
+        <div
+          className="absolute inset-0 bg-background/30 backdrop-blur-[2px] pointer-events-none z-[1] transition-opacity duration-300"
+          aria-hidden="true"
+        />
       )}
 
       {/* ── Top bar ────────────────────────────────────────────────────── */}
@@ -115,10 +124,12 @@ export function Ride() {
             <Button
               variant="outline"
               size="sm"
+              aria-label="Exit ride and return to setup"
               className="rounded-pill glass glass-hairline border-transparent text-foreground hover:text-foreground"
               onClick={() => navigate('/')}
             >
-              <ChevronLeft className="h-4 w-4" /> Exit
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Exit
             </Button>
             <ThemeToggle />
             <SoundToggle />
@@ -213,12 +224,12 @@ function complianceBg(c: number | null): string {
 }
 
 function FinishCard() {
-  const distance     = useRideStore((s) => s.distance);
-  const elapsedMs    = useRideStore((s) => s.elapsedMs);
-  const samples      = useRideStore((s) => s.samples);
-  const route        = useRideStore((s) => s.route);
+  const distance      = useRideStore((s) => s.distance);
+  const elapsedMs     = useRideStore((s) => s.elapsedMs);
+  const samples       = useRideStore((s) => s.samples);
+  const route         = useRideStore((s) => s.route);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
-  const ftpW         = useSettingsStore((s) => s.ftpW);
+  const ftpW          = useSettingsStore((s) => s.ftpW);
 
   const metrics = useMemo(
     () => computeMetrics(samples, ftpW, activeWorkout),
@@ -243,13 +254,18 @@ function FinishCard() {
   const zone = ifZone(metrics.intensityFactor);
 
   return (
-    <div className="absolute inset-0 flex items-start sm:items-center justify-center bg-background/75 backdrop-blur-md p-3 sm:p-6 z-20 animate-fadeIn overflow-y-auto">
+    <div
+      className="absolute inset-0 flex items-start sm:items-center justify-center bg-background/75 backdrop-blur-md p-3 sm:p-6 z-20 animate-fadeIn overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Ride complete — summary"
+    >
       <Card className="max-w-lg w-full ring-halo animate-scaleIn my-auto mt-4 sm:mt-0">
         <CardContent className="p-5 sm:p-7 flex flex-col gap-5">
 
           {/* ---- Hero header ---- */}
           <div className="flex items-center gap-4">
-            <div className="relative shrink-0">
+            <div className="relative shrink-0" aria-hidden="true">
               <div className="rounded-full bg-accent/12 p-3.5 text-accent ring-1 ring-accent/25 shadow-[0_0_28px_-8px_hsl(var(--accent)/0.45)]">
                 <Trophy className="h-7 w-7" />
               </div>
@@ -257,9 +273,9 @@ function FinishCard() {
               <Star className="absolute -bottom-1 -left-0.5 h-3 w-3 text-amber-300 fill-current opacity-70" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
                 Ride complete!
-              </div>
+              </h2>
               {route && (
                 <div className="text-sm text-muted-foreground truncate">{route.name}</div>
               )}
@@ -273,7 +289,7 @@ function FinishCard() {
 
           {/* ---- Power hero trio (NP / IF / TSS) ---- */}
           {metrics.avgPowerW > 0 && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2" role="group" aria-label="Power metrics">
               <PowerHero
                 label="NP"
                 value={`${metrics.normalizedPowerW}`}
@@ -297,37 +313,41 @@ function FinishCard() {
           )}
 
           {/* ---- Secondary stats grid ---- */}
-          <div className="grid grid-cols-2 xs:grid-cols-4 gap-1 rounded-xl bg-muted/30 p-3">
+          <div
+            className="grid grid-cols-2 xs:grid-cols-4 gap-1 rounded-xl bg-muted/30 p-3"
+            role="list"
+            aria-label="Ride statistics"
+          >
             <FinishStat
-              icon={<Zap className="h-3 w-3 text-amber-400" />}
+              icon={<Zap className="h-3 w-3 text-amber-400" aria-hidden="true" />}
               label="Avg W"
               value={metrics.avgPowerW > 0 ? `${Math.round(metrics.avgPowerW)}` : '—'}
             />
             <FinishStat
-              icon={<Zap className="h-3 w-3 text-rose-400" />}
+              icon={<Zap className="h-3 w-3 text-rose-400" aria-hidden="true" />}
               label="Max W"
               value={metrics.maxPowerW > 0 ? `${metrics.maxPowerW}` : '—'}
             />
             <FinishStat
-              icon={<Heart className="h-3 w-3 text-rose-500" />}
+              icon={<Heart className="h-3 w-3 text-rose-500" aria-hidden="true" />}
               label="Avg HR"
               value={metrics.avgHrBpm > 0 ? `${metrics.avgHrBpm}` : '—'}
               unit={metrics.avgHrBpm > 0 ? 'bpm' : undefined}
             />
             <FinishStat
-              icon={<Activity className="h-3 w-3 text-primary" />}
+              icon={<Activity className="h-3 w-3 text-primary" aria-hidden="true" />}
               label="Cadence"
               value={metrics.avgCadenceRpm > 0 ? `${metrics.avgCadenceRpm}` : '—'}
               unit={metrics.avgCadenceRpm > 0 ? 'rpm' : undefined}
             />
             <FinishStat
-              icon={<Mountain className="h-3 w-3 text-emerald-500" />}
+              icon={<Mountain className="h-3 w-3 text-emerald-500" aria-hidden="true" />}
               label="Ascent"
               value={`${Math.round(metrics.totalAscentM)}`}
               unit="m"
             />
             <FinishStat
-              icon={<BatteryCharging className="h-3 w-3 text-sky-400" />}
+              icon={<BatteryCharging className="h-3 w-3 text-sky-400" aria-hidden="true" />}
               label="Work"
               value={metrics.workKj > 0 ? `${Math.round(metrics.workKj)}` : '—'}
               unit={metrics.workKj > 0 ? 'kJ' : undefined}
@@ -346,11 +366,11 @@ function FinishCard() {
           {metrics.avgPowerW > 0 && (
             <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
               <span>Variability Index: <span className="num font-semibold text-foreground">{metrics.variabilityIndex.toFixed(2)}</span></span>
-              <span className="opacity-40">·</span>
+              <span className="opacity-40" aria-hidden="true">·</span>
               <span>Avg speed: <span className="num font-semibold text-foreground">{msToKmh(avgSpeed).toFixed(1)} km/h</span></span>
               {metrics.maxHrBpm > 0 && (
                 <>
-                  <span className="opacity-40">·</span>
+                  <span className="opacity-40" aria-hidden="true">·</span>
                   <span>Max HR: <span className="num font-semibold text-foreground">{metrics.maxHrBpm} bpm</span></span>
                 </>
               )}
@@ -367,10 +387,10 @@ function FinishCard() {
                 <table className="w-full min-w-[20rem] text-xs">
                   <thead>
                     <tr className="border-b border-border/40 bg-muted/30">
-                      <th className="text-left px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Segment</th>
-                      <th className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Target</th>
-                      <th className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Actual</th>
-                      <th className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">%</th>
+                      <th scope="col" className="text-left px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Segment</th>
+                      <th scope="col" className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Target</th>
+                      <th scope="col" className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Actual</th>
+                      <th scope="col" className="text-right px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">%</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -427,16 +447,20 @@ function PowerHero({
   return (
     <div
       title={tooltip}
+      aria-label={`${tooltip}: ${value}${unit ? ' ' + unit : ''}`}
       className={cn(
         'flex flex-col items-center gap-0.5 rounded-xl py-3 px-2',
         accent ? 'bg-accent/8 ring-1 ring-accent/20' : 'bg-muted/40',
       )}
     >
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-      <div className={cn('num text-2xl sm:text-3xl font-bold leading-none tabular-nums', accent ? 'text-accent' : 'text-foreground')}>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground" aria-hidden="true">{label}</div>
+      <div
+        aria-hidden="true"
+        className={cn('num text-2xl sm:text-3xl font-bold leading-none tabular-nums', accent ? 'text-accent' : 'text-foreground')}
+      >
         {value}
       </div>
-      {unit && <div className="text-[10px] text-muted-foreground">{unit}</div>}
+      {unit && <div className="text-[10px] text-muted-foreground" aria-hidden="true">{unit}</div>}
     </div>
   );
 }
@@ -453,12 +477,16 @@ function FinishStat({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 py-1.5 px-1">
-      <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+    <div
+      className="flex flex-col gap-0.5 py-1.5 px-1"
+      role="listitem"
+      aria-label={`${label}: ${value}${unit ? ' ' + unit : ''}`}
+    >
+      <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground" aria-hidden="true">
         {icon}
         <span>{label}</span>
       </div>
-      <div className="num font-bold text-sm text-foreground tabular-nums leading-tight">
+      <div className="num font-bold text-sm text-foreground tabular-nums leading-tight" aria-hidden="true">
         {value}
         {unit && <span className="text-[10px] font-normal text-muted-foreground ml-0.5">{unit}</span>}
       </div>

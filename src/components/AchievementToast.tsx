@@ -54,6 +54,7 @@ function AchievementCard({
 }) {
   const first = achievements[0];
   const extra = achievements.length - 1;
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Progress bar that shrinks over TOAST_DURATION_MS
   const [progress, setProgress] = useState(100);
@@ -75,10 +76,26 @@ function AchievementCard({
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Dismiss on Escape key when focused inside the card
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    card.addEventListener('keydown', handler);
+    return () => card.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   const styles = TIER_LABEL_STYLES[first.tier];
 
   return (
     <div
+      ref={cardRef}
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+      aria-label={`Achievement unlocked: ${first.name}`}
       className={cn(
         'relative w-80 overflow-hidden rounded-2xl border bg-card/95 backdrop-blur-md shadow-2xl',
         'animate-in slide-in-from-bottom-4 fade-in duration-300 ease-out',
@@ -86,12 +103,13 @@ function AchievementCard({
       )}
     >
       {/* Top accent stripe */}
-      <div className={cn('h-0.5 w-full', styles.stripe)} />
+      <div className={cn('h-0.5 w-full', styles.stripe)} aria-hidden="true" />
 
       {/* Body */}
       <div className="flex items-start gap-3 p-4">
         {/* Icon */}
         <div
+          aria-hidden="true"
           className={cn(
             'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl leading-none ring-1 ring-inset',
             styles.iconBg,
@@ -103,7 +121,7 @@ function AchievementCard({
 
         {/* Text */}
         <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-center gap-1.5 mb-0.5">
+          <div className="flex items-center gap-1.5 mb-0.5" aria-hidden="true">
             <Trophy className={cn('h-3 w-3 shrink-0', styles.trophyColor)} />
             <span className={cn('text-[10px] font-bold uppercase tracking-widest', styles.trophyColor)}>
               Achievement Unlocked!
@@ -124,16 +142,17 @@ function AchievementCard({
 
         {/* Close */}
         <button
+          type="button"
           onClick={onClose}
-          aria-label="Dismiss"
-          className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label="Dismiss achievement notification"
+          className="shrink-0 rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-card active:scale-90"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
 
       {/* Progress bar */}
-      <div className="h-0.5 w-full bg-muted/30">
+      <div className="h-0.5 w-full bg-muted/30" aria-hidden="true">
         <div
           className={cn('h-full transition-none', styles.stripe)}
           style={{ width: `${progress}%` }}
@@ -179,9 +198,9 @@ export function AchievementToast() {
 
   return (
     <div
-      aria-live="polite"
       aria-label="Achievement notifications"
-      className="fixed bottom-6 right-6 z-[200] flex flex-col gap-3 pointer-events-none"
+      // Position above the ride controls (bottom ~5rem) so it never overlaps
+      className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 z-[200] flex flex-col gap-3 pointer-events-none max-w-[calc(100vw-2rem)]"
     >
       {queue.map((entry) => (
         <div key={entry.key} className="pointer-events-auto">

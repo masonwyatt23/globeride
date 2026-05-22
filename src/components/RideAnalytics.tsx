@@ -45,27 +45,34 @@ function SectionHeader({
   title,
   open,
   onToggle,
+  id,
+  panelId,
 }: {
   icon: React.ReactNode;
   title: string;
   open: boolean;
   onToggle: () => void;
+  id: string;
+  panelId: string;
 }) {
   return (
     <button
       type="button"
+      id={id}
+      aria-expanded={open}
+      aria-controls={panelId}
       onClick={onToggle}
-      className="w-full flex items-center justify-between gap-2 group"
+      className="w-full flex items-center justify-between gap-2 group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background transition-colors"
     >
       <div className="flex items-center gap-2">
-        <span className="text-accent">{icon}</span>
+        <span className="text-accent" aria-hidden="true">{icon}</span>
         <span className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
           {title}
         </span>
       </div>
       {open
-        ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+        ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground transition-transform" aria-hidden="true" />
+        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform" aria-hidden="true" />}
     </button>
   );
 }
@@ -98,7 +105,7 @@ function PowerCurveChart({
   const hasPower = curve.some((p) => p.powerW !== null);
   if (!hasPower) {
     return (
-      <div className="flex items-center justify-center h-28 text-xs text-muted-foreground">
+      <div className="flex items-center justify-center h-28 text-xs text-muted-foreground/60 italic">
         No power data recorded
       </div>
     );
@@ -178,7 +185,7 @@ function TimeInZonesChart({ zones }: { zones: ZoneTime[] }) {
 
   if (!hasPower) {
     return (
-      <div className="flex items-center justify-center h-14 text-xs text-muted-foreground">
+      <div className="flex items-center justify-center h-14 text-xs text-muted-foreground/60 italic">
         No power data — zones require FTP + power recording
       </div>
     );
@@ -187,7 +194,7 @@ function TimeInZonesChart({ zones }: { zones: ZoneTime[] }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Stacked horizontal bar */}
-      <div className="flex h-5 rounded-full overflow-hidden gap-px">
+      <div className="flex h-5 rounded-full overflow-hidden gap-px" role="img" aria-label="Time in power zones">
         {zones.map((z) =>
           z.fraction > 0.005 ? (
             <div
@@ -207,6 +214,7 @@ function TimeInZonesChart({ zones }: { zones: ZoneTime[] }) {
             <div
               className="h-2.5 w-2.5 rounded-sm shrink-0"
               style={{ background: z.color }}
+              aria-hidden="true"
             />
             <div className="flex-1 min-w-0 flex items-baseline justify-between gap-1">
               <span className="text-[10px] text-muted-foreground truncate">
@@ -242,7 +250,7 @@ function SplitsTable({ splits }: { splits: RideSplit[] }) {
 
   if (splits.length === 0) {
     return (
-      <div className="flex items-center justify-center h-12 text-xs text-muted-foreground">
+      <div className="flex items-center justify-center h-12 text-xs text-muted-foreground/60 italic">
         Ride shorter than 1 km — no splits available
       </div>
     );
@@ -254,11 +262,11 @@ function SplitsTable({ splits }: { splits: RideSplit[] }) {
   // Sorting
   const sorted = [...splits].sort((a, b) => {
     let va = 0, vb = 0;
-    if (sortKey === 'km')     { va = a.km;           vb = b.km; }
-    if (sortKey === 'pace')   { va = a.secPerKm;     vb = b.secPerKm; }
+    if (sortKey === 'km')     { va = a.km;             vb = b.km; }
+    if (sortKey === 'pace')   { va = a.secPerKm;       vb = b.secPerKm; }
     if (sortKey === 'power')  { va = a.avgPowerW ?? 0; vb = b.avgPowerW ?? 0; }
     if (sortKey === 'hr')     { va = a.avgHrBpm ?? 0;  vb = b.avgHrBpm ?? 0; }
-    if (sortKey === 'ascent') { va = a.ascentM;      vb = b.ascentM; }
+    if (sortKey === 'ascent') { va = a.ascentM;        vb = b.ascentM; }
     return sortAsc ? va - vb : vb - va;
   });
 
@@ -270,24 +278,39 @@ function SplitsTable({ splits }: { splits: RideSplit[] }) {
     sk: SortKey;
     children: React.ReactNode;
     className?: string;
-  }) => (
-    <th
-      className={cn(
-        'px-2.5 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors',
-        sortKey === sk && 'text-accent',
-        className,
-      )}
-      onClick={() => {
-        if (sortKey === sk) setSortAsc((a) => !a);
-        else { setSortKey(sk); setSortAsc(true); }
-      }}
-    >
-      {children}
-      {sortKey === sk && (
-        <span className="ml-0.5 opacity-60">{sortAsc ? '↑' : '↓'}</span>
-      )}
-    </th>
-  );
+  }) => {
+    const isActive = sortKey === sk;
+    return (
+      <th
+        scope="col"
+        aria-sort={isActive ? (sortAsc ? 'ascending' : 'descending') : 'none'}
+        className={cn(
+          'px-2.5 py-1.5 text-[9px] uppercase tracking-wide font-semibold text-muted-foreground',
+          'cursor-pointer select-none hover:text-foreground transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+          isActive && 'text-accent',
+          className,
+        )}
+        tabIndex={0}
+        onClick={() => {
+          if (sortKey === sk) setSortAsc((a) => !a);
+          else { setSortKey(sk); setSortAsc(true); }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (sortKey === sk) setSortAsc((a) => !a);
+            else { setSortKey(sk); setSortAsc(true); }
+          }
+        }}
+      >
+        {children}
+        {isActive && (
+          <span className="ml-0.5 opacity-60" aria-hidden="true">{sortAsc ? '↑' : '↓'}</span>
+        )}
+      </th>
+    );
+  };
 
   // Fastest pace for colour coding
   const minPace = Math.min(...splits.filter((s) => s.secPerKm > 0).map((s) => s.secPerKm));
@@ -370,6 +393,7 @@ function lerp(a: number, b: number, t: number): number {
  *
  * Reads samples/ftpW from stores; all computation is memoised.
  * Designed to be dropped into the FinishCard below the existing stats grid.
+ * Returns null when there are fewer than 5 samples (too short to be meaningful).
  */
 export function RideAnalytics() {
   const samples   = useRideStore((s) => s.samples);
@@ -389,39 +413,66 @@ export function RideAnalytics() {
   return (
     <div className="flex flex-col gap-4">
       {/* Divider */}
-      <div className="h-px bg-border/40" />
+      <div className="h-px bg-border/40" aria-hidden="true" />
 
       {/* Section: Power Curve */}
       <div className="flex flex-col gap-2.5">
         <SectionHeader
+          id="analytics-curve-header"
+          panelId="analytics-curve-panel"
           icon={<BarChart2 className="h-3.5 w-3.5" />}
           title="Power Curve"
           open={curveOpen}
           onToggle={() => setCurveOpen((o) => !o)}
         />
-        {curveOpen && <PowerCurveChart curve={curve} ftpW={ftpW} />}
+        <div
+          id="analytics-curve-panel"
+          role="region"
+          aria-labelledby="analytics-curve-header"
+          hidden={!curveOpen}
+        >
+          {curveOpen && <PowerCurveChart curve={curve} ftpW={ftpW} />}
+        </div>
       </div>
 
       {/* Section: Time in Zones */}
       <div className="flex flex-col gap-2.5">
         <SectionHeader
+          id="analytics-zones-header"
+          panelId="analytics-zones-panel"
           icon={<Layers className="h-3.5 w-3.5" />}
           title="Time in Zones"
           open={zonesOpen}
           onToggle={() => setZonesOpen((o) => !o)}
         />
-        {zonesOpen && <TimeInZonesChart zones={zones} />}
+        <div
+          id="analytics-zones-panel"
+          role="region"
+          aria-labelledby="analytics-zones-header"
+          hidden={!zonesOpen}
+        >
+          {zonesOpen && <TimeInZonesChart zones={zones} />}
+        </div>
       </div>
 
       {/* Section: Splits */}
       <div className="flex flex-col gap-2.5">
         <SectionHeader
+          id="analytics-splits-header"
+          panelId="analytics-splits-panel"
           icon={<ListOrdered className="h-3.5 w-3.5" />}
           title={`Splits (${splits.length} km)`}
           open={splitsOpen}
           onToggle={() => setSplitsOpen((o) => !o)}
         />
-        {splitsOpen && <SplitsTable splits={splits} />}
+        <div
+          id="analytics-splits-panel"
+          role="region"
+          aria-labelledby="analytics-splits-header"
+          hidden={!splitsOpen}
+        >
+          {splitsOpen && <SplitsTable splits={splits} />}
+        </div>
       </div>
     </div>
   );
