@@ -52,9 +52,9 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Post-ride analytics — power curve, time-in-zones, per-km splits
 - [x] Expanded content — 19 iconic routes total + ~44 curated workouts
 
-## Wave 8 — Refinement
-- [ ] Reorganise the overloaded setup/Home page into a clean tabbed structure
-- [ ] Deep QA pass — bug hunt + fixes across all seven feature waves
+## Wave 8 — Refinement  ✅
+- [x] Home reorganised into clean Ride / Routes / Workouts / History tabs
+- [x] Deep QA pass — fixed 4 real bugs (sample mutation, viewer guards, PR race, timer leak)
 
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
