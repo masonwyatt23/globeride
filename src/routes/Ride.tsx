@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Trophy, Star, Zap, Activity, Heart, Mountain, ArrowUp, BatteryCharging } from 'lucide-react';
+import { ChevronLeft, Trophy, Star, Zap, Activity, Heart, Mountain, BatteryCharging } from 'lucide-react';
 
 import { CesiumViewer } from '@/components/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/CesiumTokenPrompt';
@@ -89,16 +89,21 @@ export function Ride() {
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
       <CesiumViewer ionToken={token} />
 
-      {/* Top bar: exit + theme + settings + connection status */}
+      {/* Paused dim veil — subtle darkening when ride is paused */}
+      {rideState === 'paused' && (
+        <div className="absolute inset-0 bg-background/30 backdrop-blur-[2px] pointer-events-none z-[1] transition-opacity duration-300" />
+      )}
+
+      {/* ── Top bar ────────────────────────────────────────────────────── */}
       <div
-        className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none"
+        className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none z-[2]"
         style={{
           paddingTop:   'max(env(safe-area-inset-top), 0.75rem)',
           paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        {/* Left cluster */}
+        {/* Left cluster: nav + status chips */}
         <div className="flex flex-col gap-2 items-start pointer-events-auto">
           <div className="flex items-center gap-2">
             <Button
@@ -121,24 +126,23 @@ export function Ride() {
           <SensorStatusPills />
         </div>
 
-        {/* Right: HUD (tablet+) */}
-        <div className="hidden sm:block pointer-events-none w-full max-w-[22rem] md:max-w-[26rem] lg:max-w-[30rem] xl:max-w-[34rem]">
+        {/* Right: HUD column (tablet+) — scrollable if workout panel is tall */}
+        <div
+          className="hidden sm:flex flex-col gap-2 pointer-events-none w-full max-w-[22rem] md:max-w-[25rem] lg:max-w-[28rem] xl:max-w-[31rem] overflow-y-auto"
+          style={{ maxHeight: 'calc(100vh - 6rem)' }}
+        >
           <RideHUD />
-          {activeWorkout && (
-            <div className="mt-2">
-              <WorkoutHUD />
-            </div>
-          )}
+          {activeWorkout && <WorkoutHUD />}
         </div>
       </div>
 
-      {/* Mobile-only HUD — below the top bar */}
+      {/* ── Mobile HUD — below the top bar ─────────────────────────────── */}
       <div
-        className="sm:hidden absolute left-0 right-0 pointer-events-none"
+        className="sm:hidden absolute left-0 right-0 pointer-events-none z-[2]"
         style={{
-          top:         'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
-          paddingLeft: 'max(env(safe-area-inset-left), 0.75rem)',
-          paddingRight:'max(env(safe-area-inset-right), 0.75rem)',
+          top:          'calc(max(env(safe-area-inset-top), 0.75rem) + 3.5rem)',
+          paddingLeft:  'max(env(safe-area-inset-left), 0.75rem)',
+          paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
         <RideHUD />
@@ -149,17 +153,9 @@ export function Ride() {
         )}
       </div>
 
-      {/* Bottom-center: transport controls */}
+      {/* ── Elevation profile — bottom-left ─────────────────────────────── */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-10"
-        style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
-      >
-        <RideControls />
-      </div>
-
-      {/* Bottom-left: elevation profile */}
-      <div
-        className="absolute pointer-events-auto sm:right-auto"
+        className="absolute pointer-events-auto z-[2]"
         style={{
           left:   'max(env(safe-area-inset-left), 0.75rem)',
           right:  'max(env(safe-area-inset-right), 0.75rem)',
@@ -171,10 +167,18 @@ export function Ride() {
         </div>
       </div>
 
-      {/* Finish overlay */}
+      {/* ── Transport controls — bottom-center ──────────────────────────── */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-[3]"
+        style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
+      >
+        <RideControls />
+      </div>
+
+      {/* ── Finish overlay ──────────────────────────────────────────────── */}
       {rideState === 'finished' && <FinishCard />}
 
-      {/* Keyboard shortcuts overlay (toggled by `?` / `h`) */}
+      {/* ── Keyboard shortcuts overlay ──────────────────────────────────── */}
       <RideShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );

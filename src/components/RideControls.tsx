@@ -1,32 +1,42 @@
 import { useCallback, useState } from 'react';
-import { Play, Pause, Square, Save, RotateCcw, Upload, CheckCircle2, AlertCircle, Loader2, Settings } from 'lucide-react';
+import {
+  Play, Pause, Square, Save, RotateCcw, Upload,
+  CheckCircle2, AlertCircle, Loader2, Settings,
+  Flag,
+} from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { buildFit, downloadFit } from '@/lib/fitExporter';
 import { uploadFit, stravaCredsPresent, StravaError, type UploadState, type StravaErrorKind } from '@/lib/strava';
+import { cn } from '@/lib/utils';
 
 /**
- * Start / pause / stop transport for the ride, plus end-of-ride export.
- * Pill-shaped glass bar — large enough to hit with sweaty fingers (h-12 = 48px).
+ * Ride transport controls — the primary action bar the rider reaches for
+ * to start, pause, resume, or finish a ride.
+ *
+ * Design: a pill-shaped glass bar with a glow that changes color based on
+ * ride state. Large touch targets (min 48 px) for sweaty-finger use.
+ *
+ * Post-ride: export .FIT and Strava upload inline.
  */
 export function RideControls() {
-  const rideState  = useRideStore((s) => s.rideState);
-  const start      = useRideStore((s) => s.start);
-  const pause      = useRideStore((s) => s.pause);
-  const resume     = useRideStore((s) => s.resume);
-  const finish     = useRideStore((s) => s.finish);
-  const reset      = useRideStore((s) => s.reset);
-  const samples    = useRideStore((s) => s.samples);
-  const startedAt  = useRideStore((s) => s.startedAt);
-  const route      = useRideStore((s) => s.route);
+  const rideState = useRideStore((s) => s.rideState);
+  const start     = useRideStore((s) => s.start);
+  const pause     = useRideStore((s) => s.pause);
+  const resume    = useRideStore((s) => s.resume);
+  const finish    = useRideStore((s) => s.finish);
+  const reset     = useRideStore((s) => s.reset);
+  const samples   = useRideStore((s) => s.samples);
+  const startedAt = useRideStore((s) => s.startedAt);
+  const route     = useRideStore((s) => s.route);
 
   const [uploadState, setUploadState] = useState<UploadState>({ phase: 'idle' });
 
   const handleExport = useCallback(() => {
     if (!startedAt || samples.length === 0) return;
-    const blob = buildFit({ startTime: startedAt, samples });
+    const blob  = buildFit({ startTime: startedAt, samples });
     const safe  = (route?.name ?? 'globeride').replace(/[^a-z0-9-_]+/gi, '_');
     const stamp = new Date(startedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
     downloadFit(blob, `${safe}_${stamp}.fit`);
@@ -36,11 +46,10 @@ export function RideControls() {
     if (!startedAt || samples.length === 0) return;
     if (uploadState.phase === 'uploading' || uploadState.phase === 'polling') return;
 
-    const blob = buildFit({ startTime: startedAt, samples });
-    const activityName =
-      route?.name
-        ? `${route.name} — GlobeRide`
-        : `GlobeRide — ${new Date(startedAt).toLocaleDateString()}`;
+    const blob         = buildFit({ startTime: startedAt, samples });
+    const activityName = route?.name
+      ? `${route.name} — GlobeRide`
+      : `GlobeRide — ${new Date(startedAt).toLocaleDateString()}`;
 
     try {
       await uploadFit(
@@ -59,7 +68,7 @@ export function RideControls() {
       } else {
         setUploadState({
           phase: 'error',
-          errorMessage: err instanceof Error ? err.message : 'Upload failed — check console for details.',
+          errorMessage: err instanceof Error ? err.message : 'Upload failed — check console.',
           errorKind: 'unknown',
         });
       }
@@ -68,24 +77,50 @@ export function RideControls() {
 
   if (!route) return null;
 
+  // Glow color varies by ride state
+  const glowClass =
+    rideState === 'running' ? 'shadow-[0_0_28px_-6px_hsl(var(--accent)/0.6)]' :
+    rideState === 'paused'  ? 'shadow-[0_0_24px_-6px_hsl(var(--primary)/0.5)]' :
+    rideState === 'finished'? 'shadow-[0_0_28px_-6px_hsl(var(--primary)/0.4)]' :
+    '';
+
   return (
-    <div className="glass glass-hairline rounded-pill px-3 py-2.5 flex flex-col items-center gap-2">
+    <div className={cn(
+      'glass glass-hairline rounded-pill px-3 py-2.5 flex flex-col items-center gap-2 transition-shadow duration-500',
+      glowClass,
+    )}>
       <div className="flex items-center gap-2">
+
         {rideState === 'ready' && (
-          <Button variant="accent" size="lg" className="rounded-pill min-w-[7rem]" onClick={start}>
-            <Play className="h-4.5 w-4.5" fill="currentColor" />
+          <Button
+            variant="accent"
+            size="lg"
+            className="rounded-pill min-w-[8rem] gap-2 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.5)] hover:shadow-[0_0_28px_-4px_hsl(var(--accent)/0.7)] transition-shadow"
+            onClick={start}
+          >
+            <Play className="h-4 w-4" fill="currentColor" />
             Start ride
           </Button>
         )}
 
         {rideState === 'running' && (
           <>
-            <Button variant="outline" size="lg" className="rounded-pill" onClick={pause}>
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-pill"
+              onClick={pause}
+            >
               <Pause className="h-4 w-4" />
               Pause
             </Button>
-            <Button variant="destructive" size="lg" className="rounded-pill" onClick={finish}>
-              <Square className="h-3.5 w-3.5" fill="currentColor" />
+            <Button
+              variant="destructive"
+              size="lg"
+              className="rounded-pill"
+              onClick={finish}
+            >
+              <Flag className="h-3.5 w-3.5" />
               Finish
             </Button>
           </>
@@ -93,11 +128,21 @@ export function RideControls() {
 
         {rideState === 'paused' && (
           <>
-            <Button variant="accent" size="lg" className="rounded-pill" onClick={resume}>
+            <Button
+              variant="accent"
+              size="lg"
+              className="rounded-pill"
+              onClick={resume}
+            >
               <Play className="h-4 w-4" fill="currentColor" />
               Resume
             </Button>
-            <Button variant="destructive" size="lg" className="rounded-pill" onClick={finish}>
+            <Button
+              variant="destructive"
+              size="lg"
+              className="rounded-pill"
+              onClick={finish}
+            >
               <Square className="h-3.5 w-3.5" fill="currentColor" />
               Finish
             </Button>
@@ -106,7 +151,13 @@ export function RideControls() {
 
         {rideState === 'finished' && (
           <>
-            <Button variant="default" size="lg" className="rounded-pill" onClick={handleExport}>
+            <Button
+              variant="default"
+              size="lg"
+              className="rounded-pill"
+              onClick={handleExport}
+              title="Download your ride as a .FIT file"
+            >
               <Save className="h-4 w-4" />
               Export .FIT
             </Button>
@@ -117,7 +168,13 @@ export function RideControls() {
               onReset={() => setUploadState({ phase: 'idle' })}
             />
 
-            <Button variant="outline" size="lg" className="rounded-pill" onClick={reset}>
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-pill"
+              onClick={reset}
+              title="Reset to start of route"
+            >
               <RotateCcw className="h-3.5 w-3.5" />
               New ride
             </Button>
@@ -125,7 +182,7 @@ export function RideControls() {
         )}
       </div>
 
-      {/* Strava status badge row — only shown when there is something to report */}
+      {/* Strava status badge — only when there's something to show */}
       {rideState === 'finished' && uploadState.phase !== 'idle' && (
         <StravaStatusBadge state={uploadState} />
       )}
@@ -143,7 +200,6 @@ interface StravaUploadButtonProps {
   onReset: () => void;
 }
 
-/** Returns actionable button label copy for a given error kind. */
 function errorButtonLabel(kind: StravaErrorKind | undefined): string {
   switch (kind) {
     case 'creds_missing':      return 'Configure Strava';
@@ -158,18 +214,11 @@ function errorButtonLabel(kind: StravaErrorKind | undefined): string {
 function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButtonProps) {
   const credsPresent = stravaCredsPresent();
   const { phase, activityId, errorKind, actionUrl } = uploadState;
-
   const isLoading = phase === 'uploading' || phase === 'polling';
 
-  // Success: show a link to the activity
   if (phase === 'success' && activityId) {
     return (
-      <Button
-        variant="accent"
-        size="lg"
-        className="rounded-pill"
-        asChild
-      >
+      <Button variant="accent" size="lg" className="rounded-pill" asChild>
         <a
           href={`https://www.strava.com/activities/${activityId}`}
           target="_blank"
@@ -182,7 +231,6 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     );
   }
 
-  // Error with a Settings action URL (scope / creds issues) — show link to settings
   if (phase === 'error' && actionUrl) {
     return (
       <Button
@@ -199,7 +247,6 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     );
   }
 
-  // Generic error: allow retry by resetting state
   if (phase === 'error') {
     return (
       <Button
@@ -215,7 +262,6 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     );
   }
 
-  // Disabled state when credentials are not configured — link to settings
   if (!credsPresent) {
     return (
       <Button
@@ -240,7 +286,7 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
       className="rounded-pill hover:border-[#FC4C02]/50 hover:text-[#FC4C02] focus-visible:ring-[#FC4C02]/50"
       onClick={onUpload}
       disabled={isLoading}
-      title={isLoading ? 'Uploading to Strava…' : 'Upload this activity directly to Strava'}
+      title={isLoading ? 'Uploading to Strava…' : 'Upload this activity to Strava'}
     >
       {isLoading ? (
         <>
@@ -266,7 +312,6 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
       </Badge>
     );
   }
-
   if (state.phase === 'polling') {
     return (
       <Badge variant="muted" className="text-[10px]">
@@ -275,7 +320,6 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
       </Badge>
     );
   }
-
   if (state.phase === 'success' && state.activityId) {
     return (
       <Badge variant="success" className="text-[10px]">
@@ -284,14 +328,11 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
       </Badge>
     );
   }
-
   if (state.phase === 'error' && state.errorMessage) {
-    // For scope / creds issues, surface the settings link in the badge too
     const isSettingsIssue =
       state.errorKind === 'insufficient_scope' ||
       state.errorKind === 'creds_missing' ||
       state.errorKind === 'refresh_failed';
-
     return (
       <Badge
         variant="destructive"
@@ -308,6 +349,5 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
       </Badge>
     );
   }
-
   return null;
 }
