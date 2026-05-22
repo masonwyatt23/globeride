@@ -307,7 +307,9 @@ function ActivePlanDashboard({
               <button
                 type="button"
                 onClick={() => setExpandedWeek(isExpanded ? -1 : wi)}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/30 transition-colors"
+                aria-expanded={isExpanded}
+                aria-controls={`week-panel-${wi}`}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
               >
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="text-xs font-semibold text-foreground flex-1">Week {weekNum}</span>
@@ -358,7 +360,7 @@ function ActivePlanDashboard({
 
               {/* Expanded day list */}
               {isExpanded && (
-                <div className="border-t border-border/40 divide-y divide-border/30">
+                <div id={`week-panel-${wi}`} className="border-t border-border/40 divide-y divide-border/30">
                   {weekDays.map((d) => (
                     <DayRow
                       key={d.day}

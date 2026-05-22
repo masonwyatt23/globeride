@@ -215,8 +215,8 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
   return (
     <div className={cn('flex flex-col gap-3', className)}>
 
-      {/* Category tabs */}
-      <div className="flex gap-1.5 flex-wrap" role="tablist" aria-label="Filter by category">
+      {/* Category filter toggles */}
+      <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter by category">
         {CATEGORY_TABS.map((cat) => {
           const meta    = CATEGORY_META[cat];
           const count   = categoryCounts[cat] ?? 0;
@@ -225,8 +225,7 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
           return (
             <button
               key={cat}
-              role="tab"
-              aria-selected={isActive}
+              aria-pressed={isActive}
               type="button"
               onClick={() => setCategory(cat)}
               className={cn(

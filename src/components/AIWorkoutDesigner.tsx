@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useAIStore } from '@/stores/aiStore';
 import { useRideStore } from '@/stores/rideStore';
+import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { generateWorkout, getProviderInfo } from '@/lib/ai/provider';
 import {
   type Workout,
@@ -288,8 +289,8 @@ export function AIWorkoutDesigner() {
   const handleRide = React.useCallback(() => {
     if (!workout) return;
     addRecentWorkout(workout);
-    // Clear any existing route so the ride uses this workout in ERG mode
-    setRoute(null);
+    // Keep globe scenery while riding the workout in ERG mode
+    setRoute(makeDemoRoute());
     navigate('/ride');
   }, [workout, addRecentWorkout, setRoute, navigate]);
 

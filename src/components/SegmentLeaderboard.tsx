@@ -182,11 +182,12 @@ function SegmentCard({
               onClick={hasAttempts ? toggle : undefined}
               className={cn(
                 'flex items-center gap-0.5 text-sm font-semibold text-foreground text-left truncate',
-                hasAttempts && 'hover:text-primary transition-colors cursor-pointer',
+                hasAttempts && 'hover:text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded',
                 !hasAttempts && 'cursor-default',
               )}
               disabled={!hasAttempts}
-              aria-expanded={expanded}
+              aria-expanded={hasAttempts ? expanded : undefined}
+              aria-label={hasAttempts ? (expanded ? `Collapse attempts for ${seg.name}` : `Expand attempts for ${seg.name}`) : undefined}
             >
               {hasAttempts && (
                 <span className="shrink-0 text-muted-foreground">
