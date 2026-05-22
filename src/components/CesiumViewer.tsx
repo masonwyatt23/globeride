@@ -30,6 +30,7 @@ import {
 } from '@/lib/routeVisuals';
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { applyGraphicsQuality } from '@/lib/graphicsQuality';
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
@@ -56,6 +57,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
   const avatarColors = useSettingsStore((s) => s.avatar);
+  const graphicsQuality = useSettingsStore((s) => s.graphicsQuality);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
@@ -84,20 +86,10 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     if (scene.skyAtmosphere) scene.skyAtmosphere.show = true;
     scene.globe.enableLighting = true;
 
-    // Anti-aliasing — FXAA always, MSAA on top when the GPU supports it.
-    scene.postProcessStages.fxaa.enabled = true;
-    if (scene.msaaSupported) scene.msaaSamples = 4;
-
-    // Shadows: the rider avatar casts a real shadow onto terrain/buildings.
-    viewer.shadows = true;
-    scene.shadowMap.enabled = true;
-    scene.shadowMap.softShadows = true;
-    scene.shadowMap.size = 2048;
-    scene.shadowMap.maximumDistance = 2500;
-
-    // Lighter fog so distant terrain reads as depth rather than a grey wall.
+    // Apply the persisted graphics quality tier (AA, shadows, fog).
+    // Fog is always enabled; density is controlled per-tier.
     scene.fog.enabled = true;
-    scene.fog.density = 0.00012;
+    applyGraphicsQuality(viewer, useSettingsStore.getState().graphicsQuality);
 
     // Cesium World Terrain (ion asset 1) — shared so the route generator
     // can sample elevations from the same provider.
@@ -186,6 +178,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       theme === 'dark' ? '#0b1220' : '#dfe7f1',
     );
   }, [theme]);
+
+  // ---- Re-apply graphics quality when the user changes the tier ----
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    applyGraphicsQuality(viewer, graphicsQuality, tilesetRef.current);
+  }, [graphicsQuality]);
 
   // ---- Live avatar recolouring from the Garage settings ----
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette } from 'lucide-react';
+import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette, Monitor } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import {
   MS_PER_KMH,
   MS_PER_MPH,
 } from '@/stores/settingsStore';
+import { type GraphicsQuality, QUALITY_LABELS } from '@/lib/graphicsQuality';
 import { CDA_BY_POSITION, CRR_BY_BIKE, type BikeType, type RiderPosition } from '@/lib/physics';
 import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
 import { cn } from '@/lib/utils';
@@ -132,6 +133,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
               onChange={(v) => s.setSettings({ demoPowerW: v })}
             />
           </Section>
+
+          {/* Graphics quality */}
+          <GraphicsSection />
 
           {/* Avatar garage */}
           <GarageSection />
@@ -493,6 +497,38 @@ function PasteRefreshTokenField({ onSave }: { onSave: (token: string) => void })
 // ---------------------------------------------------------------------------
 // Garage — avatar appearance
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Graphics quality
+// ---------------------------------------------------------------------------
+
+const QUALITY_TIERS: GraphicsQuality[] = ['low', 'medium', 'high'];
+
+function GraphicsSection() {
+  const quality = useSettingsStore((st) => st.graphicsQuality);
+  const setSettings = useSettingsStore((st) => st.setSettings);
+
+  return (
+    <Section icon={<Monitor className="h-4 w-4" />} title="Graphics">
+      <div className="grid grid-cols-3 gap-2">
+        {QUALITY_TIERS.map((tier) => (
+          <PickerButton
+            key={tier}
+            selected={quality === tier}
+            onClick={() => setSettings({ graphicsQuality: tier })}
+            label={QUALITY_LABELS[tier].label}
+            sub={QUALITY_LABELS[tier].sub}
+          />
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">
+        Controls anti-aliasing, shadows, fog, and tile detail on the 3D globe.
+        Use <span className="font-semibold text-foreground">Low</span> on integrated
+        GPUs or for longer battery life.
+      </p>
+    </Section>
+  );
+}
 
 function GarageSection() {
   const avatar = useSettingsStore((st) => st.avatar);
