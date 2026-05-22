@@ -30,6 +30,7 @@ import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { WorkoutHUD } from '@/components/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/RideShortcutsHelp';
+import { RideAnalytics } from '@/components/RideAnalytics';
 import { formatDistance, formatDuration, msToKmh, cn } from '@/lib/utils';
 import { computeMetrics } from '@/lib/metrics';
 
@@ -398,6 +399,9 @@ function FinishCard() {
               </div>
             </div>
           )}
+
+          {/* ---- Deep analytics (power curve, zones, splits) ---- */}
+          <RideAnalytics />
 
           {/* ---- Export / Strava controls ---- */}
           <RideControls />
