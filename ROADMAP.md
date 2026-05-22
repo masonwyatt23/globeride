@@ -72,5 +72,13 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Training-plan progression — calendar view with streaks + today/next-up
 - [x] Personal records board + weekly/monthly trend charts
 
+## Wave 12 — Code health & repo hygiene  ✅
+- [x] Fixed the failing vitest (preset-workout duration window) — 269/269 pass
+- [x] Deleted `StravaConnect.tsx` (430 lines of confirmed dead code)
+- [x] ESLint 9 flat config + `npm run lint` — 0 errors
+- [x] README rewritten to reflect the current product
+- [x] DRY extraction — shared `SectionHeader`/`Section`, consolidated `format.ts`, `useRideHistory` hook
+- [x] 47 flat components reorganised into 7 domain folders (`ride/setup/workouts/training/routes/profile/trainer`)
+
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback

@@ -44,7 +44,6 @@ import {
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
 import { formatDate, formatSpeed } from '@/lib/format';
 import { SectionHeader } from '@/components/ui/section-header';
-import type { RideRecord } from '@/lib/rideHistory';
 import { useRideHistory } from '@/hooks/useRideHistory';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {

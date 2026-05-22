@@ -34,7 +34,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
-import { formatDate, formatDateShort, formatSpeed, formatPower } from '@/lib/format';
+import { formatDate, formatSpeed, formatPower } from '@/lib/format';
 import { deleteRide } from '@/lib/rideHistory';
 import { useRideHistory } from '@/hooks/useRideHistory';
 import type { RideRecord } from '@/lib/rideHistory';
@@ -393,10 +393,10 @@ export function RideHistory({ className }: RideHistoryProps) {
   const navigate = useNavigate();
   const loadReplay = useRideStore((s) => s.loadReplay);
 
-  const { rides: fetchedRides, loading, error, reload } = useRideHistory();
+  const { rides: fetchedRides, loading, error } = useRideHistory();
   const [rides, setRides] = useState(fetchedRides);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [_deleteError, setDeleteError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
