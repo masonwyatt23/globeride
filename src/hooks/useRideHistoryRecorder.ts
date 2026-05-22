@@ -24,6 +24,9 @@ import type { RideState } from '@/types';
 // ADDITIVE: segment leaderboard recording
 import { detectSegments, computeSegmentTimes } from '@/lib/segments';
 import { useSegmentStore } from '@/stores/segmentStore';
+// ADDITIVE: achievement evaluation
+import { useAchievementStore } from '@/stores/achievementStore';
+import { enqueueAchievementToast } from '@/components/AchievementToast';
 
 const MIN_DURATION_SEC = 30;
 
@@ -103,6 +106,20 @@ export function useRideHistoryRecorder(): void {
           ascentM: record.ascentM,
           workoutCompleted,
         });
+
+        // ADDITIVE: evaluate achievements against the post-ride profile snapshot.
+        try {
+          const rideInput = { distanceM, ascentM: record.ascentM, workoutCompleted };
+          const updatedProfile = useProfileStore.getState().profile;
+          if (updatedProfile) {
+            const newAchievements = useAchievementStore.getState().evaluateRide(updatedProfile, rideInput);
+            if (newAchievements.length > 0) {
+              enqueueAchievementToast(newAchievements);
+            }
+          }
+        } catch (err) {
+          console.warn('[achievements] Failed to evaluate achievements:', err);
+        }
 
         // ADDITIVE: record segment times for the completed ride.
         // Only applies to real route rides (not replays / pure workouts with
