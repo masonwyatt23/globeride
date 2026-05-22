@@ -5,6 +5,7 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useGhostStore } from '@/stores/ghostStore';
 import {
   applyFollowCam,
   applySceneMood,
@@ -31,6 +32,20 @@ import {
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { applyGraphicsQuality } from '@/lib/graphicsQuality';
+import { loadGhosts, type GhostRide } from '@/lib/ghosts';
+import type { AvatarColors } from '@/lib/avatarConfig';
+
+// Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
+// We pass real hex colors; the avatar entity materials carry opacity via
+// Cesium.Color alpha (set in the ghost setup function below).
+const GHOST_COLORS: AvatarColors = {
+  frame: '#94a3b8',
+  wheel: '#475569',
+  kit: '#bae6fd',
+  skin: '#cbd5e1',
+  helmet: '#7dd3fc',
+  accent: '#93c5fd',
+};
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
@@ -51,6 +66,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
+  // Ghost rider refs — parallel arrays, one entry per active ghost.
+  const ghostAvatarsRef = useRef<Avatar[]>([]);
+  const ghostRidesRef = useRef<GhostRide[]>([]);
 
   const route = useRideStore((s) => s.route);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
@@ -58,6 +76,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const theme = useThemeStore((s) => s.theme);
   const avatarColors = useSettingsStore((s) => s.avatar);
   const graphicsQuality = useSettingsStore((s) => s.graphicsQuality);
+  const ghostsEnabled = useGhostStore((s) => s.ghostsEnabled);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
@@ -157,6 +176,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       ro.disconnect();
       removeTickRef.current?.();
       removeTickRef.current = null;
+      // Dispose ghost avatars — viewer.entities.remove needs isDestroyed guard.
+      for (const ga of ghostAvatarsRef.current) {
+        if (!viewer.isDestroyed()) ga.dispose();
+      }
+      ghostAvatarsRef.current = [];
+      ghostRidesRef.current = [];
       if (tilesetRef.current && !viewer.isDestroyed()) {
         viewer.scene.primitives.remove(tilesetRef.current);
       }
@@ -213,6 +238,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       avatarRef.current.dispose();
       avatarRef.current = null;
     }
+    // Tear down ghost avatars from previous route.
+    for (const g of ghostAvatarsRef.current) {
+      if (!viewer.isDestroyed()) g.dispose();
+    }
+    ghostAvatarsRef.current = [];
+    ghostRidesRef.current = [];
+    useGhostStore.getState().setGhostCount(0);
     cartesianRouteRef.current = null;
     resetFollowCam();
 
@@ -277,8 +309,43 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       dt: 0,
     });
 
+    // Load ghost riders for this route asynchronously so it never blocks rendering.
+    const capturedRoute = route;
+    const capturedViewer = viewer;
+    loadGhosts(route).then((ghosts) => {
+      if (capturedViewer.isDestroyed()) return;
+      // Route may have changed while the async load was in flight.
+      if (useRideStore.getState().route !== capturedRoute) return;
+      if (!useGhostStore.getState().ghostsEnabled || ghosts.length === 0) {
+        useGhostStore.getState().setGhostCount(0);
+        return;
+      }
+      const start = capturedRoute.points[0];
+      const avatars: Avatar[] = ghosts.map(() => {
+        const ga = createAvatar(capturedViewer);
+        ga.setColors(GHOST_COLORS);
+        // Place ghost at route start initially.
+        ga.update({
+          lon: start.lon,
+          lat: start.lat,
+          ele: start.ele,
+          heading: headingAt(capturedRoute, 0),
+          speed: 0,
+          cadence: 0,
+          grade: 0,
+          dt: 0,
+        });
+        return ga;
+      });
+      ghostAvatarsRef.current = avatars;
+      ghostRidesRef.current = ghosts;
+      useGhostStore.getState().setGhostCount(ghosts.length);
+    }).catch(() => {
+      // Ghost loading failure is non-fatal — ride continues without ghosts.
+    });
+
     flyToRoute(viewer, positions);
-  }, [route]);
+  }, [route]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- React to route-search fly-to requests ----
   useEffect(() => {
@@ -332,6 +399,21 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     }
   }, [route]);
 
+  // ---- Show/hide ghost avatars when the toggle changes ----
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    const ghosts = ghostAvatarsRef.current;
+    for (const ga of ghosts) {
+      for (const ent of ga.entities) {
+        ent.show = ghostsEnabled;
+      }
+    }
+    // If ghosts are being enabled and we have loaded rides but no avatars yet,
+    // re-trigger by clearing the route ref so the next route effect re-runs.
+    // (This handles the edge case where user enables ghosts after route loaded.)
+  }, [ghostsEnabled]);
+
   // ---- Per-frame follow-cam + avatar update ----
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -373,6 +455,40 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           { backMeters: 45, upMeters: 9, pitchDeg: -7 },
           dt,
         );
+      }
+
+      // ---- Ghost avatar updates ----
+      const ghostsOn = useGhostStore.getState().ghostsEnabled;
+      const ghostAvatars = ghostAvatarsRef.current;
+      const ghostRides = ghostRidesRef.current;
+      if (ghostsOn && ghostAvatars.length > 0 && r) {
+        // Ghost time is driven by the live rider's elapsed wall-clock seconds.
+        const elapsedSec = state.elapsedMs / 1000;
+        for (let i = 0; i < ghostAvatars.length; i++) {
+          const ghostDist = ghostRides[i].distanceAt(elapsedSec);
+          // null means ghost hasn't started yet — hide it.
+          if (ghostDist === null) {
+            for (const ent of ghostAvatars[i].entities) ent.show = false;
+            continue;
+          }
+          const clampedDist = Math.max(0, Math.min(r.totalDistance, ghostDist));
+          const gPos = sampleRouteAtDistance(r, clampedDist);
+          const gHeading = headingAt(r, clampedDist);
+          // Estimate a plausible speed from distance delta / dt for animation.
+          const prevDist = ghostRides[i].distanceAt(Math.max(0, elapsedSec - dt));
+          const ghostSpeed = prevDist !== null ? Math.abs(clampedDist - prevDist) / (dt || 1 / 60) : 0;
+          for (const ent of ghostAvatars[i].entities) ent.show = true;
+          ghostAvatars[i].update({
+            lon: gPos.lon,
+            lat: gPos.lat,
+            ele: gPos.ele,
+            heading: gHeading,
+            speed: ghostSpeed,
+            cadence: 0, // let avatar estimate cadence from speed
+            grade: state.grade, // approximate — ghosts share terrain slope
+            dt,
+          });
+        }
       }
     };
 
