@@ -56,5 +56,9 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Home reorganised into clean Ride / Routes / Workouts / History tabs
 - [x] Deep QA pass — fixed 4 real bugs (sample mutation, viewer guards, PR race, timer leak)
 
+## Wave 9 — Final production polish
+- [ ] Empty / loading / error states + accessibility across every screen
+- [ ] Micro-interactions + final cross-screen visual cohesion
+
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
