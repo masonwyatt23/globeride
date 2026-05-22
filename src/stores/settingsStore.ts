@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BikeType, RiderPosition } from '@/lib/physics';
+import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -26,6 +27,8 @@ export interface RiderSettings {
   ftpW: number;
   /** Display unit system. */
   units: UnitSystem;
+  /** Procedural-avatar appearance (jersey / frame / wheel / helmet colours). */
+  avatar: AvatarColors;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -40,6 +43,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   demoPowerW: 190,
   ftpW: 220,
   units: 'metric',
+  avatar: DEFAULT_AVATAR_COLORS,
 };
 
 interface SettingsStoreState extends RiderSettings {
@@ -71,6 +75,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           demoPowerW: s.demoPowerW,
           ftpW: s.ftpW,
           units: s.units,
+          avatar: s.avatar,
         }) satisfies RiderSettings,
     },
   ),

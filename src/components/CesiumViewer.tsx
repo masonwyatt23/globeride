@@ -4,19 +4,21 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import {
   applyFollowCam,
-  createBikeAvatar,
+  clampCartesiansToScene,
   flyToPoint,
   flyToRoute,
+  getPhotorealTileset,
   getTerrainProvider,
-  headingBetween,
+  resetFollowCam,
   routeToCartesians,
   setIonToken,
   setActiveViewer,
-  type BikeAvatar,
 } from '@/lib/cesiumUtils';
-import { sampleRouteAtDistance } from '@/lib/gpxParser';
+import { createAvatar, type Avatar } from '@/lib/avatar';
+import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
@@ -28,15 +30,17 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
-  const avatarRef = useRef<BikeAvatar | null>(null);
+  const avatarRef = useRef<Avatar | null>(null);
   const cartesianRouteRef = useRef<Cesium.Cartesian3[] | null>(null);
   const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
+  const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
 
   const route = useRideStore((s) => s.route);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
+  const avatarColors = useSettingsStore((s) => s.avatar);
 
   // ---- Bootstrap viewer ----
   useEffect(() => {
@@ -60,10 +64,25 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     viewerRef.current = viewer;
     setActiveViewer(viewer);
 
-    viewer.scene.globe.depthTestAgainstTerrain = true;
-    if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = true;
-    viewer.scene.fog.enabled = true;
-    viewer.scene.globe.enableLighting = true;
+    const scene = viewer.scene;
+    scene.globe.depthTestAgainstTerrain = true;
+    if (scene.skyAtmosphere) scene.skyAtmosphere.show = true;
+    scene.globe.enableLighting = true;
+
+    // Anti-aliasing — FXAA always, MSAA on top when the GPU supports it.
+    scene.postProcessStages.fxaa.enabled = true;
+    if (scene.msaaSupported) scene.msaaSamples = 4;
+
+    // Shadows: the rider avatar casts a real shadow onto terrain/buildings.
+    viewer.shadows = true;
+    scene.shadowMap.enabled = true;
+    scene.shadowMap.softShadows = true;
+    scene.shadowMap.size = 2048;
+    scene.shadowMap.maximumDistance = 2500;
+
+    // Lighter fog so distant terrain reads as depth rather than a grey wall.
+    scene.fog.enabled = true;
+    scene.fog.density = 0.00012;
 
     // Cesium World Terrain (ion asset 1) — shared so the route generator
     // can sample elevations from the same provider.
@@ -76,16 +95,48 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       })
       .catch(() => undefined);
 
-    Cesium.createOsmBuildingsAsync()
-      .then((tileset) => {
-        if (viewer.isDestroyed()) {
-          tileset.destroy?.();
-          return;
-        }
-        viewer.scene.primitives.add(tileset);
-        tilesetRef.current = tileset;
-      })
-      .catch(() => undefined);
+    // World detail: Google Photorealistic 3D Tiles when available (real
+    // buildings, trees, terrain) — otherwise OSM buildings on the globe.
+    const usePhotoreal = import.meta.env.VITE_PHOTOREAL_TILES !== 'false';
+    const addOsmBuildings = () => {
+      Cesium.createOsmBuildingsAsync()
+        .then((tileset) => {
+          if (viewer.isDestroyed()) {
+            tileset.destroy?.();
+            return;
+          }
+          viewer.scene.primitives.add(tileset);
+          tilesetRef.current = tileset;
+        })
+        .catch(() => undefined);
+    };
+
+    if (usePhotoreal) {
+      const photoreal = getPhotorealTileset();
+      photorealPromiseRef.current = photoreal;
+      photoreal
+        .then((tileset) => {
+          if (viewer.isDestroyed()) {
+            tileset.destroy?.();
+            return;
+          }
+          viewer.scene.primitives.add(tileset);
+          // The photoreal mesh IS the world surface — hide the globe so the
+          // World-Terrain ellipsoid can't z-fight or poke through it.
+          viewer.scene.globe.show = false;
+          tilesetRef.current = tileset;
+        })
+        .catch(() => {
+          // No ion access to the Google asset (or it errored) — fall back.
+          photorealPromiseRef.current = null;
+          if (!viewer.isDestroyed()) {
+            viewer.scene.globe.show = true;
+            addOsmBuildings();
+          }
+        });
+    } else {
+      addOsmBuildings();
+    }
 
     // Cesium normally listens for window resize, but when the container is
     // collapsed/expanded by a layout change (sidebar open, breakpoint shift)
@@ -121,6 +172,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     );
   }, [theme]);
 
+  // ---- Live avatar recolouring from the Garage settings ----
+  useEffect(() => {
+    avatarRef.current?.setColors(avatarColors);
+  }, [avatarColors]);
+
   // ---- Rebuild route entities + avatar when route changes ----
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -131,12 +187,28 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       routePolylineRef.current = null;
     }
     if (avatarRef.current) {
-      for (const e of avatarRef.current.entities) viewer.entities.remove(e);
+      avatarRef.current.dispose();
       avatarRef.current = null;
     }
     cartesianRouteRef.current = null;
+    resetFollowCam();
 
     if (!route) return;
+
+    // Pin the sun to mid-afternoon local time at the route's longitude so
+    // lighting stays flattering and shadows long, wherever the ride is.
+    {
+      const midLon = route.points[Math.floor(route.points.length / 2)].lon;
+      const utcBase = Cesium.JulianDate.fromIso8601(
+        `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+      );
+      viewer.clock.currentTime = Cesium.JulianDate.addHours(
+        utcBase,
+        16 - midLon / 15,
+        new Cesium.JulianDate(),
+      );
+      viewer.clock.shouldAnimate = false;
+    }
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
@@ -154,13 +226,37 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       },
     });
 
-    const avatar = createBikeAvatar(viewer);
+    // With photoreal tiles the GPX elevations don't match the rendered
+    // surface — clamp the route polyline onto it once its tiles stream in.
+    const pr = photorealPromiseRef.current;
+    if (pr) {
+      const builtPoly = routePolylineRef.current;
+      pr
+        .then(() => clampCartesiansToScene(viewer.scene, positions, 1.5))
+        .then((clamped) => {
+          if (viewer.isDestroyed() || routePolylineRef.current !== builtPoly) return;
+          if (builtPoly.polyline) {
+            builtPoly.polyline.positions = new Cesium.ConstantProperty(clamped);
+          }
+        })
+        .catch(() => undefined);
+    }
+
+    const avatar = createAvatar(viewer);
+    avatar.setColors(useSettingsStore.getState().avatar);
     avatarRef.current = avatar;
 
     const start = route.points[0];
-    const next = route.points[Math.min(1, route.points.length - 1)];
-    const initialHeading = headingBetween(start, next);
-    avatar.update({ lat: start.lat, lon: start.lon, ele: start.ele }, initialHeading);
+    avatar.update({
+      lon: start.lon,
+      lat: start.lat,
+      ele: start.ele,
+      heading: headingAt(route, 0),
+      speed: 0,
+      cadence: 0,
+      grade: 0,
+      dt: 0,
+    });
 
     flyToRoute(viewer, positions);
   }, [route]);
@@ -222,31 +318,41 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
+    let lastFrameMs = performance.now();
     const handler = () => {
+      const nowMs = performance.now();
+      const dt = (nowMs - lastFrameMs) / 1000;
+      lastFrameMs = nowMs;
+
       const state = useRideStore.getState();
       const r = state.route;
       if (!r || !avatarRef.current) return;
 
       const sampled = sampleRouteAtDistance(r, state.distance);
-      const ahead =
-        (window as unknown as { __globerideAhead?: { lat: number; lon: number; ele: number } })
-          .__globerideAhead ??
-        sampleRouteAtDistance(r, Math.min(r.totalDistance, state.distance + 6));
-
-      const heading = headingBetween(
-        { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
-        { lat: ahead.lat, lon: ahead.lon, ele: ahead.ele },
+      const ahead = sampleRouteAtDistance(
+        r,
+        Math.min(r.totalDistance, state.distance + 15),
       );
-      avatarRef.current.update({ lat: sampled.lat, lon: sampled.lon, ele: sampled.ele }, heading);
+      const heading = headingAt(r, state.distance);
+
+      avatarRef.current.update({
+        lon: sampled.lon,
+        lat: sampled.lat,
+        ele: sampled.ele,
+        heading,
+        speed: state.speed,
+        cadence: state.cadence,
+        grade: state.grade,
+        dt,
+      });
 
       if (state.rideState === 'running' || state.rideState === 'paused') {
         applyFollowCam(
           viewer,
           { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
           ahead,
-          60,
-          18,
-          -12,
+          { backMeters: 45, upMeters: 9, pitchDeg: -7 },
+          dt,
         );
       }
     };

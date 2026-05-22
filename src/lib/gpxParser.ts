@@ -122,3 +122,18 @@ export function sampleRouteAtDistance(
     t,
   };
 }
+
+/**
+ * Heading of the route tangent at a cumulative distance — radians, clockwise
+ * from north. Samples a short span either side so the tangent stays stable.
+ * Pure (no Cesium dependency) so the ride loop and viewer can both use it.
+ */
+export function headingAt(route: Route, distance: number): number {
+  const span = 4; // metres either side
+  const a = sampleRouteAtDistance(route, Math.max(0, distance - span));
+  const b = sampleRouteAtDistance(route, Math.min(route.totalDistance, distance + span));
+  const dEast = (b.lon - a.lon) * Math.cos((a.lat * Math.PI) / 180);
+  const dNorth = b.lat - a.lat;
+  if (dEast === 0 && dNorth === 0) return 0;
+  return Math.atan2(dEast, dNorth);
+}

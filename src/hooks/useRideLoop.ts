@@ -47,14 +47,6 @@ export function useRideLoop(): void {
       const distanceNow = s.distance;
       const sampled = sampleRouteAtDistance(s.route, distanceNow);
 
-      // Peek a few meters ahead so we always have a tangent for the camera
-      // even at the very last sample.
-      const ahead = sampleRouteAtDistance(
-        s.route,
-        Math.min(s.route.totalDistance, distanceNow + 6),
-      );
-      (window as unknown as { __globerideAhead?: typeof ahead }).__globerideAhead = ahead;
-
       const rawGrade = gradientAt(s.route, distanceNow);
       const grade = smoother.current.push(rawGrade);
 

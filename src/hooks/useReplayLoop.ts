@@ -15,7 +15,6 @@
 import { useEffect, useRef } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { gradientAt, elevationAt } from '@/lib/gradientCalculator';
-import { sampleRouteAtDistance } from '@/lib/gpxParser';
 import type { TelemetrySample } from '@/types';
 
 export function useReplayLoop(): void {
@@ -86,13 +85,6 @@ export function useReplayLoop(): void {
       }
 
       const sample: TelemetrySample = samples[clampedIdx];
-
-      // Expose the "ahead" position for the camera tangent (same pattern as useRideLoop)
-      const ahead = sampleRouteAtDistance(
-        s.route,
-        Math.min(s.route.totalDistance, sample.distance + 6),
-      );
-      (window as unknown as { __globerideAhead?: typeof ahead }).__globerideAhead = ahead;
 
       const grade = gradientAt(s.route, sample.distance);
       const elevation = sample.ele ?? elevationAt(s.route, sample.distance);

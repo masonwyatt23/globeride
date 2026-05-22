@@ -556,8 +556,15 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       let newState: RideState = st.rideState;
 
       if (newDistance >= st.route.totalDistance) {
-        newDistance = st.route.totalDistance;
-        newState = 'finished';
+        if (st.workoutRunning && st.route.totalDistance > 0) {
+          // The workout outlasts the map — loop the route for another lap
+          // rather than ending the session early. The workout engine still
+          // calls finish() when the workout itself completes.
+          newDistance %= st.route.totalDistance;
+        } else {
+          newDistance = st.route.totalDistance;
+          newState = 'finished';
+        }
       }
 
       const elapsedMs = st.elapsedMs + input.dt * 1000;

@@ -44,51 +44,160 @@ export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
   return out;
 }
 
+/** Cesium ion asset ID for Google Photorealistic 3D Tiles. */
+const GOOGLE_PHOTOREAL_ASSET_ID = 2275207;
+
 /**
- * Place the camera in a follow-cam configuration: trailing the rider along
- * their heading, with a fixed downward pitch.
+ * Create a Google Photorealistic 3D Tiles tileset — a real-world photoreal
+ * mesh (buildings, trees, terrain) — via Cesium ion.
+ *
+ * Not cached: a Cesium3DTileset is bound to one scene, so every viewer mount
+ * needs its own. Rejects if the ion token lacks access to the asset; callers
+ * must fall back to terrain + OSM buildings.
+ */
+export function getPhotorealTileset(): Promise<Cesium.Cesium3DTileset> {
+  return Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
+    // A slightly relaxed screen-space error keeps framerate healthy on
+    // modest GPUs without a visible quality hit at ride distances.
+    maximumScreenSpaceError: 16,
+  });
+}
+
+/**
+ * Clamp positions onto whatever surface the scene is rendering (the
+ * photoreal tileset, or terrain) and optionally lift them a few metres so a
+ * line/marker sits just above the ground instead of z-fighting it.
+ *
+ * Async — it loads the tiles it needs to a high detail level first.
+ */
+export async function clampCartesiansToScene(
+  scene: Cesium.Scene,
+  positions: Cesium.Cartesian3[],
+  liftMeters = 0,
+): Promise<Cesium.Cartesian3[]> {
+  const clamped = await scene.clampToHeightMostDetailed(positions);
+  return clamped.map((c, i) => {
+    // A position the picker couldn't resolve comes back undefined — keep
+    // the route's original point there rather than dropping it.
+    const base = c ?? positions[i];
+    if (liftMeters === 0) return base;
+    const carto = Cesium.Cartographic.fromCartesian(base);
+    if (!carto) return base;
+    return Cesium.Cartesian3.fromRadians(
+      carto.longitude,
+      carto.latitude,
+      carto.height + liftMeters,
+    );
+  });
+}
+
+/**
+ * Synchronously sample the height of the rendered surface at a lon/lat — used
+ * each frame to sit the avatar on the photoreal mesh. Returns `undefined`
+ * when the tiles under that point haven't streamed in yet (the caller should
+ * fall back to the route's own elevation until they do).
+ */
+export function sampleGroundHeight(
+  scene: Cesium.Scene,
+  lon: number,
+  lat: number,
+): number | undefined {
+  if (!scene.sampleHeightSupported) return undefined;
+  const carto = Cesium.Cartographic.fromDegrees(lon, lat);
+  return scene.sampleHeight(carto);
+}
+
+/** Tuning for the trailing follow camera. */
+export interface FollowCamOptions {
+  /** Metres the camera trails behind the rider. */
+  backMeters: number;
+  /** Metres the camera sits above the rider. */
+  upMeters: number;
+  /** Camera pitch in degrees (-90 = straight down). */
+  pitchDeg: number;
+}
+
+// Eased follow-cam state, held across frames so the camera glides rather
+// than snapping. Cleared by resetFollowCam() on route change / ride restart.
+let lastCamPos: Cesium.Cartesian3 | null = null;
+let lastHeading: number | null = null;
+let lastPitch: number | null = null;
+
+/** Clear eased follow-cam state — call on route change or ride (re)start. */
+export function resetFollowCam(): void {
+  lastCamPos = null;
+  lastHeading = null;
+  lastPitch = null;
+}
+
+/** Shortest signed angular delta a→b, radians, in (-π, π]. */
+function angleDelta(a: number, b: number): number {
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+/**
+ * Place the camera trailing the rider along their heading, easing toward the
+ * target each frame so motion stays smooth and cinematic instead of snapping.
  *
  * @param viewer Cesium viewer.
  * @param currentDeg Rider's current lat/lon/ele.
- * @param nextDeg A point a few meters ahead of the rider, used to derive heading.
- * @param backMeters How far behind the rider to place the camera.
- * @param upMeters How far above the rider to place the camera.
- * @param pitchDeg Camera pitch in degrees (-90 = straight down).
+ * @param nextDeg A point ahead of the rider, used to derive heading + corner look-ahead.
+ * @param opts Trailing distance / height / pitch.
+ * @param dt Seconds since the previous frame — keeps easing framerate-independent.
  */
 export function applyFollowCam(
   viewer: Cesium.Viewer,
   currentDeg: { lat: number; lon: number; ele: number },
   nextDeg: { lat: number; lon: number; ele: number },
-  backMeters: number,
-  upMeters: number,
-  pitchDeg: number,
+  opts: FollowCamOptions,
+  dt: number,
 ): void {
   const current = Cesium.Cartesian3.fromDegrees(currentDeg.lon, currentDeg.lat, currentDeg.ele);
   const next = Cesium.Cartesian3.fromDegrees(nextDeg.lon, nextDeg.lat, nextDeg.ele);
 
-  // Transform a "next" point into the rider's local ENU frame so we can
+  // Transform the "next" point into the rider's local ENU frame so we can
   // derive heading from a simple atan2 in flat XY.
   const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
   const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
   const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
   // ENU: x=east, y=north. Heading = bearing from north, clockwise.
-  const heading = Math.atan2(localNext.x, localNext.y);
+  const targetHeading = Math.atan2(localNext.x, localNext.y);
 
   // Camera offset in local frame: trail behind the heading, lift up.
   const offsetLocal = new Cesium.Cartesian3(
-    -Math.sin(heading) * backMeters,
-    -Math.cos(heading) * backMeters,
-    upMeters,
+    -Math.sin(targetHeading) * opts.backMeters,
+    -Math.cos(targetHeading) * opts.backMeters,
+    opts.upMeters,
   );
-  const cameraWorld = Cesium.Matrix4.multiplyByPoint(enu, offsetLocal, new Cesium.Cartesian3());
+  const targetCamPos = Cesium.Matrix4.multiplyByPoint(enu, offsetLocal, new Cesium.Cartesian3());
+  const targetPitch = Cesium.Math.toRadians(opts.pitchDeg);
+
+  // Framerate-independent easing: blend = 1 - e^(-k·dt).
+  const clampedDt = Math.min(Math.max(dt, 0), 0.1);
+  const posBlend = 1 - Math.exp(-3.0 * clampedDt);
+  const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
+
+  const camPos =
+    lastCamPos === null
+      ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
+      : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
+  const heading =
+    lastHeading === null
+      ? targetHeading
+      : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
+  const pitch =
+    lastPitch === null ? targetPitch : lastPitch + (targetPitch - lastPitch) * rotBlend;
+
+  lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
+  lastHeading = heading;
+  lastPitch = pitch;
 
   viewer.camera.setView({
-    destination: cameraWorld,
-    orientation: {
-      heading,
-      pitch: Cesium.Math.toRadians(pitchDeg),
-      roll: 0,
-    },
+    destination: camPos,
+    orientation: { heading, pitch, roll: 0 },
   });
 }
 
@@ -136,159 +245,6 @@ export function flyToPoint(
     duration: 1.6,
     orientation: { heading: 0, pitch: Cesium.Math.toRadians(-55), roll: 0 },
   });
-}
-
-/**
- * Compute heading (radians, clockwise from north) between two lat/lon points.
- * Uses the rider's ENU frame for accuracy near the poles.
- */
-export function headingBetween(
-  fromDeg: { lat: number; lon: number; ele: number },
-  toDeg: { lat: number; lon: number; ele: number },
-): number {
-  const from = Cesium.Cartesian3.fromDegrees(fromDeg.lon, fromDeg.lat, fromDeg.ele);
-  const to = Cesium.Cartesian3.fromDegrees(toDeg.lon, toDeg.lat, toDeg.ele);
-  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(from);
-  const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
-  const local = Cesium.Matrix4.multiplyByPoint(inv, to, new Cesium.Cartesian3());
-  return Math.atan2(local.x, local.y);
-}
-
-/** Group of Cesium entities that together render the rider on the globe. */
-export interface BikeAvatar {
-  /** The whole group — pass to viewer.entities.remove for cleanup. */
-  entities: Cesium.Entity[];
-  /** Update the avatar's position and forward heading. */
-  update: (pos: { lat: number; lon: number; ele: number }, heading: number) => void;
-}
-
-/**
- * Build a multi-part rider avatar:
- *  - oriented bike body (a narrow box) that rotates with heading
- *  - a vertical "rider" cylinder above it
- *  - a bright glow point on top, visible from any zoom
- *  - a direction arrow trailing forward
- *  - a soft circular shadow on the ground
- *
- * The whole group is positioned via CallbackProperty so the consumer only
- * needs to call `update()` once per frame from preRender.
- */
-export function createBikeAvatar(viewer: Cesium.Viewer): BikeAvatar {
-  let lon = 0;
-  let lat = 0;
-  let ele = 0;
-  let heading = 0;
-
-  const position = new Cesium.CallbackPositionProperty(
-    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.2),
-    false,
-  );
-  const positionRider = new Cesium.CallbackPositionProperty(
-    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.9),
-    false,
-  );
-  const positionGlow = new Cesium.CallbackPositionProperty(
-    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 1.9),
-    false,
-  );
-  const positionShadow = new Cesium.CallbackPositionProperty(
-    () => Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.05),
-    false,
-  );
-
-  const orientation = new Cesium.CallbackProperty(() => {
-    const center = Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.2);
-    const hpr = new Cesium.HeadingPitchRoll(heading, 0, 0);
-    return Cesium.Transforms.headingPitchRollQuaternion(center, hpr);
-  }, false);
-
-  // Direction arrow: short polyline that extends ~3 m forward from the rider.
-  const arrowPositions = new Cesium.CallbackProperty(() => {
-    const here = Cesium.Cartesian3.fromDegrees(lon, lat, ele + 0.4);
-    const enu = Cesium.Transforms.eastNorthUpToFixedFrame(here);
-    const forwardLocal = new Cesium.Cartesian3(
-      Math.sin(heading) * 3.5,
-      Math.cos(heading) * 3.5,
-      0,
-    );
-    const tip = Cesium.Matrix4.multiplyByPoint(enu, forwardLocal, new Cesium.Cartesian3());
-    return [here, tip];
-  }, false);
-
-  const accent = Cesium.Color.fromCssColorString('#22d3ee');
-  const primary = Cesium.Color.fromCssColorString('#5eead4');
-  const shadow = Cesium.Color.fromCssColorString('#020617').withAlpha(0.45);
-
-  const body = viewer.entities.add({
-    name: 'Rider · bike',
-    position,
-    orientation,
-    box: {
-      dimensions: new Cesium.Cartesian3(0.55, 1.8, 0.25),
-      material: accent.withAlpha(0.95),
-      outline: true,
-      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
-    },
-  });
-
-  const rider = viewer.entities.add({
-    name: 'Rider · body',
-    position: positionRider,
-    orientation,
-    box: {
-      dimensions: new Cesium.Cartesian3(0.45, 0.5, 1.2),
-      material: primary.withAlpha(0.95),
-      outline: true,
-      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
-    },
-  });
-
-  const glow = viewer.entities.add({
-    name: 'Rider · marker',
-    position: positionGlow,
-    point: {
-      pixelSize: 14,
-      color: primary,
-      outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
-      outlineWidth: 3,
-      heightReference: Cesium.HeightReference.NONE,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    },
-  });
-
-  const arrow = viewer.entities.add({
-    name: 'Rider · arrow',
-    polyline: {
-      positions: arrowPositions,
-      width: 5,
-      arcType: Cesium.ArcType.NONE,
-      material: new Cesium.PolylineArrowMaterialProperty(accent),
-      clampToGround: false,
-      depthFailMaterial: new Cesium.PolylineArrowMaterialProperty(accent.withAlpha(0.7)),
-    },
-  });
-
-  const shadowEntity = viewer.entities.add({
-    name: 'Rider · shadow',
-    position: positionShadow,
-    ellipse: {
-      semiMajorAxis: 1.6,
-      semiMinorAxis: 1.0,
-      material: shadow,
-      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-      classificationType: Cesium.ClassificationType.TERRAIN,
-    },
-  });
-
-  return {
-    entities: [body, rider, glow, arrow, shadowEntity],
-    update(pos, h) {
-      lon = pos.lon;
-      lat = pos.lat;
-      ele = pos.ele;
-      heading = h;
-    },
-  };
 }
 
 // ---- Active viewer registry -----------------------------------------------

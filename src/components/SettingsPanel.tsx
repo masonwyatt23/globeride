@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy } from 'lucide-react';
+import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
   MS_PER_MPH,
 } from '@/stores/settingsStore';
 import { CDA_BY_POSITION, CRR_BY_BIKE, type BikeType, type RiderPosition } from '@/lib/physics';
+import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
 import { cn } from '@/lib/utils';
 import {
   buildStravaAuthorizeUrl,
@@ -131,6 +132,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
               onChange={(v) => s.setSettings({ demoPowerW: v })}
             />
           </Section>
+
+          {/* Avatar garage */}
+          <GarageSection />
 
           {/* Strava integration */}
           <StravaSection />
@@ -485,6 +489,53 @@ function PasteRefreshTokenField({ onSave }: { onSave: (token: string) => void })
 // ---------------------------------------------------------------------------
 // Subcomponents — kept colocated since they only matter inside this panel.
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Garage — avatar appearance
+// ---------------------------------------------------------------------------
+
+function GarageSection() {
+  const avatar = useSettingsStore((st) => st.avatar);
+  const setSettings = useSettingsStore((st) => st.setSettings);
+  const activePresetId = AVATAR_PRESETS.find((p) =>
+    AVATAR_COLOR_ROLES.every((r) => p.colors[r.key] === avatar[r.key]),
+  )?.id;
+
+  return (
+    <Section icon={<Palette className="h-4 w-4" />} title="Garage">
+      <div className="grid grid-cols-3 gap-2">
+        {AVATAR_PRESETS.map((p) => (
+          <PickerButton
+            key={p.id}
+            selected={activePresetId === p.id}
+            onClick={() => setSettings({ avatar: p.colors })}
+            label={p.name}
+            sub="preset"
+          />
+        ))}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {AVATAR_COLOR_ROLES.map((role) => (
+          <label
+            key={role.key}
+            className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/40 px-3 py-2 text-sm"
+          >
+            <span className="text-muted-foreground">{role.label}</span>
+            <input
+              type="color"
+              value={avatar[role.key]}
+              onChange={(e) =>
+                setSettings({ avatar: { ...avatar, [role.key]: e.target.value } })
+              }
+              className="h-6 w-9 cursor-pointer rounded border border-border bg-transparent p-0"
+              aria-label={`${role.label} colour`}
+            />
+          </label>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
 function Section({
   icon,

@@ -192,6 +192,8 @@ let server:       BluetoothRemoteGATTServer | null = null;
 let controlPoint: BluetoothRemoteGATTCharacteristic | null = null;
 let indoorBikeData: BluetoothRemoteGATTCharacteristic | null = null;
 let batteryLevel: BluetoothRemoteGATTCharacteristic | null = null;
+/** First-packets diagnostic counter for Indoor Bike Data, reset per connect. */
+let ibdDiagCount = 0;
 // Optional status characteristics (best-effort; many trainers omit them)
 let trainingStatus:       BluetoothRemoteGATTCharacteristic | null = null;
 let fitnessMachineStatus: BluetoothRemoteGATTCharacteristic | null = null;
@@ -357,6 +359,7 @@ async function setupGattSession(dev: BluetoothDevice): Promise<void> {
 
     indoorBikeData = await service.getCharacteristic(INDOOR_BIKE_DATA_UUID);
     await indoorBikeData.startNotifications();
+    ibdDiagCount = 0;
     indoorBikeData.addEventListener('characteristicvaluechanged', handleIndoorBikeData);
   } catch (err) {
     throw new FtmsError(
@@ -581,11 +584,23 @@ function friendlyControlError(opcode: number, resultCode: number): string {
   }
 }
 
+// `ibdDiagCount` (declared near the other module state) limits the
+// first-packets diagnostic below to the first few frames per connection.
 function handleIndoorBikeData(event: Event): void {
   const target = event.target as BluetoothRemoteGATTCharacteristic;
   const v = target.value;
   if (!v) return;
   const parsed = parseIndoorBikeData(v);
+  if (ibdDiagCount < 5) {
+    ibdDiagCount += 1;
+    const flags = v.getUint16(0, true);
+    // eslint-disable-next-line no-console
+    console.info(
+      `[FTMS] Indoor Bike Data flags=0x${flags.toString(16).padStart(4, '0')} · ` +
+        `speed=${parsed.speed?.toFixed(2) ?? '—'} cadence=${parsed.cadence ?? '—'} ` +
+        `power=${parsed.power ?? '—'} hr=${parsed.heartRate ?? '—'}`,
+    );
+  }
   dataListener?.(parsed);
 }
 
