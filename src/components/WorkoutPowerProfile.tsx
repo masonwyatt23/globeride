@@ -16,7 +16,7 @@
  * consistent across the app.
  */
 
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -70,6 +70,10 @@ export function WorkoutPowerProfile({
 }: WorkoutPowerProfileProps) {
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === 'dark';
+  // useId gives a stable, per-instance unique string so multiple chart
+  // instances on the same page (e.g. the library list) each get their own
+  // SVG <defs> gradient and don't clobber each other.
+  const uid = useId();
 
   const totalSec = useMemo(() => totalDurationSec(workout), [workout]);
   const series = useMemo(() => buildProfileSeries(workout, ftpW), [workout, ftpW]);
@@ -108,9 +112,10 @@ export function WorkoutPowerProfile({
         ? { top: 4, right: 4, bottom: 0, left: 0 }
         : { top: 8, right: 8, bottom: 0, left: 0 };
 
-  // Unique gradient id per variant — multiple chart instances on the same
-  // page (e.g. the library) need distinct SVG defs to avoid id collisions.
-  const gradId = `wppFill-${variant}`;
+  // Unique gradient id per component instance — the uid from useId() is
+  // stable across renders and distinct across all instances on the page,
+  // so multiple thumbnails in the library list each get their own <defs>.
+  const gradId = `wppFill-${uid.replace(/:/g, '')}`;
 
   return (
     <div
