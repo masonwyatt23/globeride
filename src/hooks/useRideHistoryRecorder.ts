@@ -18,6 +18,8 @@ import {
   computeAvgSpeed,
   computeAscentM,
 } from '@/lib/rideHistory';
+import { useProfileStore } from '@/stores/profileStore';
+import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
 
 const MIN_DURATION_SEC = 30;
@@ -48,7 +50,7 @@ export function useRideHistoryRecorder(): void {
       savedRef.current = true;
 
         const s = useRideStore.getState();
-        const { samples, elapsedMs, route, activeWorkout, startedAt, replayData } = s;
+        const { samples, elapsedMs, route, activeWorkout, workoutElapsedSec, startedAt, replayData } = s;
 
         // Skip trivially short rides.
         if (elapsedMs / 1000 < MIN_DURATION_SEC) return;
@@ -86,6 +88,17 @@ export function useRideHistoryRecorder(): void {
 
         saveRide(record).catch((err) => {
           console.warn('[rideHistory] Failed to save ride:', err);
+        });
+
+        // Award XP and update lifetime stats in the profile store.
+        const workoutCompleted =
+          !!activeWorkout &&
+          workoutElapsedSec > 0 &&
+          workoutElapsedSec >= totalDurationSec(activeWorkout);
+        useProfileStore.getState().recordRide({
+          distanceM: distanceM,
+          ascentM: record.ascentM,
+          workoutCompleted,
         });
       },
     );
