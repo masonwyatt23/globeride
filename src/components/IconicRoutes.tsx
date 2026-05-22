@@ -253,27 +253,25 @@ function ClimbCard({
         </p>
 
         {/* Sparkline + key stats */}
-        <div className="flex items-end justify-between gap-3">
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
-            <StatPill icon={<Ruler className="h-3 w-3" />} label="Distance">
-              <span className="num">{formatDistance(route.totalDistance)}</span>
-            </StatPill>
-            <StatPill icon={<ChevronUp className="h-3 w-3 text-emerald-400" />} label="Ascent">
-              <span className="num text-emerald-400">+{Math.round(route.ascent)} m</span>
-            </StatPill>
-            <StatPill icon={<TrendingUp className="h-3 w-3" />} label="Avg grad">
-              <span className="num">{avgGradient.toFixed(1)}%</span>
-            </StatPill>
-            <StatPill icon={<TrendingUp className="h-3 w-3 text-rose-400" />} label="Max grad">
-              <span className="num text-rose-400">{maxGradient}%</span>
-            </StatPill>
-          </div>
+        {/* Stats grid — full card width so labels never collide */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+          <StatPill icon={<Ruler className="h-3 w-3" />} label="Distance">
+            <span className="num">{formatDistance(route.totalDistance)}</span>
+          </StatPill>
+          <StatPill icon={<ChevronUp className="h-3 w-3 text-emerald-400" />} label="Ascent">
+            <span className="num text-emerald-400">+{Math.round(route.ascent)} m</span>
+          </StatPill>
+          <StatPill icon={<TrendingUp className="h-3 w-3" />} label="Avg grad">
+            <span className="num">{avgGradient.toFixed(1)}%</span>
+          </StatPill>
+          <StatPill icon={<TrendingUp className="h-3 w-3 text-rose-400" />} label="Max grad">
+            <span className="num text-rose-400">{maxGradient}%</span>
+          </StatPill>
+        </div>
 
-          {/* Elevation sparkline */}
-          <div className="opacity-70 group-hover:opacity-100 transition-opacity duration-200">
-            <ElevationSparkline info={info} />
-          </div>
+        {/* Elevation sparkline — its own row */}
+        <div className="opacity-70 group-hover:opacity-100 transition-opacity duration-200">
+          <ElevationSparkline info={info} />
         </div>
 
         {/* Gradient bar */}
