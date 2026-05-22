@@ -4,6 +4,7 @@ import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenL
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/WorkoutLibrary';
+import { WorkoutPicker } from '@/components/WorkoutPicker';
 import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
 import { RideHistory } from '@/components/RideHistory';
 import { GPXUploader } from '@/components/GPXUploader';
@@ -247,6 +248,18 @@ export function Home() {
                   </Button>
                 </div>
               </div>
+
+              <WorkoutPicker
+                onSelect={(w) => {
+                  loadWorkout(w);
+                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                }}
+                onRide={(w) => {
+                  loadWorkout(w);
+                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                  navigate('/ride');
+                }}
+              />
 
               <WorkoutLibrary
                 onSelect={(w) => {
