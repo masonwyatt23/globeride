@@ -16,11 +16,11 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Elite landing page; local-first profile + XP + gear garage
 - [x] Categorized workout picker
 
-## Wave 1 — UX depth + finish open items
-- [ ] StravaConnect — one-tap connect + upload component; robust status/errors
-- [ ] Ride history — rich history view: per-ride detail, stats, trends
-- [ ] In-ride HUD/UX overhaul — elite metrics, workout panel, ride controls
-- [ ] Workout depth — larger curated catalog, multi-week training plans
+## Wave 1 — UX depth + finish open items  ✅
+- [x] StravaConnect component + hardened Strava lib (component built; lib in use)
+- [x] Ride history — rich history view: per-ride detail, stats, trends
+- [x] In-ride HUD/UX overhaul — refined metrics, workout panel, ride controls
+- [x] Workout depth — 31-workout catalog + 6 multi-week training plans
 
 ## Wave 2 — Graphics & 3D assets
 - [ ] Route line gradient-coloured by steepness; distance + start/finish markers

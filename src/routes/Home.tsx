@@ -5,6 +5,7 @@ import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/WorkoutLibrary';
 import { WorkoutPicker } from '@/components/WorkoutPicker';
+import { TrainingPlans } from '@/components/TrainingPlans';
 import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
 import { RideHistory } from '@/components/RideHistory';
 import { GPXUploader } from '@/components/GPXUploader';
@@ -254,6 +255,14 @@ export function Home() {
                   loadWorkout(w);
                   if (!route) useRideStore.getState().setRoute(makeDemoRoute());
                 }}
+                onRide={(w) => {
+                  loadWorkout(w);
+                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                  navigate('/ride');
+                }}
+              />
+
+              <TrainingPlans
                 onRide={(w) => {
                   loadWorkout(w);
                   if (!route) useRideStore.getState().setRoute(makeDemoRoute());
