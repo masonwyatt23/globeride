@@ -7,6 +7,7 @@ import { Explore } from '@/routes/Explore';
 import { Toaster } from '@/components/Toaster';
 import { TrainerEventBridge } from '@/components/TrainerEventBridge';
 import { Onboarding } from '@/components/Onboarding';
+import { AchievementToast } from '@/components/AchievementToast';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
       </Routes>
       <Toaster />
       <Onboarding />
+      <AchievementToast />
     </BrowserRouter>
   );
 }

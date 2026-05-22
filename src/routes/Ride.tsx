@@ -9,6 +9,8 @@ import { RideControls } from '@/components/RideControls';
 import { Minimap } from '@/components/Minimap';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SoundToggle } from '@/components/SoundToggle';
+import { GhostToggle } from '@/components/GhostToggle';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
 import { SensorStatusPills } from '@/components/SensorConnect';
 import { ReplayBadge } from '@/components/ReplayBadge';
@@ -22,6 +24,7 @@ import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
 import { useWakeLock } from '@/hooks/useWakeLock';
+import { useRideAudio } from '@/hooks/useRideAudio';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
 import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
@@ -51,6 +54,7 @@ export function Ride() {
   useReplayLoop();
   useWorkoutEngine();
   useRideHistoryRecorder();
+  useRideAudio();
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
@@ -116,6 +120,8 @@ export function Ride() {
               <ChevronLeft className="h-4 w-4" /> Exit
             </Button>
             <ThemeToggle />
+            <SoundToggle />
+            <GhostToggle />
             <SettingsButton
               variant="outline"
               size="icon"

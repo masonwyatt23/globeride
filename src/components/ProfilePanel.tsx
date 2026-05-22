@@ -14,6 +14,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Achievements } from '@/components/Achievements';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useProfileStore } from '@/stores/profileStore';
@@ -75,6 +76,7 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
               <LevelSection xp={profile.xp} />
               <StatsSection profile={profile} />
               <GarageSection xp={profile.xp} />
+              <Achievements />
             </>
           )}
         </CardContent>
