@@ -91,7 +91,7 @@ export function Home() {
           </div>
 
           {/* Step 1: Route */}
-          <Card>
+          <Card className="animate-fadeUp [animation-delay:80ms]">
             <CardHeader>
               <CardTitle>
                 <StepBadge n={1} /> Pick a route
@@ -139,7 +139,7 @@ export function Home() {
           </Card>
 
           {/* Iconic climbs */}
-          <Card>
+          <Card className="animate-fadeUp [animation-delay:140ms]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
@@ -152,7 +152,7 @@ export function Home() {
           </Card>
 
           {/* My Routes */}
-          <Card>
+          <Card className="animate-fadeUp [animation-delay:180ms]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Library className="h-3.5 w-3.5 text-primary" />
@@ -386,7 +386,7 @@ export function Home() {
                   variant={canRide ? 'accent' : 'outline'}
                   disabled={!canRide}
                   onClick={() => navigate('/ride')}
-                  className="rounded-pill"
+                  className="rounded-pill active:scale-[0.97] transition-transform"
                 >
                   {canRide ? 'Enter the world' : 'Pick a route first'}
                   {canRide && <ArrowRight className="h-5 w-5" />}
@@ -508,7 +508,7 @@ function DailyRideCard({
   const minutes = Math.round(totalDurationSec(daily) / 60);
   const tss = estimateTSS(daily, ftpW);
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/12 via-accent/4 to-transparent p-4 sm:p-5 ring-1 ring-accent/20">
+    <div className="relative overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-br from-accent/12 via-accent/4 to-transparent p-4 sm:p-5 ring-1 ring-accent/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-12px_hsl(var(--accent)/0.3)] animate-fadeUp">
       <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-accent/15 blur-3xl pointer-events-none" aria-hidden />
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -542,7 +542,7 @@ function DailyRideCard({
           variant="accent"
           size="lg"
           onClick={onStart}
-          className="rounded-pill shrink-0 shadow-[0_8px_28px_-10px_hsl(var(--accent)/0.6)]"
+          className="rounded-pill shrink-0 shadow-[0_8px_28px_-10px_hsl(var(--accent)/0.6)] active:scale-[0.97] transition-transform"
         >
           Start
           <ArrowRight className="h-4 w-4" />

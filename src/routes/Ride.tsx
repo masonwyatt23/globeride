@@ -236,8 +236,8 @@ function FinishCard() {
   const zone = ifZone(metrics.intensityFactor);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-md p-4 sm:p-6 z-20 animate-fadeIn overflow-y-auto">
-      <Card className="max-w-lg w-full ring-halo animate-scaleIn my-auto">
+    <div className="absolute inset-0 flex items-start sm:items-center justify-center bg-background/75 backdrop-blur-md p-3 sm:p-6 z-20 animate-fadeIn overflow-y-auto">
+      <Card className="max-w-lg w-full ring-halo animate-scaleIn my-auto mt-4 sm:mt-0">
         <CardContent className="p-5 sm:p-7 flex flex-col gap-5">
 
           {/* ---- Hero header ---- */}
@@ -290,7 +290,7 @@ function FinishCard() {
           )}
 
           {/* ---- Secondary stats grid ---- */}
-          <div className="grid grid-cols-4 gap-1 rounded-xl bg-muted/30 p-3">
+          <div className="grid grid-cols-2 xs:grid-cols-4 gap-1 rounded-xl bg-muted/30 p-3">
             <FinishStat
               icon={<Zap className="h-3 w-3 text-amber-400" />}
               label="Avg W"
@@ -356,8 +356,8 @@ function FinishCard() {
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
                 Workout Segments
               </div>
-              <div className="rounded-xl border border-border/50 overflow-hidden">
-                <table className="w-full text-xs">
+              <div className="rounded-xl border border-border/50 overflow-x-auto">
+                <table className="w-full min-w-[20rem] text-xs">
                   <thead>
                     <tr className="border-b border-border/40 bg-muted/30">
                       <th className="text-left px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Segment</th>

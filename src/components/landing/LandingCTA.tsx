@@ -23,35 +23,36 @@ export function LandingCTA() {
           ride.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        {/* CTAs — stacked on phone, row on sm+ */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-xs sm:max-w-none mx-auto">
           <Button
             size="lg"
             variant="accent"
             onClick={() => navigate('/app')}
-            className="rounded-full h-14 px-8 text-base shadow-[0_8px_32px_-10px_hsl(var(--accent)/0.65)] hover:shadow-[0_12px_40px_-10px_hsl(var(--accent)/0.75)] transition-all duration-300"
+            className="rounded-full h-12 sm:h-14 px-7 sm:px-8 text-sm sm:text-base shadow-[0_8px_32px_-10px_hsl(var(--accent)/0.65)] hover:shadow-[0_12px_40px_-10px_hsl(var(--accent)/0.75)] active:scale-[0.97] transition-all duration-200"
           >
             Start riding free
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
           <a
             href="https://github.com/masonwyatt23/globeride"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 h-14 px-8 rounded-full border border-border bg-card/60 text-foreground text-base font-semibold hover:bg-card hover:border-primary/40 hover:text-primary transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 h-12 sm:h-14 px-7 sm:px-8 rounded-full border border-border bg-card/60 text-foreground text-sm sm:text-base font-semibold hover:bg-card hover:border-primary/40 hover:text-primary active:scale-[0.97] transition-all duration-200"
           >
             Star on GitHub
           </a>
         </div>
 
         {/* Trust signals */}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground/70">
+        <div className="mt-10 sm:mt-12 flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 gap-y-2 sm:gap-y-3 text-[11px] sm:text-xs text-muted-foreground/70">
           <span>MIT licensed</span>
           <span className="h-1 w-1 rounded-full bg-border/60" aria-hidden />
           <span>No account required</span>
           <span className="h-1 w-1 rounded-full bg-border/60" aria-hidden />
           <span>Works offline as a PWA</span>
-          <span className="h-1 w-1 rounded-full bg-border/60" aria-hidden />
-          <span>Chrome &amp; Edge desktop + Android</span>
+          <span className="hidden sm:inline h-1 w-1 rounded-full bg-border/60" aria-hidden />
+          <span className="hidden sm:inline">Chrome &amp; Edge desktop + Android</span>
         </div>
       </div>
     </section>

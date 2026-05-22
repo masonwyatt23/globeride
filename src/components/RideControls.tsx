@@ -86,16 +86,16 @@ export function RideControls() {
 
   return (
     <div className={cn(
-      'glass glass-hairline rounded-pill px-3 py-2.5 flex flex-col items-center gap-2 transition-shadow duration-500',
+      'glass glass-hairline rounded-2xl sm:rounded-pill px-3 py-2.5 flex flex-col items-center gap-2 transition-shadow duration-500 max-w-[calc(100vw-1.5rem)]',
       glowClass,
     )}>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
 
         {rideState === 'ready' && (
           <Button
             variant="accent"
             size="lg"
-            className="rounded-pill min-w-[8rem] gap-2 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.5)] hover:shadow-[0_0_28px_-4px_hsl(var(--accent)/0.7)] transition-shadow"
+            className="rounded-pill min-w-[8rem] gap-2 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.5)] hover:shadow-[0_0_28px_-4px_hsl(var(--accent)/0.7)] active:scale-[0.97] transition-all"
             onClick={start}
           >
             <Play className="h-4 w-4" fill="currentColor" />
@@ -107,8 +107,8 @@ export function RideControls() {
           <>
             <Button
               variant="outline"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={pause}
             >
               <Pause className="h-4 w-4" />
@@ -116,8 +116,8 @@ export function RideControls() {
             </Button>
             <Button
               variant="destructive"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={finish}
             >
               <Flag className="h-3.5 w-3.5" />
@@ -130,8 +130,8 @@ export function RideControls() {
           <>
             <Button
               variant="accent"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={resume}
             >
               <Play className="h-4 w-4" fill="currentColor" />
@@ -139,8 +139,8 @@ export function RideControls() {
             </Button>
             <Button
               variant="destructive"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={finish}
             >
               <Square className="h-3.5 w-3.5" fill="currentColor" />
@@ -153,8 +153,8 @@ export function RideControls() {
           <>
             <Button
               variant="default"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:size-lg active:scale-[0.97] transition-transform"
               onClick={handleExport}
               title="Download your ride as a .FIT file"
             >
@@ -170,8 +170,8 @@ export function RideControls() {
 
             <Button
               variant="outline"
-              size="lg"
-              className="rounded-pill"
+              size="default"
+              className="rounded-pill sm:size-lg active:scale-[0.97] transition-transform"
               onClick={reset}
               title="Reset to start of route"
             >
@@ -218,7 +218,7 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
 
   if (phase === 'success' && activityId) {
     return (
-      <Button variant="accent" size="lg" className="rounded-pill" asChild>
+      <Button variant="accent" size="default" className="rounded-pill active:scale-[0.97] transition-transform" asChild>
         <a
           href={`https://www.strava.com/activities/${activityId}`}
           target="_blank"
@@ -235,8 +235,8 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     return (
       <Button
         variant="outline"
-        size="lg"
-        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40"
+        size="default"
+        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40 active:scale-[0.97] transition-transform"
         asChild
       >
         <a href={actionUrl}>
@@ -251,8 +251,8 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     return (
       <Button
         variant="outline"
-        size="lg"
-        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40"
+        size="default"
+        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40 active:scale-[0.97] transition-transform"
         onClick={onReset}
         title="Click to dismiss and retry"
       >
@@ -266,8 +266,8 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     return (
       <Button
         variant="outline"
-        size="lg"
-        className="rounded-pill opacity-60"
+        size="default"
+        className="rounded-pill opacity-60 active:scale-[0.97] transition-transform"
         asChild
         title="Strava credentials not configured — open Settings to connect"
       >
@@ -282,8 +282,8 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
   return (
     <Button
       variant="outline"
-      size="lg"
-      className="rounded-pill hover:border-[#FC4C02]/50 hover:text-[#FC4C02] focus-visible:ring-[#FC4C02]/50"
+      size="default"
+      className="rounded-pill hover:border-[#FC4C02]/50 hover:text-[#FC4C02] focus-visible:ring-[#FC4C02]/50 active:scale-[0.97] transition-transform"
       onClick={onUpload}
       disabled={isLoading}
       title={isLoading ? 'Uploading to Strava…' : 'Upload this activity to Strava'}

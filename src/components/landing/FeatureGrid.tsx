@@ -74,8 +74,8 @@ export function FeatureGrid() {
 
         {/* Grid */}
         <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <FeatureCard key={f.title} feature={f} />
+          {FEATURES.map((f, i) => (
+            <FeatureCard key={f.title} feature={f} index={i} />
           ))}
         </div>
       </div>
@@ -83,14 +83,15 @@ export function FeatureGrid() {
   );
 }
 
-function FeatureCard({ feature }: { feature: Feature }) {
+function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_-16px_hsl(var(--primary)/0.22)] ${
+      className={`group relative overflow-hidden rounded-2xl border p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_20px_48px_-16px_hsl(var(--primary)/0.22)] animate-fadeUp ${
         feature.accent
           ? 'border-primary/30 bg-gradient-to-br from-primary/10 via-primary/4 to-transparent'
           : 'border-border/60 bg-card/50 hover:border-primary/25'
       }`}
+      style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Hover glow */}
       <div

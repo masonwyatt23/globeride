@@ -5,6 +5,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        xs: '475px',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -101,16 +104,37 @@ export default {
           '0%':   { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        slideDown: {
+          '0%':   { opacity: '0', transform: 'translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInRight: {
+          '0%':   { opacity: '0', transform: 'translateX(16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInLeft: {
+          '0%':   { opacity: '0', transform: 'translateX(-16px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        popIn: {
+          '0%':   { opacity: '0', transform: 'scale(0.88)' },
+          '60%':  { transform: 'scale(1.04)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
-        pulseGlow: 'pulseGlow 2.2s ease-in-out infinite',
-        fadeIn:    'fadeIn 240ms ease-out',
-        fadeUp:    'fadeUp 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-        scaleIn:   'scaleIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-        toastIn:   'toastIn 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-        spinSlow:  'spinSlow 1.5s linear infinite',
-        livePulse: 'livePulse 1.8s ease-in-out infinite',
-        shimmer:   'shimmer 2s linear infinite',
+        pulseGlow:    'pulseGlow 2.2s ease-in-out infinite',
+        fadeIn:       'fadeIn 240ms ease-out',
+        fadeUp:       'fadeUp 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        scaleIn:      'scaleIn 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        toastIn:      'toastIn 200ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        spinSlow:     'spinSlow 1.5s linear infinite',
+        livePulse:    'livePulse 1.8s ease-in-out infinite',
+        shimmer:      'shimmer 2s linear infinite',
+        slideDown:    'slideDown 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        slideInRight: 'slideInRight 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        slideInLeft:  'slideInLeft 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        popIn:        'popIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
       },
     },
   },

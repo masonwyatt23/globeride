@@ -23,7 +23,7 @@ export function AppHeader({
         'flex items-center justify-between gap-3 px-4 sm:px-6 py-3',
         floating
           ? 'glass glass-hairline rounded-2xl mx-3 sm:mx-4 mt-3 sm:mt-4 pointer-events-auto'
-          : 'border-b border-border/50 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20',
+          : 'border-b border-border/50 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20 animate-slideDown',
         className,
       )}
     >
@@ -51,7 +51,7 @@ export function AppHeader({
           href="https://github.com/masonwyatt23/globeride"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-card transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-card active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="GitHub repository"
           title="View source on GitHub"
         >

@@ -230,6 +230,32 @@
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
+@keyframes slideDown {
+  0%   { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  0%   { opacity: 0; transform: translateX(16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  0%   { opacity: 0; transform: translateX(-16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.88); }
+  60%  { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* -------------------------------------------------------------------------
+   Button press feedback — micro-interaction on all interactive elements.
+   The `active:scale-[0.97]` class is applied directly; this ensures the
+   transition is always present when the class fires.
+------------------------------------------------------------------------- */
+button, [role="button"], a {
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* Respect system motion preference */
 @media (prefers-reduced-motion: reduce) {

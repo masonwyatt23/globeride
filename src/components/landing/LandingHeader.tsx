@@ -8,7 +8,7 @@ export function LandingHeader() {
   const navigate = useNavigate();
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 py-3 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 lg:px-10 py-2.5 sm:py-3 border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 animate-slideDown">
       {/* Brand */}
       <button
         onClick={() => navigate('/')}
@@ -29,12 +29,12 @@ export function LandingHeader() {
       </button>
 
       {/* Nav actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <a
           href="https://github.com/masonwyatt23/globeride"
           target="_blank"
           rel="noreferrer"
-          className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-card transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/60 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-card active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label="GitHub repository"
         >
           <Github className="h-4 w-4" />
@@ -45,9 +45,9 @@ export function LandingHeader() {
           size="sm"
           variant="accent"
           onClick={() => navigate('/app')}
-          className="rounded-full"
+          className="rounded-full active:scale-95 text-xs sm:text-sm px-3 sm:px-4"
         >
-          Launch app
+          <span className="hidden xs:inline">Launch </span>app
         </Button>
       </div>
     </header>

@@ -47,22 +47,27 @@ export function HowItWorks() {
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="relative grid gap-6 md:grid-cols-3">
-          {/* Connector line (desktop) */}
+        {/* Steps — vertical on mobile, 3-col on md+ */}
+        <div className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3">
+          {/* Connector line (desktop only) */}
           <div
             aria-hidden
             className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30"
+          />
+          {/* Connector line (mobile — vertical) */}
+          <div
+            aria-hidden
+            className="md:hidden absolute left-9 top-20 bottom-20 w-px bg-gradient-to-b from-primary/30 via-accent/30 to-primary/30"
           />
 
           {STEPS.map((step, i) => (
             <div
               key={step.n}
-              className="relative flex flex-col items-center text-center group animate-fadeUp"
-              style={{ animationDelay: `${i * 80}ms` }}
+              className="relative flex flex-col md:items-center md:text-center items-start text-left group animate-fadeUp"
+              style={{ animationDelay: `${i * 100}ms` }}
             >
               {/* Step number bubble */}
-              <div className="relative mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-card to-muted/50 border border-border/70 shadow-[0_8px_32px_-12px_hsl(var(--primary)/0.25)] group-hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.4)] group-hover:border-primary/30 transition-all duration-300 group-hover:-translate-y-1">
+              <div className="relative mb-4 sm:mb-6 inline-flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-card to-muted/50 border border-border/70 shadow-[0_8px_32px_-12px_hsl(var(--primary)/0.25)] group-hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.4)] group-hover:border-primary/30 transition-all duration-300 group-hover:-translate-y-1 shrink-0">
                 <span className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-black text-white shadow-[0_4px_12px_-4px_hsl(var(--primary)/0.6)]">
                   {i + 1}
                 </span>
@@ -71,8 +76,10 @@ export function HowItWorks() {
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold text-foreground tracking-tight mb-3">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{step.description}</p>
+              <div className="md:flex md:flex-col md:items-center">
+                <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{step.description}</p>
+              </div>
             </div>
           ))}
         </div>
