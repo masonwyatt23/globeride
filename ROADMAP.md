@@ -38,5 +38,10 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Mobile / tablet responsiveness pass
 - [x] Graphics-quality tiers (low / medium / high) for the 3D globe
 
+## Wave 5 — Immersion & life
+- [ ] Ghost riders — race your past attempts as translucent ghost avatars
+- [ ] Ride audio — ambient soundscape, effort cues, achievement chimes
+- [ ] Achievements & badges — milestone system tied to the rider profile
+
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
