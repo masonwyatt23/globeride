@@ -60,5 +60,12 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Empty / loading / error states + accessibility across every screen
 - [x] Micro-interactions + final cross-screen visual cohesion
 
+## Wave 10 — Real 3D avatar & gear  (focus: photoreal models)
+- [ ] Author genuine glTF 3D models — road bike + cyclist rider, PBR materials,
+      named animatable nodes (wheels / cranks / legs)
+- [ ] glTF rendering integration into the avatar system — Cesium model, node
+      animation, procedural avatar kept as offline fallback
+- [ ] Garage 2.0 — selectable bike/kit models + colourways
+
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
