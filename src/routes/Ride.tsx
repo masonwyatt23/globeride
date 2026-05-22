@@ -6,6 +6,7 @@ import { CesiumViewer } from '@/components/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/CesiumTokenPrompt';
 import { RideHUD } from '@/components/RideHUD';
 import { RideControls } from '@/components/RideControls';
+import { Minimap } from '@/components/Minimap';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
@@ -166,6 +167,9 @@ export function Ride() {
           <ElevationProfile />
         </div>
       </div>
+
+      {/* ── Minimap — bottom-right ──────────────────────────────────────── */}
+      <Minimap className="absolute bottom-[6rem] right-3 z-[2] pointer-events-none hidden sm:block" />
 
       {/* ── Transport controls — bottom-center ──────────────────────────── */}
       <div

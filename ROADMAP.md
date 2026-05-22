@@ -22,11 +22,11 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] In-ride HUD/UX overhaul — refined metrics, workout panel, ride controls
 - [x] Workout depth — 31-workout catalog + 6 multi-week training plans
 
-## Wave 2 — Graphics & 3D assets
-- [ ] Route line gradient-coloured by steepness; distance + start/finish markers
-- [ ] Avatar material/shading polish; richer procedural detail
-- [ ] Minimap; lap / segment markers
-- [ ] Weather + time-of-day moods; speed/effort visual feedback
+## Wave 2 — Graphics & 3D assets  ✅
+- [x] Route line gradient-coloured by steepness; distance + start/finish markers
+- [x] Avatar polish — 45-part procedural cyclist (drivetrain, cockpit, hands)
+- [x] 2D minimap overlay on the ride screen
+- [x] Weather + time-of-day scene moods
 
 ## Wave 3 — Maps & worlds
 - [ ] Curated iconic routes (famous climbs) bundled in-app
