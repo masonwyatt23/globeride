@@ -1,5 +1,20 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Bike, Weight, Wind, Sparkles, Globe2, Dumbbell, History, FlaskConical, Calendar } from 'lucide-react';
+import {
+  ArrowRight,
+  Library,
+  Bike,
+  Weight,
+  Wind,
+  Sparkles,
+  Globe2,
+  Dumbbell,
+  History,
+  FlaskConical,
+  Calendar,
+  Route,
+  Info,
+} from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
@@ -22,6 +37,7 @@ import { SettingsButton } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { HomeTabBar, HomeTabPanel, type TabId } from '@/components/HomeTabs';
 import { useRideStore } from '@/stores/rideStore';
 import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
@@ -31,11 +47,20 @@ import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { cn } from '@/lib/utils';
 
 /**
- * Landing / setup page. Three vertically-stacked panels on mobile, a 2-col
- * layout on tablet/desktop: pick a route, pair a trainer, jump into the ride.
+ * Landing / setup page — reorganised into four focused tabs:
+ *
+ *   Ride     — route picking (GPX / FIT / search / draw) + trainer pairing + Start CTA
+ *   Routes   — iconic climbs + saved route library
+ *   Workouts — daily ride, FTP test, picker, plans, library, builder, AI designer
+ *   History  — training log + segment leaderboard
+ *
+ * Every piece of functionality from the original long-scroll layout is
+ * preserved; only the visual grouping has changed.
  */
 export function Home() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<TabId>('ride');
+
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => s.mode);
@@ -58,6 +83,13 @@ export function Home() {
         ? `${msToMph(settings.windSpeedMs).toFixed(1)} mph`
         : `${msToKmh(settings.windSpeedMs).toFixed(1)} km/h`;
 
+  const tabs = [
+    { id: 'ride' as TabId,     label: 'Ride',     icon: <Bike className="h-3.5 w-3.5" /> },
+    { id: 'routes' as TabId,   label: 'Routes',   icon: <Route className="h-3.5 w-3.5" /> },
+    { id: 'workouts' as TabId, label: 'Workouts', icon: <Dumbbell className="h-3.5 w-3.5" /> },
+    { id: 'history' as TabId,  label: 'History',  icon: <History className="h-3.5 w-3.5" /> },
+  ];
+
   return (
     <div className="relative min-h-full w-full flex flex-col overflow-x-hidden">
       {/* Ambient gradient backdrop — decorative depth, sits behind everything */}
@@ -69,136 +101,73 @@ export function Home() {
 
       <AppHeader />
 
-      <main className="flex-1 px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 w-full max-w-7xl mx-auto grid gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-[1.1fr_0.9fr] auto-rows-min">
-        {/* ---- Left column: setup flow ---- */}
-        <section className="space-y-5 md:col-span-2 lg:col-span-1 animate-fadeUp">
-          {/* Hero */}
-          <div>
-            <Badge variant="default" className="mb-3 text-[10px]">
-              <Sparkles className="h-3 w-3" />
-              Open source · MIT licensed
-            </Badge>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05] [letter-spacing:-0.03em]">
-              Ride{' '}
-              <span className="text-gradient">anywhere on Earth.</span>
-            </h1>
-            <p className="mt-3 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
-              Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders the
-              route on a photorealistic 3D globe, drives real gradient into your
-              smart trainer over Web Bluetooth, and exports a Strava-compatible
-              .FIT when you're done.
-            </p>
-          </div>
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 flex flex-col gap-6">
 
-          {/* Step 1: Route */}
-          <Card className="animate-fadeUp [animation-delay:80ms]">
-            <CardHeader>
-              <CardTitle>
-                <StepBadge n={1} /> Pick a route
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <GPXUploader />
+        {/* Hero — always visible above tabs */}
+        <div className="animate-fadeUp">
+          <Badge variant="default" className="mb-3 text-[10px]">
+            <Sparkles className="h-3 w-3" />
+            Open source · MIT licensed
+          </Badge>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05] [letter-spacing:-0.03em]">
+            Ride{' '}
+            <span className="text-gradient">anywhere on Earth.</span>
+          </h1>
+          <p className="mt-3 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
+            Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders the
+            route on a photorealistic 3D globe, drives real gradient into your
+            smart trainer over Web Bluetooth, and exports a Strava-compatible
+            .FIT when you're done.
+          </p>
+        </div>
 
-              <Divider label="or replay a .FIT" />
+        {/* Tab bar */}
+        <HomeTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-              <FITUploader />
+        {/* RIDE tab */}
+        <HomeTabPanel id="ride" activeTab={activeTab}>
+          <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
 
-              <Divider label="or search a place" />
+            {/* Left: route picking */}
+            <div className="space-y-5">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    <StepBadge n={1} /> Pick a route
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <GPXUploader />
 
-              <RouteSearch />
+                  <Divider label="or replay a .FIT" />
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/explore')}
-              >
-                <Globe2 className="h-4 w-4" />
-                Explore or draw on the 3D globe
-              </Button>
+                  <FITUploader />
 
-              {route && (
-                <div className="rounded-lg bg-muted/40 p-3 border border-border/60">
-                  <ElevationProfile />
-                </div>
-              )}
-              <RoutePreview />
-            </CardContent>
-          </Card>
+                  <Divider label="or search a place" />
 
-          {/* Iconic climbs */}
-          <Card className="animate-fadeUp [animation-delay:140ms]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                Iconic climbs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <IconicRoutes onPicked={() => navigate('/ride')} />
-            </CardContent>
-          </Card>
+                  <RouteSearch />
 
-          {/* My Routes */}
-          <Card className="animate-fadeUp [animation-delay:180ms]">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Library className="h-3.5 w-3.5 text-primary" />
-                My Routes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RouteLibrary />
-            </CardContent>
-          </Card>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground hover:text-foreground"
+                    onClick={() => navigate('/explore')}
+                  >
+                    <Globe2 className="h-4 w-4" />
+                    Explore or draw on the 3D globe
+                  </Button>
 
-          {/* Training Log */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-3.5 w-3.5 text-primary" />
-                Training Log
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RideHistory />
-              {route && <SegmentLeaderboard route={route} className="mt-4" />}
-            </CardContent>
-          </Card>
+                  {route && (
+                    <div className="rounded-lg bg-muted/40 p-3 border border-border/60">
+                      <ElevationProfile />
+                    </div>
+                  )}
+                  <RoutePreview />
+                </CardContent>
+              </Card>
 
-          {/* Workout panel */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Dumbbell className="h-3.5 w-3.5 text-primary" />
-                Structured workout
-                <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
-                  (optional)
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Build a structured workout with ERG power targets and attach it to any route —
-                or ride it indoors on a scenic demo route. The engine holds your trainer at the
-                exact wattage for each segment.
-              </p>
-              {/* Daily ride — one-tap flagship preset */}
-              {!activeWorkout && (
-                <DailyRideCard
-                  ftpW={settings.ftpW}
-                  onStart={() => {
-                    const preset = getPreset(DAILY_WORKOUT_ID);
-                    if (!preset) return;
-                    loadWorkout(preset);
-                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                    navigate('/ride');
-                  }}
-                />
-              )}
-
-              {activeWorkout ? (
+              {/* Active workout badge — shown if a workout is already attached */}
+              {activeWorkout && (
                 <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-foreground">{activeWorkout.name}</div>
@@ -215,237 +184,335 @@ export function Home() {
                     Remove
                   </Button>
                 </div>
-              ) : null}
+              )}
+            </div>
 
-              {/* FTP Test entry point */}
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <FlaskConical className="h-3.5 w-3.5 text-accent" />
-                  FTP Test
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Find your Functional Threshold Power. Choose a protocol, ride it,
-                  and GlobeRide will suggest a new FTP when you finish.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => {
-                      const w = buildRampTest();
-                      loadWorkout(w);
-                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                    }}
-                  >
-                    <FlaskConical className="h-3 w-3" />
-                    Ramp Test
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7"
-                    onClick={() => {
-                      const w = build20MinTest(useSettingsStore.getState().ftpW);
-                      loadWorkout(w);
-                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                    }}
-                  >
-                    <FlaskConical className="h-3 w-3" />
-                    20-Min Test
-                  </Button>
-                </div>
-              </div>
+            {/* Right: trainer, sensors, and Start CTA */}
+            <div className="space-y-5">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    <StepBadge n={2} /> Pair your smart trainer
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TrainerConnect />
+                </CardContent>
+              </Card>
 
-              <WorkoutPicker
-                onSelect={(w) => {
-                  loadWorkout(w);
-                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                }}
-                onRide={(w) => {
-                  loadWorkout(w);
-                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                  navigate('/ride');
-                }}
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    Pair sensors
+                    <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
+                      (optional)
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    Pair a standalone heart-rate monitor and/or cadence sensor. When
+                    connected, they override the values from your trainer — useful if
+                    your trainer doesn't broadcast HR or cadence.
+                  </p>
+                  <SensorConnect />
+                </CardContent>
+              </Card>
 
-              <TrainingPlans
-                onRide={(w) => {
-                  loadWorkout(w);
-                  if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                  navigate('/ride');
-                }}
-              />
+              {/* Step 3: Roll out */}
+              <Card className={cn(canRide && 'ring-1 ring-accent/30')}>
+                <CardHeader>
+                  <CardTitle>
+                    <StepBadge n={3} /> Roll out
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {willUseDemo
+                      ? 'No trainer connected — Demo Mode will simulate power and speed for you.'
+                      : 'Trainer connected. Gradients will stream in real time as you ride.'}
+                  </p>
 
-              <WorkoutLibrary
-                onSelect={(w) => {
-                  loadWorkout(w);
-                  // If no route yet, load the demo route so there's scenery
-                  if (!route) {
-                    useRideStore.getState().setRoute(makeDemoRoute());
-                  }
-                }}
-              />
+                  {/* Physics chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    <Chip icon={<Weight className="h-3 w-3" />} label={totalMassDisplay} />
+                    <Chip
+                      icon={<Bike className="h-3 w-3" />}
+                      label={`${settings.bikeType.toUpperCase()} · ${settings.riderPosition}`}
+                    />
+                    <Chip icon={<Wind className="h-3 w-3" />} label={windDisplay} />
+                    <SettingsButton variant="ghost" size="sm" showLabel />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      size="lg"
+                      variant={canRide ? 'accent' : 'outline'}
+                      disabled={!canRide}
+                      onClick={() => navigate('/ride')}
+                      className="rounded-pill active:scale-[0.97] transition-transform"
+                    >
+                      {canRide ? 'Enter the world' : 'Pick a route first'}
+                      {canRide && <ArrowRight className="h-5 w-5" />}
+                    </Button>
+                    {!canRide && (
+                      <span className="text-xs text-muted-foreground">Choose a route above to unlock</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* About / browser support — collapsed by default to keep the CTA prominent */}
               <details className="group">
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors list-none flex items-center gap-1.5">
-                  <span className="group-open:rotate-90 transition-transform inline-block">›</span>
-                  Build a new workout
+                <summary className="cursor-pointer flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors list-none select-none">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  <span>About GlobeRide &amp; browser support</span>
+                  <span className="ml-auto group-open:rotate-180 transition-transform inline-block">▾</span>
                 </summary>
-                <div className="mt-3">
-                  <WorkoutBuilder
-                    onSaved={(w) => {
-                      loadWorkout(w);
-                    }}
-                    onRide={(w) => {
-                      loadWorkout(w);
-                      if (!route) {
-                        useRideStore.getState().setRoute(makeDemoRoute());
-                      }
+                <div className="mt-3 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>What's in the box</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm">
+                      <Feature icon="🌍" title="3D globe with terrain + OSM buildings">
+                        Powered by Cesium ion. Chase camera follows your bike along the route tangent.
+                      </Feature>
+                      <Feature icon="⚡" title="Real gradient → real resistance">
+                        FTMS Simulation Mode pushed every 1–2 s to your Kickr Core, Tacx Neo, Saris H3,
+                        or any FTMS trainer.
+                      </Feature>
+                      <Feature icon="📊" title="Strava-ready .FIT export">
+                        Per-second telemetry: position, power, cadence, HR, altitude. Upload straight to
+                        Strava or Garmin Connect.
+                      </Feature>
+                      <Feature icon="🚀" title="Demo Mode">
+                        No trainer? GlobeRide solves the cycling-power equation and rides for you so you
+                        can experience the full product immediately.
+                      </Feature>
+                      <Feature icon="📱" title="Installable PWA">
+                        Add to home screen on iPad next to the trainer. Works fully offline once cached.
+                      </Feature>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Browser support</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm text-muted-foreground space-y-2 leading-relaxed">
+                      <p>
+                        Web Bluetooth ships in{' '}
+                        <strong className="text-foreground">Chrome</strong> and{' '}
+                        <strong className="text-foreground">Edge</strong> on desktop &amp; Android.
+                        Safari and iOS do not expose Web Bluetooth — use Demo Mode there.
+                      </p>
+                      <p>Cesium needs WebGL2; nearly every modern device qualifies.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </details>
+            </div>
+          </div>
+        </HomeTabPanel>
+
+        {/* ROUTES tab */}
+        <HomeTabPanel id="routes" activeTab={activeTab}>
+          <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Iconic climbs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <IconicRoutes onPicked={() => navigate('/ride')} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Library className="h-3.5 w-3.5 text-primary" />
+                  My Routes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RouteLibrary />
+              </CardContent>
+            </Card>
+          </div>
+        </HomeTabPanel>
+
+        {/* WORKOUTS tab */}
+        <HomeTabPanel id="workouts" activeTab={activeTab}>
+          <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Dumbbell className="h-3.5 w-3.5 text-primary" />
+                  Structured workout
+                  <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
+                    (optional)
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Build a structured workout with ERG power targets and attach it to any route —
+                  or ride it indoors on a scenic demo route. The engine holds your trainer at the
+                  exact wattage for each segment.
+                </p>
+
+                {/* Daily ride — one-tap flagship preset */}
+                {!activeWorkout && (
+                  <DailyRideCard
+                    ftpW={settings.ftpW}
+                    onStart={() => {
+                      const preset = getPreset(DAILY_WORKOUT_ID);
+                      if (!preset) return;
+                      loadWorkout(preset);
+                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
                       navigate('/ride');
                     }}
                   />
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-
-          {/* AI Workout Designer */}
-          <AIWorkoutDesigner />
-
-          {/* Step 2: Trainer */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <StepBadge n={2} /> Pair your smart trainer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TrainerConnect />
-            </CardContent>
-          </Card>
-
-          {/* Optional: standalone HR / cadence sensors */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Pair sensors
-                <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
-                  (optional)
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                Pair a standalone heart-rate monitor and/or cadence sensor. When
-                connected, they override the values from your trainer — useful if
-                your trainer doesn't broadcast HR or cadence.
-              </p>
-              <SensorConnect />
-            </CardContent>
-          </Card>
-
-          {/* Step 3: Roll out */}
-          <Card className={cn(canRide && 'ring-1 ring-accent/30')}>
-            <CardHeader>
-              <CardTitle>
-                <StepBadge n={3} /> Roll out
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {willUseDemo
-                  ? 'No trainer connected — Demo Mode will simulate power and speed for you.'
-                  : 'Trainer connected. Gradients will stream in real time as you ride.'}
-              </p>
-
-              {/* Physics chips */}
-              <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                <Chip icon={<Weight className="h-3 w-3" />} label={totalMassDisplay} />
-                <Chip
-                  icon={<Bike className="h-3 w-3" />}
-                  label={`${settings.bikeType.toUpperCase()} · ${settings.riderPosition}`}
-                />
-                <Chip icon={<Wind className="h-3 w-3" />} label={windDisplay} />
-                <SettingsButton variant="ghost" size="sm" showLabel />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Button
-                  size="lg"
-                  variant={canRide ? 'accent' : 'outline'}
-                  disabled={!canRide}
-                  onClick={() => navigate('/ride')}
-                  className="rounded-pill active:scale-[0.97] transition-transform"
-                >
-                  {canRide ? 'Enter the world' : 'Pick a route first'}
-                  {canRide && <ArrowRight className="h-5 w-5" />}
-                </Button>
-                {!canRide && (
-                  <span className="text-xs text-muted-foreground">Choose a route above to unlock</span>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
 
-        {/* ---- Right column: info ---- */}
-        <aside className="space-y-5 md:col-span-2 lg:col-span-1 animate-fadeUp [animation-delay:60ms]">
-          <Card>
-            <CardHeader>
-              <CardTitle>What's in the box</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <Feature
-                icon="🌍"
-                title="3D globe with terrain + OSM buildings"
-              >
-                Powered by Cesium ion. Chase camera follows your bike along the route tangent.
-              </Feature>
-              <Feature
-                icon="⚡"
-                title="Real gradient → real resistance"
-              >
-                FTMS Simulation Mode pushed every 1–2 s to your Kickr Core, Tacx Neo, Saris H3,
-                or any FTMS trainer.
-              </Feature>
-              <Feature
-                icon="📊"
-                title="Strava-ready .FIT export"
-              >
-                Per-second telemetry: position, power, cadence, HR, altitude. Upload straight to
-                Strava or Garmin Connect.
-              </Feature>
-              <Feature
-                icon="🚀"
-                title="Demo Mode"
-              >
-                No trainer? GlobeRide solves the cycling-power equation and rides for you so you
-                can experience the full product immediately.
-              </Feature>
-              <Feature
-                icon="📱"
-                title="Installable PWA"
-              >
-                Add to home screen on iPad next to the trainer. Works fully offline once cached.
-              </Feature>
-            </CardContent>
-          </Card>
+                {activeWorkout ? (
+                  <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">{activeWorkout.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {activeWorkout.segments.length} segments · attached to ride
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={clearWorkout}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ) : null}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Browser support</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-              <p>
-                Web Bluetooth ships in{' '}
-                <strong className="text-foreground">Chrome</strong> and{' '}
-                <strong className="text-foreground">Edge</strong> on desktop &amp; Android.
-                Safari and iOS do not expose Web Bluetooth — use Demo Mode there.
-              </p>
-              <p>Cesium needs WebGL2; nearly every modern device qualifies.</p>
-            </CardContent>
-          </Card>
-        </aside>
+                {/* FTP Test entry point */}
+                <div className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <FlaskConical className="h-3.5 w-3.5 text-accent" />
+                    FTP Test
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Find your Functional Threshold Power. Choose a protocol, ride it,
+                    and GlobeRide will suggest a new FTP when you finish.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => {
+                        const w = buildRampTest();
+                        loadWorkout(w);
+                        if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                      }}
+                    >
+                      <FlaskConical className="h-3 w-3" />
+                      Ramp Test
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => {
+                        const w = build20MinTest(useSettingsStore.getState().ftpW);
+                        loadWorkout(w);
+                        if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                      }}
+                    >
+                      <FlaskConical className="h-3 w-3" />
+                      20-Min Test
+                    </Button>
+                  </div>
+                </div>
+
+                <WorkoutPicker
+                  onSelect={(w) => {
+                    loadWorkout(w);
+                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                  }}
+                  onRide={(w) => {
+                    loadWorkout(w);
+                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                    navigate('/ride');
+                  }}
+                />
+
+                <TrainingPlans
+                  onRide={(w) => {
+                    loadWorkout(w);
+                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                    navigate('/ride');
+                  }}
+                />
+
+                <WorkoutLibrary
+                  onSelect={(w) => {
+                    loadWorkout(w);
+                    // If no route yet, load the demo route so there's scenery
+                    if (!route) {
+                      useRideStore.getState().setRoute(makeDemoRoute());
+                    }
+                  }}
+                />
+
+                <details className="group">
+                  <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors list-none flex items-center gap-1.5">
+                    <span className="group-open:rotate-90 transition-transform inline-block">›</span>
+                    Build a new workout
+                  </summary>
+                  <div className="mt-3">
+                    <WorkoutBuilder
+                      onSaved={(w) => {
+                        loadWorkout(w);
+                      }}
+                      onRide={(w) => {
+                        loadWorkout(w);
+                        if (!route) {
+                          useRideStore.getState().setRoute(makeDemoRoute());
+                        }
+                        navigate('/ride');
+                      }}
+                    />
+                  </div>
+                </details>
+              </CardContent>
+            </Card>
+
+            <AIWorkoutDesigner />
+          </div>
+        </HomeTabPanel>
+
+        {/* HISTORY tab */}
+        <HomeTabPanel id="history" activeTab={activeTab}>
+          <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-3.5 w-3.5 text-primary" />
+                  Training Log
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RideHistory />
+                {route && <SegmentLeaderboard route={route} className="mt-4" />}
+              </CardContent>
+            </Card>
+          </div>
+        </HomeTabPanel>
+
       </main>
 
       <footer className="px-4 sm:px-6 lg:px-10 py-4 border-t border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5">
@@ -456,7 +523,7 @@ export function Home() {
   );
 }
 
-/* ---- Local components ---- */
+/* ── Local components ─────────────────────────────────────────────────────── */
 
 function StepBadge({ n }: { n: number }) {
   return (
