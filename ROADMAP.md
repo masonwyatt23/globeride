@@ -47,5 +47,10 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Correctness pass — bug hunt + fixes across the ride + setup experiences
 - [x] Visual cohesion pass — consistency of spacing / type / states
 
+## Wave 7 — Cinematic & analytical
+- [ ] Cinematic 3D rendering — bloom, richer atmosphere/sky, colour grading
+- [ ] Post-ride analytics — power curve, time-in-zones, splits, PR comparison
+- [ ] Expanded content — more iconic climbs + more curated workouts
+
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
