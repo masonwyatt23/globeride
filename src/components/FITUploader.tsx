@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, Loader2, Clapperboard } from 'lucide-react';
+import { Loader2, Clapperboard } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { parseFit, FitParseError } from '@/lib/fitParser';

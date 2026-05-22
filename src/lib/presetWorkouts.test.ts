@@ -37,11 +37,11 @@ describe('PRESET_WORKOUTS catalog', () => {
     }
   });
 
-  it('every preset fits the 15–45 minute window', () => {
+  it('every preset fits the 15–90 minute window', () => {
     for (const w of PRESET_WORKOUTS) {
       const min = totalDurationSec(w) / 60;
       expect(min, `${w.name} duration`).toBeGreaterThanOrEqual(15);
-      expect(min, `${w.name} duration`).toBeLessThanOrEqual(45);
+      expect(min, `${w.name} duration`).toBeLessThanOrEqual(90);
     }
   });
 

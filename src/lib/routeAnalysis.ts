@@ -175,7 +175,6 @@ export function detectClimbs(route: Route): DetectedClimb[] {
 
   let inClimb = false;
   let climbStart = 0;
-  let climbStartEle = 0;
   let descendSince = 0; // meters of consecutive descent inside a climb
 
   // Per-segment accumulators
@@ -224,7 +223,6 @@ export function detectClimbs(route: Route): DetectedClimb[] {
       if (grade >= CLIMB_THRESHOLD_PCT) {
         inClimb = true;
         climbStart = a.distance;
-        climbStartEle = a.ele;
         gainAcc = Math.max(0, b.ele - a.ele);
         gradeWeightAcc = grade * segDist;
         distAcc = segDist;

@@ -193,7 +193,7 @@ export async function generateWorkout(
   } catch (err) {
     // Wrap network/configuration errors with clear user guidance.
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(msg);
+    throw new Error(msg, { cause: err });
   }
 
   // First attempt to validate + auto-repair

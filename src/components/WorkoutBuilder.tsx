@@ -33,7 +33,6 @@ import {
   type WorkoutSegment,
   type SegmentKind,
   type SegmentTarget,
-  totalDurationSec,
   estimateTSS,
   workoutId,
 } from '@/lib/workout';

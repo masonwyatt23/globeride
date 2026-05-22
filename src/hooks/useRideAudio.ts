@@ -122,6 +122,5 @@ export function useRideAudio(): void {
       prevSegmentRef.current = -1;
       finishChimeFiredRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Runs once — engine is a stable ref; state is read via getState().
 }

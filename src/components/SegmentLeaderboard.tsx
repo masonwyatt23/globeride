@@ -32,7 +32,6 @@ import {
 
 import { cn, formatDuration, formatDistance } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { detectSegments } from '@/lib/segments';
 import { useSegmentStore } from '@/stores/segmentStore';
 import type { Route } from '@/types';

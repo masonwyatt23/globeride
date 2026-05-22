@@ -64,7 +64,7 @@ export function useRideLoop(): void {
 
       // ---- Determine speed source ----
       let speed: number;
-      let power: number | null = null;
+      let power: number | null;
       const cadence: number | null = s.mode === 'trainer' ? s.cadence || null : 78;
       const hr: number | null = s.heartRate;
 

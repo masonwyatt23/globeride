@@ -165,7 +165,6 @@ function createStages(viewer: Cesium.Viewer): CinematicStages | undefined {
     // exist at runtime in Cesium 1.107+ but are not declared in the bundled
     // Cesium.d.ts shipped with this package version.  We cast through `unknown`
     // so TypeScript accepts the call while the runtime still works correctly.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const lib = Cesium.PostProcessStageLibrary as unknown as Record<string, (...args: unknown[]) => Cesium.PostProcessStageComposite>;
 
     // ------------------------------------------------------------------

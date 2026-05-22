@@ -107,7 +107,6 @@ export async function fetchElevations(points: LatLon[]): Promise<number[]> {
 
   for (const batch of batches) {
     // Each batch is queued through the shared throttle chain.
-    // eslint-disable-next-line no-await-in-loop
     const elevs = await nextSlot(async () => {
       try {
         return await fetchOpenTopoDataBatch(batch);

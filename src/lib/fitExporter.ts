@@ -29,8 +29,11 @@ const semicircles = (deg: number) => Math.round((deg / 180) * 2 ** 31);
 /** Invalid sentinels per FIT base types. */
 const INV_U8 = 0xff;
 const INV_U16 = 0xffff;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- FIT protocol sentinels kept for reference
 const INV_U32 = 0xffffffff;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- FIT protocol sentinels kept for reference
 const INV_S16 = 0x7fff;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- FIT protocol sentinels kept for reference
 const INV_S32 = 0x7fffffff;
 
 // --- CRC table (per FIT SDK) -------------------------------------------
@@ -85,6 +88,7 @@ class Writer {
 
 const BASE_ENUM = 0x00;
 const BASE_U8 = 0x02;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- FIT base-type table kept for reference
 const BASE_S16 = 0x83;
 const BASE_U16 = 0x84;
 const BASE_S32 = 0x85;

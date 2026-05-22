@@ -49,7 +49,6 @@ import {
   computeTrainingLoadFromRecords,
   classifyForm,
   type DailyLoad,
-  type TrainingLoadSummary,
   type FormLabel,
 } from '@/lib/trainingLoad';
 import { cn } from '@/lib/utils';

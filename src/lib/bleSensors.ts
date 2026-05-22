@@ -134,7 +134,6 @@ async function runReconnectLoop(
       onReconnect('success', attempt);
       return;
     } catch {
-      // eslint-disable-next-line no-console
       console.warn(`[BLE] reconnect attempt ${attempt} failed`);
     }
   }

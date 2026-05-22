@@ -107,14 +107,46 @@ export function TrainingCalendar({ plan, onRide, className }: TrainingCalendarPr
   const ftpW = useSettingsStore((s) => s.ftpW);
 
   const progress = activePlan;
-  if (!progress) return null;
-
   const today = todayMidnight();
+  // completedSet, streak, etc. are unconditional (hooks must not follow a conditional return).
+  // They short-circuit safely when progress is null; the component returns null below.
   const completedSet = useMemo(
-    () => new Set(progress.completedDays),
-    [progress.completedDays],
+    () => new Set(progress?.completedDays ?? []),
+    [progress?.completedDays],
   );
   const weeks = useMemo(() => daysByWeek(plan), [plan]);
+  const streak = useMemo(
+    () => (progress ? computeStreak(plan, progress) : 0),
+    [plan, progress],
+  );
+  const remaining = useMemo(
+    () => (progress ? daysRemaining(plan, progress) : 0),
+    [plan, progress],
+  );
+  const endDate = useMemo(
+    () => (progress ? planEndDate(plan, progress) : new Date()),
+    [plan, progress],
+  );
+  const todayDay = useMemo(
+    () => (progress ? todaysPlanDay(plan, progress) : null),
+    [plan, progress],
+  );
+  const nextDay = useMemo(
+    () => (progress ? nextWorkoutDay(plan, progress) : null),
+    [plan, progress],
+  );
+  const calWeek = useMemo(
+    () => (progress ? currentCalendarWeek(plan, progress) : -1),
+    [plan, progress],
+  );
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(() => {
+    const initial = new Set<number>();
+    if (calWeek >= 0) initial.add(calWeek);
+    return initial;
+  });
+
+  // Guard: nothing to show without an active plan progress record.
+  if (!progress) return null;
 
   // Stats
   const totalWorkoutDays = plan.days.filter((d) => d.workoutId !== null).length;
@@ -125,23 +157,8 @@ export function TrainingCalendar({ plan, onRide, className }: TrainingCalendarPr
     ? Math.round((completedWorkoutDays / totalWorkoutDays) * 100)
     : 0;
   const isFinished = completedWorkoutDays >= totalWorkoutDays;
-  const streak = useMemo(() => computeStreak(plan, progress), [plan, progress]);
-  const remaining = useMemo(() => daysRemaining(plan, progress), [plan, progress]);
-  const endDate = useMemo(() => planEndDate(plan, progress), [plan, progress]);
-
-  // Today's day / next workout
-  const todayDay = useMemo(() => todaysPlanDay(plan, progress), [plan, progress, today]);
-  const nextDay = useMemo(() => nextWorkoutDay(plan, progress), [plan, progress]);
   const todayWorkout = (todayDay?.workoutId ? getPreset(todayDay.workoutId) : null) ?? null;
   const nextWorkout = (nextDay?.workoutId ? getPreset(nextDay.workoutId) : null) ?? null;
-
-  // Which week to start expanded: current calendar week, or 0 if before start
-  const calWeek = useMemo(() => currentCalendarWeek(plan, progress), [plan, progress]);
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(() => {
-    const initial = new Set<number>();
-    if (calWeek >= 0) initial.add(calWeek);
-    return initial;
-  });
 
   const toggleWeek = (wi: number) => {
     setExpandedWeeks((prev) => {
@@ -587,7 +604,7 @@ function WeekStrip({
   completedSet,
   startedAt,
   today,
-  todayDay,
+  todayDay: _todayDay,
   nextDay,
 }: {
   weekDays: PlanDay[];

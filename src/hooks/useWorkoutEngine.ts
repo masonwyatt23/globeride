@@ -122,7 +122,7 @@ export function useWorkoutEngine(): void {
       const shouldSend = now - lastSentT.current > 850;
 
       let speed: number;
-      let power: number | null = null;
+      let power: number | null;
       const cadence: number | null = s.cadence || null;
       const hr: number | null = s.heartRate;
 

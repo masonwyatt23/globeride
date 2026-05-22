@@ -53,13 +53,6 @@ function formatDate(unixMs: number): string {
   });
 }
 
-function formatDateShort(unixMs: number): string {
-  return new Date(unixMs).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 function formatSpeed(ms: number): string {
   const kmh = ms * 3.6;
   return `${kmh.toFixed(1)} km/h`;

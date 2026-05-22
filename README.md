@@ -1,132 +1,93 @@
 <div align="center">
 
-# 🌍 GlobeRide
+# GlobeRide
 
-**Virtual cycling on a 3D Earth — open source, no subscription, your routes, your trainer.**
+**Virtual cycling on a photorealistic 3D Earth — open source, no subscription, ride anywhere.**
 
 [![MIT License](https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square)](LICENSE)
 [![Built with Vite](https://img.shields.io/badge/built%20with-Vite%206-646cff?style=flat-square)](https://vitejs.dev/)
 [![Cesium](https://img.shields.io/badge/3D%20globe-Cesium%20ion-2e5f9e?style=flat-square)](https://cesium.com)
-[![FTMS](https://img.shields.io/badge/trainer-FTMS%20over%20Web%20Bluetooth-5eead4?style=flat-square)](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0/)
+[![FTMS](https://img.shields.io/badge/trainer-FTMS%20%2F%20Web%20Bluetooth-5eead4?style=flat-square)](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0/)
 
 </div>
 
-GlobeRide is a free, browser-based virtual cycling simulator. Upload any GPX
-from Strava / Komoot / Garmin, see the route in a photorealistic 3D world
-(real terrain, real OSM buildings), and your Wahoo Kickr Core (or any
-FTMS-compliant smart trainer) automatically simulates the real-world
-gradient as you ride. Record the ride, export a `.FIT`, push to Strava.
+GlobeRide is a free, browser-based virtual cycling simulator. Upload a GPX route
+from Strava, Komoot, or Garmin — or pick one of 19 iconic climbs — and ride it
+on a photoreal 3D globe with real-world terrain and OSM 3D buildings. A
+Web Bluetooth FTMS smart trainer (Wahoo Kickr Core, Tacx Neo, Elite Suito,
+etc.) simulates the live gradient as you ride. When you finish, export a `.FIT`
+file and upload it to Strava.
 
-> No accounts. No subscriptions. No closed routes. MIT-licensed and
-> self-hostable.
-
----
-
-## Phase 1 MVP — what works today
-
-- ✅ GPX upload, parse, and route preview on a 3D globe
-- ✅ Cesium World Terrain + OSM 3D Buildings
-- ✅ Smooth chase-cam that tracks the bike along the route tangent
-- ✅ Real-time gradient calculation, smoothed with an EMA
-- ✅ FTMS Simulation Mode — gradient → real trainer resistance
-- ✅ Live HUD: speed, power, cadence, HR, distance, elevation, grade, time
-- ✅ Connect / disconnect any FTMS smart trainer via Web Bluetooth
-- ✅ Start / Pause / Resume / Finish controls + screen wake-lock
-- ✅ 1 Hz telemetry recording → `.FIT` download (Strava-ready)
-- ✅ Live elevation profile with progress marker (Recharts)
-- ✅ Installable PWA, offline cache after first visit
-- ✅ **Demo Mode** — no trainer required; solves cycling-power physics so
-  you can preview the entire experience
+> No accounts. No subscriptions. No closed routes. MIT-licensed and self-hostable.
 
 ---
 
-## Phase 2 — what's new
+## What it does
 
-- 🚴 **Full cycling physics model.** Gravity, rolling resistance, aerodynamic
-  drag, drivetrain losses, and wind (speed + direction) are all simulated
-  per Martin et al., 1998. Demo Mode now responds realistically to every
-  rider knob — climb a 6 % grade in the drops at 250 W and you'll arrive
-  at the same speed you would in real life.
-- 🛠️ **Settings panel.** Persistent rider config (localStorage) — body
-  weight, bike weight, bike type (road / gravel / MTB → Crr), rider
-  position (drops / hoods / tops → CdA), drivetrain efficiency, wind, and
-  Demo-mode target power. Unit toggle (kg/km/h ↔ lb/mph).
-- 📡 **Settings-aware FTMS push.** The user's Crr / CdA / wind values are
-  packed into the trainer's `Set Simulation Parameters` opcode so the
-  resistance feel matches what you configured.
-- 🎨 **Upgraded 3D avatar.** A heading-oriented bike body + rider, a glow
-  marker visible from far away, a directional arrow showing where you're
-  pointing, and a soft ground shadow clamped to terrain.
+- **Photoreal 3D world** — Cesium World Terrain + OSM 3D buildings, cinematic
+  post-processing (bloom, ambient occlusion, tone grading), and three
+  graphics-quality tiers (Low / Medium / High).
+- **Smart trainer integration** — FTMS over Web Bluetooth pushes real-time
+  gradient (SIM mode) or ERG target power to any compatible trainer. Demo Mode
+  runs full cycling-power physics when no trainer is connected.
+- **Structured workouts** — 44 curated workouts across every training zone
+  (endurance, tempo, sweet spot, threshold, VO2 max, sprints), 6 multi-week
+  training plans, and an AI workout designer. Rides on ERG with a Zwift-style
+  power-profile preview.
+- **Training platform** — CTL/ATL/TSB Fitness & Form chart, personal records,
+  training calendar, segment leaderboards, XP / level / gear garage, 25
+  achievements, and local ride history with `.FIT` export and Strava upload.
+- **Local-first, no backend** — everything persists in IndexedDB and
+  localStorage. No server, no account, no data leaves your device.
 
 ---
 
-## Quick start
+## Quickstart
 
 ```bash
-git clone https://github.com/masonwyatt23/globeride
+# 1. Clone and install
+git clone https://github.com/masonwyatt23/globeride.git
 cd globeride
 npm install
-npm run dev
+
+# 2. Add your free Cesium ion token
+#    Get one at https://ion.cesium.com/tokens (free, unlimited personal use)
+echo "VITE_CESIUM_ION_TOKEN=your_token_here" > .env.local
+
+# 3. Start the dev server
+npm run dev          # → http://localhost:5173
 ```
 
-The dev server starts on `http://localhost:5173`. The first time you enter a
-ride, you'll be asked for a **Cesium ion access token** — sign up free at
-<https://ion.cesium.com/tokens> and paste the default token in. It's saved
-to your browser only.
+The globe will not render without a Cesium ion token. If you skip the `.env.local`
+step, the app will prompt you for a token in the browser and save it to
+`localStorage` — no restart needed.
 
-You can also bake the token into a `.env` file:
+### Other commands
 
 ```bash
-echo "VITE_CESIUM_ION_TOKEN=eyJhbGciOi..." > .env.local
+npm run build        # Production build → ./dist  (static, no server needed)
+npm run preview      # Serve the production build → :4173
+npm run typecheck    # TypeScript strict check (no emit)
+npm run test         # Run all unit tests (vitest)
+npm run lint         # ESLint (zero errors required)
 ```
-
-### Production build
-
-```bash
-npm run build      # tsc + vite, output in ./dist
-npm run preview    # serve the build at :4173
-```
-
-`dist/` is a static site — drop it on Vercel, Netlify, Cloudflare Pages,
-your own nginx, anywhere.
 
 ---
 
-## Pairing a Wahoo Kickr Core (or any FTMS trainer)
+## Tech stack
 
-1. Wake the trainer (one pedal stroke usually does it). Make sure it isn't
-   already paired with the Wahoo iOS app, Zwift, or another browser tab —
-   FTMS only allows one consumer at a time.
-2. Open GlobeRide in **Chrome or Edge** on desktop or Android. Safari and
-   iOS do not expose Web Bluetooth — use Demo Mode there.
-3. Pick a route, then click **Pair trainer**.
-4. The native browser chooser appears — select your Kickr / Tacx / Saris /
-   Elite trainer and click **Pair**.
-5. The status row turns green with a `LIVE` badge. Click **Enter the
-   world** and start the ride.
-
-GlobeRide will push the live gradient to the trainer ~once per second using
-FTMS opcode `0x11` (Set Indoor Bike Simulation Parameters). When the
-gradient ramps up, the resistance ramps up — same physics as Zwift's
-Simulation Mode.
-
-> **Tip:** if the trainer feels "ghostly" or laggy, make sure no other
-> Bluetooth device (computer head unit, ANT+ bridge, second phone) has it
-> claimed.
-
-### What's been tested
-
-| Trainer | Status | Notes |
-|---|---|---|
-| Wahoo Kickr Core | ✅ Reference target | Tested against `wklenk/web-bluetooth-bike-trainer`'s known-good flow |
-| Wahoo Kickr v6 | ✅ Should work | Same FTMS profile |
-| Tacx Neo 2T | ✅ Should work | Standard FTMS implementation |
-| Saris H3 | ✅ Should work | Standard FTMS implementation |
-| Elite Suito | ✅ Should work | Standard FTMS implementation |
-| Zwift Hub / Hub One | ✅ Should work | Standard FTMS implementation |
-
-If your trainer doesn't connect, please open an issue with the device name
-and any console errors.
+| Layer | Technology |
+|---|---|
+| Framework | React 19 + TypeScript (strict) |
+| Build | Vite 6 + vite-plugin-cesium |
+| 3D globe | CesiumJS 1.131 + Cesium World Terrain |
+| State | Zustand 5 |
+| Styling | Tailwind CSS 3 + shadcn-style UI primitives |
+| Charts | Recharts |
+| Persistence | IndexedDB via `idb`, localStorage |
+| PWA | vite-plugin-pwa (installable, offline-capable) |
+| Trainer | Web Bluetooth FTMS (service `0x1826`) |
+| Testing | vitest |
 
 ---
 
@@ -134,166 +95,45 @@ and any console errors.
 
 ```
 globeride/
-├── public/
-│   └── icon.svg              # PWA icon
 ├── src/
-│   ├── components/
-│   │   ├── ui/               # Button / Card / Badge (shadcn-style)
-│   │   ├── CesiumViewer.tsx  # 3D globe + route + follow-cam
-│   │   ├── TrainerConnect.tsx
-│   │   ├── GPXUploader.tsx
-│   │   ├── RideHUD.tsx
-│   │   ├── RideControls.tsx
-│   │   ├── ElevationProfile.tsx
-│   │   └── CesiumTokenPrompt.tsx
-│   ├── lib/
-│   │   ├── ftms.ts                # Web Bluetooth FTMS client (the load-bearing one)
-│   │   ├── gpxParser.ts           # GPX → normalized Route + interpolation
-│   │   ├── gradientCalculator.ts  # Window-averaged % slope + EMA smoother
-│   │   ├── cesiumUtils.ts         # Camera + entity helpers
-│   │   ├── fitExporter.ts         # Hand-rolled .FIT v2 binary writer
-│   │   ├── physics.ts             # Cycling-power equation (Demo Mode)
-│   │   ├── sampleRoutes.ts        # Built-in demo loop
-│   │   └── utils.ts
-│   ├── stores/
-│   │   └── rideStore.ts           # Zustand — all ride + trainer state
-│   ├── hooks/
-│   │   ├── useRideLoop.ts         # requestAnimationFrame core loop
-│   │   └── useWakeLock.ts
-│   ├── routes/
-│   │   ├── Home.tsx               # Setup: upload + pair + start
-│   │   └── Ride.tsx               # Active ride view
-│   ├── App.tsx
-│   └── main.tsx
-├── vite.config.ts                 # Vite + cesium plugin + PWA
-├── tailwind.config.ts
-└── package.json
+│   ├── components/     # All React UI components
+│   ├── hooks/          # Custom hooks (ride loop, workout engine, audio, …)
+│   ├── lib/            # Core logic: physics, GPX/FIT parsing, FTMS, workouts, …
+│   ├── routes/         # Page components (Landing, Home, Ride, Explore)
+│   ├── stores/         # Zustand stores (ride, settings, profile, workouts, …)
+│   └── types.ts        # Shared TypeScript types
+├── public/             # Static assets (icons, audio, glTF models)
+├── scripts/            # Dev utilities (avatar glTF generator)
+├── index.html
+└── vite.config.ts
 ```
 
 ---
 
-## How it works (technical notes)
+## Cesium ion token
 
-### Web Bluetooth + FTMS
+The 3D globe requires a Cesium ion access token. Tokens are free for personal
+use — sign up at [ion.cesium.com/tokens](https://ion.cesium.com/tokens).
 
-`src/lib/ftms.ts` implements the [Fitness Machine Service](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0/)
-spec from the Bluetooth SIG. The connection flow is:
+Resolution order:
 
-1. `navigator.bluetooth.requestDevice` with a filter on UUID `0x1826`.
-2. GATT connect → get the `0x1826` service.
-3. Subscribe to indications on the **Control Point** (`0x2AD9`).
-4. Subscribe to notifications on **Indoor Bike Data** (`0x2AD2`).
-5. Send **Request Control** (`0x00`) → wait for `0x80 0x00 0x01` success.
-6. Send **Start / Resume** (`0x07`) → wait for `0x80 0x07 0x01` success.
-7. From the ride loop, send **Set Indoor Bike Simulation Parameters**
-   (`0x11`) every 1–2 seconds. Payload:
-   - `int16 LE` wind speed (m/s × 1000) — always 0
-   - `int16 LE` grade (% × 100)
-   - `uint8` Crr (× 10000) — set to 40 (0.0040)
-   - `uint8` Cw (× 100)   — set to 51 (0.51 kg/m, hoods position)
+1. `VITE_CESIUM_ION_TOKEN` in `.env.local` (gitignored — never commit it)
+2. `localStorage['globeride.cesiumIonToken']` — set by the in-app prompt
+3. The `CesiumTokenPrompt` UI asks for one on first launch
 
-Indoor Bike Data notifications are parsed per spec § 4.9 — variable-length
-payload driven by a `uint16` flags field — and pushed into the Zustand
-store as live `speed / power / cadence / heartRate`.
-
-Reference implementation: [`wklenk/web-bluetooth-bike-trainer`](https://github.com/wklenk/web-bluetooth-bike-trainer).
-
-### Gradient calculation
-
-For every animation frame:
-
-1. Resolve the rider's current `(lat, lon, ele)` by binary-searching the
-   cumulative-distance index of the parsed GPX route.
-2. Sample elevation 20 m behind and 20 m ahead, then `(eAhead − eBehind) /
-   40 m × 100` → instantaneous grade %.
-3. Push through an exponential moving average (`α = 0.18`) to remove GPS
-   noise that would otherwise shake the trainer's flywheel motor.
-4. Clamp to ±25 % for safety (typical smart-trainer limit).
-
-### `.FIT` export
-
-`src/lib/fitExporter.ts` is a hand-rolled binary encoder for FIT v2. It
-emits:
-
-- `file_id` (manufacturer = development, type = activity)
-- `record` × N (per-second: lat/lon as semicircles, altitude scaled, speed,
-  power, cadence, heart rate)
-- one `lap` covering the whole ride
-- one `session` with cycling / indoor-cycling sport
-- `activity` summary
-
-CRC is computed with the table from the FIT SDK. The resulting `.fit`
-uploads cleanly to Strava and most third-party services.
-
-### Demo Mode (full physics)
-
-When no trainer is connected, GlobeRide solves the steady-state cycling
-power balance every frame:
-
-```
-P_pedal · η_drive = (m·g·sinθ  +  m·g·cosθ·Crr  +  ½·ρ·CdA·v_air·|v_air|) · v
-v_air = v + v_headwind
-```
-
-All five coefficients are user-configurable from the settings panel:
-
-| Knob              | Source                                       | Range / preset                          |
-|---|---|---|
-| Combined mass `m` | Rider + bike weight                          | kg or lb                                 |
-| Crr               | Bike type                                    | road 0.004 · gravel 0.008 · MTB 0.014    |
-| CdA               | Rider position                               | drops 0.27 · hoods 0.32 · tops 0.40 m²   |
-| η_drive           | Drivetrain efficiency slider                 | 88 – 100 % (default 97 %)               |
-| Wind              | Speed + direction (0 ° = headwind)           | 0–50 km/h, any heading                  |
-| ρ                 | Air density                                  | 1.225 kg/m³ (sea level, 15 °C)          |
-
-Newton-Raphson on the cubic-like force balance converges in 3–6 iterations
-per frame. In trainer mode the same coefficients are packed into the FTMS
-`Set Simulation Parameters` payload (opcode `0x11`), so the resistance
-feel on real hardware matches the configured rider.
+The token is only needed for live globe rendering. `npm install`,
+`npm run typecheck`, `npm run build`, and `npm test` all work without it.
 
 ---
 
-## Roadmap
+## Browser support
 
-Phase 2 ideas, in rough priority order:
-
-- 🛰️ **Multi-rider** ghost peloton via WebRTC data channels
-- 🏁 **Segment leaderboards** — strictly local-first, no central server
-- 🧠 **Auto-route from latlon** — draw a line on the map, get an elevation
-  profile back from OSM SRTM
-- 🚴 **Cadence & HR sensor pairing** as separate BLE devices
-- 🎮 **Steering** via the FTMS Steering Service (Kickr v6 + Bolt)
-- 🌧️ **Weather overlay** (real precipitation, sun angle for time-of-day)
-- 📺 **Strava activity import** by URL
-- 🎬 **Ride replay** from any uploaded `.FIT`
-
-PRs welcome.
-
----
-
-## Contributing
-
-This is a side project that exists because no one should have to pay $20 a
-month to ride a fake road. Issues, ideas, and PRs are all welcome.
-
-```bash
-npm run dev         # hot-reloading dev server
-npm run typecheck   # tsc -b --noEmit
-npm run build       # production build
-```
-
----
-
-## Acknowledgements
-
-- [CesiumJS](https://cesium.com) — the 3D globe that makes this possible
-- [`wklenk/web-bluetooth-bike-trainer`](https://github.com/wklenk/web-bluetooth-bike-trainer)
-  — the proven FTMS reference implementation this project's BLE layer is modelled on
-- [Garmin FIT SDK](https://developer.garmin.com/fit/) — file-format spec
-- [Bluetooth SIG FTMS spec](https://www.bluetooth.com/specifications/specs/fitness-machine-service-1-0/)
+Web Bluetooth (trainer pairing) requires Chrome or Edge on desktop or Android.
+Safari and iOS fall back to Demo Mode automatically — all other features work
+everywhere.
 
 ---
 
 ## License
 
-MIT © 2026 Mason Wyatt — see [LICENSE](LICENSE).
+[MIT](LICENSE) — free to use, fork, and self-host.

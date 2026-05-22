@@ -4,7 +4,6 @@ import {
   Bookmark,
   Library,
   MapPin,
-  Mountain,
   Play,
   Trash2,
   Loader2,

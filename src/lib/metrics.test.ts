@@ -335,7 +335,7 @@ describe('computeMetrics — segment compliance', () => {
       name: 'Test',
       source: 'manual',
       createdAt: Date.now(),
-      segments: segments.map((s, i) => ({
+      segments: segments.map((s, _i) => ({
         id: workoutId('seg'),
         kind: 'steady',
         durationSec: s.durationSec,
@@ -358,7 +358,6 @@ describe('computeMetrics — segment compliance', () => {
     ]);
     // First 300 samples at 150 W, next 300 at 200 W
     const seg1 = uniformSamples(300, 150);
-    const t0 = seg1[0].t;
     const tEnd = seg1[seg1.length - 1].t;
     const seg2: TelemetrySample[] = uniformSamples(300, 200).map((s, i) => ({
       ...s,

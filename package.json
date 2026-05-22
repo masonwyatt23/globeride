@@ -30,7 +30,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen-avatar": "vite-node scripts/gen-avatar-gltf.ts"
+    "gen-avatar": "vite-node scripts/gen-avatar-gltf.ts",
+    "lint": "eslint src"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
@@ -41,22 +42,28 @@
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-is": "^19.2.6",
     "react-router-dom": "^7.1.1",
     "recharts": "^3.0.0",
     "tailwind-merge": "^2.5.4",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/web-bluetooth": "^0.0.20",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
+    "globals": "^17.6.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.59.4",
     "vite": "^6.0.7",
     "vite-plugin-cesium": "^1.2.23",
     "vite-plugin-pwa": "^0.21.1",

@@ -159,9 +159,13 @@ function ActivePlanDashboard({
   const [expandedWeek, setExpandedWeek] = useState<number>(0); // 0-based
   const [activeView, setActiveView] = useState<'schedule' | 'calendar'>('calendar');
 
-  if (!activePlan) return null;
+  // completedSet must be declared before any conditional return (rules-of-hooks).
+  const completedSet = useMemo(
+    () => new Set(activePlan?.completedDays ?? []),
+    [activePlan?.completedDays],
+  );
 
-  const completedSet = useMemo(() => new Set(activePlan.completedDays), [activePlan.completedDays]);
+  if (!activePlan) return null;
   const weeks = daysByWeek(plan);
   const totalWorkoutDays = plan.days.filter((d) => d.workoutId !== null).length;
   const completedWorkoutDays = plan.days.filter(

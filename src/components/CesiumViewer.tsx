@@ -355,7 +355,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     });
 
     flyToRoute(viewer, positions);
-  }, [route]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [route]);
 
   // ---- React to route-search fly-to requests ----
   useEffect(() => {

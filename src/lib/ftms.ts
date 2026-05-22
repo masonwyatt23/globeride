@@ -546,7 +546,6 @@ function handleControlResponse(event: Event): void {
       resultText: resultCodeText(result),
       message: friendlyControlError(requested, result),
     };
-    // eslint-disable-next-line no-console
     console.warn(`[FTMS] op 0x${requested.toString(16)} -> ${err.resultText}`);
     controlErrorListener?.(err);
   }
@@ -594,7 +593,6 @@ function handleIndoorBikeData(event: Event): void {
   if (ibdDiagCount < 5) {
     ibdDiagCount += 1;
     const flags = v.getUint16(0, true);
-    // eslint-disable-next-line no-console
     console.info(
       `[FTMS] Indoor Bike Data flags=0x${flags.toString(16).padStart(4, '0')} · ` +
         `speed=${parsed.speed?.toFixed(2) ?? '—'} cadence=${parsed.cadence ?? '—'} ` +
@@ -720,7 +718,6 @@ async function runReconnectLoop(dev: BluetoothDevice): Promise<void> {
         reconnectListener?.({ phase: 'success', attempt });
         return;
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.warn(`[FTMS] reconnect attempt ${attempt} failed`, err);
       }
     }
@@ -830,6 +827,7 @@ export function parseIndoorBikeData(view: DataView): TrainerData {
   if (has(8)) off += 5; // expended energy (uint16 + uint16 + uint8)
   if (has(9)) {
     out.heartRate = view.getUint8(off);
+    // eslint-disable-next-line no-useless-assignment -- offset maintained for consistency with parser pattern
     off += 1;
   }
   // Remaining flag bits are not needed for basic riding.
