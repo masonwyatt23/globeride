@@ -15,6 +15,9 @@ import { TrainerConnect } from '@/components/TrainerConnect';
 import { SensorConnect } from '@/components/SensorConnect';
 import { ElevationProfile } from '@/components/ElevationProfile';
 import { RouteLibrary } from '@/components/RouteLibrary';
+import { RoutePreview } from '@/components/RoutePreview';
+import { IconicRoutes } from '@/components/IconicRoutes';
+import { SegmentLeaderboard } from '@/components/SegmentLeaderboard';
 import { SettingsButton } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,6 +134,20 @@ export function Home() {
                   <ElevationProfile />
                 </div>
               )}
+              <RoutePreview />
+            </CardContent>
+          </Card>
+
+          {/* Iconic climbs */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Iconic climbs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <IconicRoutes onPicked={() => navigate('/ride')} />
             </CardContent>
           </Card>
 
@@ -157,6 +174,7 @@ export function Home() {
             </CardHeader>
             <CardContent>
               <RideHistory />
+              {route && <SegmentLeaderboard route={route} className="mt-4" />}
             </CardContent>
           </Card>
 

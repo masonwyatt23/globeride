@@ -28,10 +28,10 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] 2D minimap overlay on the ride screen
 - [x] Weather + time-of-day scene moods
 
-## Wave 3 — Maps & worlds
-- [ ] Curated iconic routes (famous climbs) bundled in-app
-- [ ] Smarter scenic route generation
-- [ ] Local-first segment leaderboards
+## Wave 3 — Maps & worlds  ✅
+- [x] 10 curated iconic climbs bundled in-app (Alpe d'Huez, Ventoux, Stelvio…)
+- [x] Rich pre-ride route preview — gradient zones, climb categorisation, difficulty
+- [x] Local-first segment leaderboards — personal records on route climbs
 
 ## Wave 4 — Cohesion & performance
 - [ ] Global UI/UX consistency + motion-design pass; onboarding
