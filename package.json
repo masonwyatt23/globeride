@@ -29,7 +29,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen-avatar": "vite-node scripts/gen-avatar-gltf.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.1",
