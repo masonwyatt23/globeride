@@ -230,16 +230,18 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     if (!viewer) return;
 
     // Tear down previous route visuals.
+    // Guard viewer.isDestroyed() — the viewer may have been destroyed between
+    // the previous render and this effect re-running (e.g. fast route switching).
     if (routePolylineRef.current) {
-      viewer.entities.remove(routePolylineRef.current);
+      if (!viewer.isDestroyed()) viewer.entities.remove(routePolylineRef.current);
       routePolylineRef.current = null;
     }
     if (gradientSegmentsRef.current.length > 0) {
-      removeGradientPolylines(viewer, gradientSegmentsRef.current);
+      if (!viewer.isDestroyed()) removeGradientPolylines(viewer, gradientSegmentsRef.current);
       gradientSegmentsRef.current = [];
     }
     if (routeMarkersRef.current) {
-      removeRouteMarkers(viewer, routeMarkersRef.current);
+      if (!viewer.isDestroyed()) removeRouteMarkers(viewer, routeMarkersRef.current);
       routeMarkersRef.current = null;
     }
     if (avatarRef.current) {

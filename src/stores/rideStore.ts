@@ -569,21 +569,26 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
       const elapsedMs = st.elapsedMs + input.dt * 1000;
 
-      const nextSamples = st.samples;
-      if (input.recordSample) {
-        nextSamples.push({
-          t: input.now,
-          lat: input.positionNow.lat,
-          lon: input.positionNow.lon,
-          ele: input.elevationNow,
-          distance: newDistance,
-          speed: input.speedNow,
-          grade: input.gradeNow,
-          power: input.powerNow ?? undefined,
-          cadence: input.cadenceNow ?? undefined,
-          heartRate: input.heartRateNow ?? undefined,
-        });
-      }
+      // Build immutably — do NOT mutate st.samples in-place; Zustand relies on
+      // reference-equality to detect state changes (pushing into the same array
+      // would make nextSamples === st.samples and skip re-renders).
+      const nextSamples = input.recordSample
+        ? [
+            ...st.samples,
+            {
+              t: input.now,
+              lat: input.positionNow.lat,
+              lon: input.positionNow.lon,
+              ele: input.elevationNow,
+              distance: newDistance,
+              speed: input.speedNow,
+              grade: input.gradeNow,
+              power: input.powerNow ?? undefined,
+              cadence: input.cadenceNow ?? undefined,
+              heartRate: input.heartRateNow ?? undefined,
+            },
+          ]
+        : st.samples;
 
       return {
         ...st,
