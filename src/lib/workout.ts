@@ -45,6 +45,28 @@ export interface WorkoutSegment {
   cadenceTarget?: number;
 }
 
+/**
+ * High-level workout category for browsing / filtering in the workout picker.
+ *
+ * | category    | typical zone / intent                                    |
+ * |-------------|----------------------------------------------------------|
+ * | endurance   | Z1-Z2, long aerobic, recovery spins                      |
+ * | tempo       | Z3, sustained moderate effort                            |
+ * | sweetspot   | 84-97% FTP, the classic FTP-building zone                |
+ * | threshold   | ~100% FTP, lactate threshold work                        |
+ * | intervals   | VO2 max, anaerobic, HIIT, short hard efforts             |
+ * | test        | FTP ramp test, 20-min test, etc.                         |
+ * | custom      | User-built or AI-generated, no specific category         |
+ */
+export type WorkoutCategory =
+  | 'endurance'
+  | 'tempo'
+  | 'sweetspot'
+  | 'threshold'
+  | 'intervals'
+  | 'test'
+  | 'custom';
+
 export interface Workout {
   id: string;
   name: string;
@@ -58,6 +80,8 @@ export interface Workout {
   segments: WorkoutSegment[];
   createdAt: number;
   source: 'manual' | 'ai' | 'imported' | 'preset';
+  /** Browsing category — used by WorkoutPicker to group and filter workouts. */
+  category?: WorkoutCategory;
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +186,10 @@ export const WORKOUT_JSON_SCHEMA = {
   properties: {
     name: { type: 'string' },
     description: { type: 'string' },
+    category: {
+      type: 'string',
+      enum: ['endurance', 'tempo', 'sweetspot', 'threshold', 'intervals', 'test', 'custom'],
+    },
     segments: {
       type: 'array',
       minItems: 1,

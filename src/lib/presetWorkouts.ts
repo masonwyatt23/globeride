@@ -17,7 +17,7 @@
  * so a user who deleted "Sweet Spot 3x10" doesn't get it back uninvited.
  */
 
-import type { Workout, WorkoutSegment, SegmentTarget } from '@/lib/workout';
+import type { Workout, WorkoutSegment, SegmentTarget, WorkoutCategory } from '@/lib/workout';
 
 /** Tiny constructor that fills in id + cadence default and keeps the data table readable. */
 function seg(
@@ -45,6 +45,7 @@ function build(
   name: string,
   description: string,
   segments: WorkoutSegment[],
+  category: WorkoutCategory = 'custom',
 ): Workout {
   return {
     id,
@@ -53,6 +54,7 @@ function build(
     createdAt: 0,
     source: 'preset',
     segments,
+    category,
   };
 }
 
@@ -71,6 +73,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('s', 'steady',  1200, pct(0.65),         '20 min steady @ 65% FTP'),
       seg('c', 'cooldown', 300, ramp(0.55, 0.40), '5 min cooldown ramp 55→40% FTP'),
     ],
+    'endurance',
   ),
 
   // ── 15-min slots ──
@@ -83,6 +86,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       ...intervalSet('h', 8, 40, 20, pct(1.20), pct(0.50), '40s @ 120%', '20s @ 50%'),
       seg('c', 'cooldown', 240, ramp(0.55, 0.40), '4 min cooldown'),
     ],
+    'intervals',
   ),
 
   // ── 20-min slots ──
@@ -95,6 +99,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('s', 'steady',   840, pct(0.55), '14 min recovery @ 55% FTP', 92),
       seg('c', 'cooldown', 180, pct(0.40), '3 min spin-down', 90),
     ],
+    'endurance',
   ),
 
   build(
@@ -106,6 +111,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       ...intervalSet('sp', 6, 30, 90, pct(1.50), pct(0.50), '30s @ 150%', '90s recovery'),
       seg('c', 'cooldown', 180, ramp(0.55, 0.40), '3 min cooldown'),
     ],
+    'intervals',
   ),
 
   // ── 30-min slots ──
@@ -118,6 +124,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('t', 'steady',  1200, pct(0.80),         '20 min tempo @ 80% FTP'),
       seg('c', 'cooldown', 300, ramp(0.65, 0.45), '5 min cooldown'),
     ],
+    'tempo',
   ),
 
   build(
@@ -131,6 +138,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('s2','interval', 600, pct(0.90),         '10 min @ 90% FTP'),
       seg('c', 'cooldown', 120, ramp(0.55, 0.40), '2 min cooldown'),
     ],
+    'sweetspot',
   ),
 
   build(
@@ -142,6 +150,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       ...intervalSet('v', 5, 180, 180, pct(1.15), pct(0.50), '3 min @ 115% FTP', '3 min recovery'),
       seg('c', 'cooldown', 120, ramp(0.55, 0.40), '2 min cooldown'),
     ],
+    'intervals',
   ),
 
   build(
@@ -155,6 +164,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       ...overUnderSet('ou2', 4, 90, 60, pct(0.90), pct(1.05), 'OU set 2'),
       seg('c', 'cooldown', 360, ramp(0.55, 0.40), '6 min cooldown'),
     ],
+    'threshold',
   ),
 
   // ── 40-45-min slots ──
@@ -167,6 +177,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('s', 'steady',  2100, pct(0.68),         '35 min steady @ 68% FTP'),
       seg('c', 'cooldown', 300, ramp(0.60, 0.45), '5 min cooldown'),
     ],
+    'endurance',
   ),
 
   build(
@@ -182,6 +193,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('s3','interval', 600, pct(0.90),         '10 min @ 90% FTP'),
       seg('c', 'cooldown', 240, ramp(0.55, 0.40), '4 min cooldown'),
     ],
+    'sweetspot',
   ),
 
   build(
@@ -195,6 +207,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('t2','interval', 720, pct(1.00),         '12 min @ 100% FTP'),
       seg('c', 'cooldown', 360, ramp(0.55, 0.40), '6 min cooldown'),
     ],
+    'threshold',
   ),
 ];
 
