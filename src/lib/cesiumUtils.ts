@@ -263,35 +263,66 @@ interface MoodParams {
   sunHourFromNoon: number;
   fogDensity: number;
   fogMinimumBrightness: number;
+  /** Exponential fog height scalar — higher = fog fades faster with altitude. */
+  fogHeightScalar: number;
   atmosphereHueShift: number;
   atmosphereSaturationShift: number;
   atmosphereBrightnessShift: number;
+  /** SkyAtmosphere: enable per-fragment scattering for richer limb glow. */
+  perFragmentAtmosphere: boolean;
+  /** SkyAtmosphere light intensity multiplier (default ~50). */
+  atmosphereLightIntensity: number;
+  /**
+   * scene.atmosphere (ground scattering) tuning.
+   * hue/saturation/brightness shifts applied to the ground-level haze band.
+   */
+  groundHueShift: number;
+  groundSaturationShift: number;
+  groundBrightnessShift: number;
 }
 
 const MOODS: Record<SceneMood, MoodParams> = {
   'clear-afternoon': {
-    sunHourFromNoon: 4,   // ~16:00 local — long shadows, warm
+    sunHourFromNoon: 4,   // ~16:00 local — long shadows, warm directional light
     fogDensity: 0.00012,
     fogMinimumBrightness: 0.25,
-    atmosphereHueShift: 0,
-    atmosphereSaturationShift: 0,
-    atmosphereBrightnessShift: 0,
+    fogHeightScalar: 1.0,
+    atmosphereHueShift: 0.0,
+    atmosphereSaturationShift: 0.05,   // slightly more vivid blue sky
+    atmosphereBrightnessShift: 0.02,
+    perFragmentAtmosphere: true,       // smooth limb glow on terrain silhouettes
+    atmosphereLightIntensity: 55,      // slightly brighter than default 50
+    groundHueShift: 0.0,
+    groundSaturationShift: 0.05,
+    groundBrightnessShift: 0.0,
   },
   'golden-hour': {
     sunHourFromNoon: 6.5, // ~18:30 local — low sun, golden haze
-    fogDensity: 0.00025,
+    fogDensity: 0.00022,
     fogMinimumBrightness: 0.18,
-    atmosphereHueShift: 0.03,       // tiny warm hue push
-    atmosphereSaturationShift: 0.12,
-    atmosphereBrightnessShift: -0.05,
+    fogHeightScalar: 0.8,              // fog lingers higher — hazy horizon feel
+    atmosphereHueShift: 0.04,          // warm orange sky push
+    atmosphereSaturationShift: 0.18,   // rich saturated sunset sky
+    atmosphereBrightnessShift: -0.04,
+    perFragmentAtmosphere: true,
+    atmosphereLightIntensity: 45,      // softer — sun is low
+    groundHueShift: 0.03,              // warm cast on ground haze
+    groundSaturationShift: 0.12,
+    groundBrightnessShift: -0.05,
   },
   'overcast': {
-    sunHourFromNoon: 2,  // sun near zenith, but diffuse
-    fogDensity: 0.0004,
-    fogMinimumBrightness: 0.55,     // brighter fog = milky sky feel
-    atmosphereHueShift: 0,
-    atmosphereSaturationShift: -0.25, // desaturate atmosphere
-    atmosphereBrightnessShift: 0.1,
+    sunHourFromNoon: 2,  // sun near zenith but diffuse through clouds
+    fogDensity: 0.00035,
+    fogMinimumBrightness: 0.55,        // brighter fog = milky overcast sky
+    fogHeightScalar: 1.2,              // fog cuts off sharply at altitude
+    atmosphereHueShift: 0.0,
+    atmosphereSaturationShift: -0.20,  // desaturate — flat cloud light
+    atmosphereBrightnessShift: 0.08,
+    perFragmentAtmosphere: false,      // per-fragment limb glow looks odd under clouds
+    atmosphereLightIntensity: 38,      // dimmer diffuse light
+    groundHueShift: 0.0,
+    groundSaturationShift: -0.15,
+    groundBrightnessShift: 0.05,
   },
 };
 
@@ -321,16 +352,37 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   const p = MOODS[mood];
   const scene = viewer.scene;
 
+  // Fog — density + height falloff for atmospheric depth.
   scene.fog.density = p.fogDensity;
-  if ('minimumBrightness' in scene.fog) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (scene.fog as any).minimumBrightness = p.fogMinimumBrightness;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fog = scene.fog as any;
+  if ('minimumBrightness' in fog) fog.minimumBrightness = p.fogMinimumBrightness;
+  if ('heightScalar' in fog) fog.heightScalar = p.fogHeightScalar;
 
+  // Sky atmosphere — limb glow, saturation, warmth.
   if (scene.skyAtmosphere) {
     scene.skyAtmosphere.hueShift = p.atmosphereHueShift;
     scene.skyAtmosphere.saturationShift = p.atmosphereSaturationShift;
     scene.skyAtmosphere.brightnessShift = p.atmosphereBrightnessShift;
+    scene.skyAtmosphere.perFragmentAtmosphere = p.perFragmentAtmosphere;
+    // atmosphereLightIntensity controls how bright the Rayleigh scattering appears.
+    if ('atmosphereLightIntensity' in scene.skyAtmosphere) {
+      scene.skyAtmosphere.atmosphereLightIntensity = p.atmosphereLightIntensity;
+    }
+  }
+
+  // Ground atmosphere (scene.atmosphere) — haze band at terrain level.
+  // Available in Cesium 1.107+; guard with 'atmosphere' in scene check.
+  if ('atmosphere' in scene && scene.atmosphere) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const atm = scene.atmosphere as any;
+    if ('hueShift' in atm) atm.hueShift = p.groundHueShift;
+    if ('saturationShift' in atm) atm.saturationShift = p.groundSaturationShift;
+    if ('brightnessShift' in atm) atm.brightnessShift = p.groundBrightnessShift;
+    // Tie ground atmosphere lighting to the sun so it shifts with mood.
+    if ('dynamicLighting' in atm && Cesium.DynamicAtmosphereLightingType) {
+      atm.dynamicLighting = Cesium.DynamicAtmosphereLightingType.SUNLIGHT;
+    }
   }
 }
 

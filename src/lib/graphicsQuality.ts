@@ -29,6 +29,22 @@ export interface QualityParams {
   maximumScreenSpaceError: number;
   /** Fog density (scene.fog.density). */
   fogDensity: number;
+  /**
+   * Cinematic bloom post-process (glow on bright surfaces).
+   * Enabled on medium and high — disabled on low for performance.
+   */
+  bloom: boolean;
+  /**
+   * Ambient occlusion post-process (contact shadows in crevices).
+   * Enabled on high only — GPU-intensive, skip on low/medium.
+   */
+  ambientOcclusion: boolean;
+  /**
+   * Vignette + filmic colour-grade post-process.
+   * A single cheap GLSL stage: corner darkening + filmic s-curve + shadow warmth.
+   * Enabled on medium and high.
+   */
+  vignetteGrade: boolean;
 }
 
 export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
@@ -41,6 +57,10 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     shadowMaxDistance: 1000,
     maximumScreenSpaceError: 24,
     fogDensity: 0.0002,
+    // Cinematic effects off on low — integrated GPUs, battery saver.
+    bloom: false,
+    ambientOcclusion: false,
+    vignetteGrade: false,
   },
   medium: {
     msaaSamples: 2,
@@ -51,6 +71,10 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     shadowMaxDistance: 1500,
     maximumScreenSpaceError: 16,
     fogDensity: 0.00015,
+    // Bloom + vignette/grade on medium — cheap enough for mid-range GPUs.
+    bloom: true,
+    ambientOcclusion: false,
+    vignetteGrade: true,
   },
   high: {
     msaaSamples: 4,
@@ -61,6 +85,10 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     shadowMaxDistance: 2500,
     maximumScreenSpaceError: 8,
     fogDensity: 0.00012,
+    // Full cinematic suite on high — bloom, AO, and vignette/grade.
+    bloom: true,
+    ambientOcclusion: true,
+    vignetteGrade: true,
   },
 };
 

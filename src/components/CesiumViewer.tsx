@@ -32,6 +32,7 @@ import {
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { applyGraphicsQuality } from '@/lib/graphicsQuality';
+import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import type { AvatarColors } from '@/lib/avatarConfig';
 
@@ -108,7 +109,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // Apply the persisted graphics quality tier (AA, shadows, fog).
     // Fog is always enabled; density is controlled per-tier.
     scene.fog.enabled = true;
-    applyGraphicsQuality(viewer, useSettingsStore.getState().graphicsQuality);
+    const initialQuality = useSettingsStore.getState().graphicsQuality;
+    applyGraphicsQuality(viewer, initialQuality);
+    // Cinematic post-process stages (bloom, AO, vignette/grade) — created
+    // once and enabled/disabled by quality tier. Must come after the viewer
+    // is fully constructed so scene.postProcessStages is available.
+    applyCinematicEffects(viewer, initialQuality);
 
     // Cesium World Terrain (ion asset 1) — shared so the route generator
     // can sample elevations from the same provider.
@@ -187,6 +193,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       }
       tilesetRef.current = null;
       setActiveViewer(null);
+      if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
     };
@@ -209,6 +216,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const viewer = viewerRef.current;
     if (!viewer || viewer.isDestroyed()) return;
     applyGraphicsQuality(viewer, graphicsQuality, tilesetRef.current);
+    applyCinematicEffects(viewer, graphicsQuality);
   }, [graphicsQuality]);
 
   // ---- Live avatar recolouring from the Garage settings ----
