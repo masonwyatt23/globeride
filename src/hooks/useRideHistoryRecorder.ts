@@ -21,6 +21,9 @@ import {
 import { useProfileStore } from '@/stores/profileStore';
 import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
+// ADDITIVE: segment leaderboard recording
+import { detectSegments, computeSegmentTimes } from '@/lib/segments';
+import { useSegmentStore } from '@/stores/segmentStore';
 
 const MIN_DURATION_SEC = 30;
 
@@ -100,6 +103,22 @@ export function useRideHistoryRecorder(): void {
           ascentM: record.ascentM,
           workoutCompleted,
         });
+
+        // ADDITIVE: record segment times for the completed ride.
+        // Only applies to real route rides (not replays / pure workouts with
+        // no route, though those do have a route set so we still track them).
+        if (route && samples.length >= 2) {
+          try {
+            const segments = detectSegments(route);
+            const times = computeSegmentTimes(segments, samples);
+            const now = Date.now();
+            times.forEach((timeSec, segmentId) => {
+              useSegmentStore.getState().recordAttempt(segmentId, timeSec, now);
+            });
+          } catch (err) {
+            console.warn('[segments] Failed to record segment times:', err);
+          }
+        }
       },
     );
 
