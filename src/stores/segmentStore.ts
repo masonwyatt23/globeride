@@ -73,41 +73,35 @@ export const useSegmentStore = create<SegmentStoreState>()(
       records: {},
 
       recordAttempt: (segmentId, timeSec, attemptedAt = Date.now()) => {
-        let isNewPr = false;
+        // Read the existing record BEFORE calling set() so we never rely on
+        // a side-effect inside the updater (which Zustand may call more than
+        // once in strict/concurrent mode).
+        const existing = get().records[segmentId];
+        const isNewPr = !existing || timeSec < existing.bestTimeSec;
 
-        set((state) => {
-          const existing = state.records[segmentId];
+        const attempt: SegmentAttempt = { timeSec, attemptedAt };
 
-          const attempt: SegmentAttempt = { timeSec, attemptedAt };
-
-          if (!existing) {
-            // First attempt ever on this segment → automatically a PR.
-            isNewPr = true;
-            const record: SegmentRecord = {
-              segmentId,
-              bestTimeSec: timeSec,
-              attempts: [attempt],
-              lastAttemptAt: attemptedAt,
-            };
-            return { records: { ...state.records, [segmentId]: record } };
-          }
-
-          // Existing record — check if this is a PR.
-          isNewPr = timeSec < existing.bestTimeSec;
+        if (!existing) {
+          // First attempt ever on this segment → automatically a PR.
+          const record: SegmentRecord = {
+            segmentId,
+            bestTimeSec: timeSec,
+            attempts: [attempt],
+            lastAttemptAt: attemptedAt,
+          };
+          set((state) => ({ records: { ...state.records, [segmentId]: record } }));
+        } else {
           const newBest = isNewPr ? timeSec : existing.bestTimeSec;
-
           // Prepend new attempt and keep at most MAX_ATTEMPTS.
           const attempts = [attempt, ...existing.attempts].slice(0, MAX_ATTEMPTS);
-
           const record: SegmentRecord = {
             ...existing,
             bestTimeSec: newBest,
             attempts,
             lastAttemptAt: attemptedAt,
           };
-
-          return { records: { ...state.records, [segmentId]: record } };
-        });
+          set((state) => ({ records: { ...state.records, [segmentId]: record } }));
+        }
 
         return isNewPr;
       },

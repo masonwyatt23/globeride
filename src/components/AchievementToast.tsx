@@ -150,20 +150,29 @@ function AchievementCard({
 export function AchievementToast() {
   const [queue, setQueue] = useState<ToastEntry[]>([]);
   const keyRef = useRef(0);
+  // Track pending auto-dismiss timers so they can be cancelled on unmount.
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   const push = useCallback((achievements: Achievement[]) => {
     const key = ++keyRef.current;
     setQueue((q) => [...q, { key, achievements }]);
 
     // Auto-dismiss after duration
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      timersRef.current.delete(timer);
       setQueue((q) => q.filter((t) => t.key !== key));
     }, TOAST_DURATION_MS + 350); // +350ms for exit animation
+    timersRef.current.add(timer);
   }, []);
 
   useEffect(() => {
     listeners.add(push);
-    return () => { listeners.delete(push); };
+    return () => {
+      listeners.delete(push);
+      // Cancel all pending timers to avoid setting state on an unmounted component.
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current.clear();
+    };
   }, [push]);
 
   if (queue.length === 0) return null;
