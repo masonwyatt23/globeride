@@ -247,6 +247,113 @@ export function flyToPoint(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Scene mood / time-of-day atmosphere
+// ---------------------------------------------------------------------------
+
+/**
+ * A "mood" is a coherent set of scene-atmosphere parameters that makes the
+ * globe feel like a specific time of day or weather condition.  We keep it
+ * subtle — just enough variety to feel alive, never garish.
+ */
+export type SceneMood = 'clear-afternoon' | 'golden-hour' | 'overcast';
+
+interface MoodParams {
+  /** UTC hour offset from the route's local noon for the sun angle. */
+  sunHourFromNoon: number;
+  fogDensity: number;
+  fogMinimumBrightness: number;
+  atmosphereHueShift: number;
+  atmosphereSaturationShift: number;
+  atmosphereBrightnessShift: number;
+}
+
+const MOODS: Record<SceneMood, MoodParams> = {
+  'clear-afternoon': {
+    sunHourFromNoon: 4,   // ~16:00 local — long shadows, warm
+    fogDensity: 0.00012,
+    fogMinimumBrightness: 0.25,
+    atmosphereHueShift: 0,
+    atmosphereSaturationShift: 0,
+    atmosphereBrightnessShift: 0,
+  },
+  'golden-hour': {
+    sunHourFromNoon: 6.5, // ~18:30 local — low sun, golden haze
+    fogDensity: 0.00025,
+    fogMinimumBrightness: 0.18,
+    atmosphereHueShift: 0.03,       // tiny warm hue push
+    atmosphereSaturationShift: 0.12,
+    atmosphereBrightnessShift: -0.05,
+  },
+  'overcast': {
+    sunHourFromNoon: 2,  // sun near zenith, but diffuse
+    fogDensity: 0.0004,
+    fogMinimumBrightness: 0.55,     // brighter fog = milky sky feel
+    atmosphereHueShift: 0,
+    atmosphereSaturationShift: -0.25, // desaturate atmosphere
+    atmosphereBrightnessShift: 0.1,
+  },
+};
+
+/**
+ * Pick a scene mood from the route's characteristics:
+ * - Long/hilly alpine routes → golden-hour (dramatic)
+ * - Short flat routes → clear-afternoon (default)
+ * - High ascent:distance ratio → clear-afternoon (mountains look best sunny)
+ * Falls back to 'clear-afternoon' for any route.
+ */
+export function moodForRoute(route: { totalDistance: number; ascent: number }): SceneMood {
+  const km = route.totalDistance / 1000;
+  const ascentPerKm = route.ascent / Math.max(km, 1);
+
+  if (km >= 40 && ascentPerKm < 10) return 'golden-hour'; // long flat/rolling
+  if (ascentPerKm >= 20) return 'clear-afternoon';         // big mountains — sunny
+  if (km >= 20) return 'golden-hour';                      // medium routes
+  return 'clear-afternoon';
+}
+
+/**
+ * Apply a SceneMood to the viewer.  Should be called after the clock time is
+ * already set (so sun position is set first, then atmosphere is layered on top).
+ */
+export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
+  if (viewer.isDestroyed()) return;
+  const p = MOODS[mood];
+  const scene = viewer.scene;
+
+  scene.fog.density = p.fogDensity;
+  if ('minimumBrightness' in scene.fog) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (scene.fog as any).minimumBrightness = p.fogMinimumBrightness;
+  }
+
+  if (scene.skyAtmosphere) {
+    scene.skyAtmosphere.hueShift = p.atmosphereHueShift;
+    scene.skyAtmosphere.saturationShift = p.atmosphereSaturationShift;
+    scene.skyAtmosphere.brightnessShift = p.atmosphereBrightnessShift;
+  }
+}
+
+/**
+ * Compute the UTC JulianDate that places the sun at a given local-time offset
+ * from noon at a longitude.  Used to set the scene clock for mood lighting.
+ *
+ * @param lonDeg   Route's representative longitude (degrees).
+ * @param hoursFromNoon  Positive = afternoon/evening, negative = morning.
+ */
+export function julianDateForMood(lonDeg: number, hoursFromNoon: number): Cesium.JulianDate {
+  const utcBase = Cesium.JulianDate.fromIso8601(
+    `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
+  );
+  // Local noon in UTC = 12 - lon/15
+  const utcNoon = 12 - lonDeg / 15;
+  return Cesium.JulianDate.addHours(
+    utcBase,
+    utcNoon + hoursFromNoon,
+    new Cesium.JulianDate(),
+  );
+}
+
 // ---- Active viewer registry -----------------------------------------------
 // Allows non-React code (RouteDrawer event handlers) to obtain the live
 // viewer instance without prop-drilling or a context provider.

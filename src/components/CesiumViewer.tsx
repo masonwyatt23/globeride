@@ -7,16 +7,27 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   applyFollowCam,
+  applySceneMood,
   clampCartesiansToScene,
   flyToPoint,
   flyToRoute,
   getPhotorealTileset,
   getTerrainProvider,
+  julianDateForMood,
+  moodForRoute,
   resetFollowCam,
   routeToCartesians,
   setIonToken,
   setActiveViewer,
 } from '@/lib/cesiumUtils';
+import {
+  buildGradientPolylines,
+  buildRouteMarkers,
+  removeGradientPolylines,
+  removeRouteMarkers,
+  type GradientSegment,
+  type RouteMarkers,
+} from '@/lib/routeVisuals';
 import { createAvatar, type Avatar } from '@/lib/avatar';
 import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 
@@ -29,7 +40,11 @@ import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
+  // The old single-colour polyline is replaced by gradient segments + markers.
+  // Keep routePolylineRef so the searchPin effect can coexist unchanged.
   const routePolylineRef = useRef<Cesium.Entity | null>(null);
+  const gradientSegmentsRef = useRef<GradientSegment[]>([]);
+  const routeMarkersRef = useRef<RouteMarkers | null>(null);
   const avatarRef = useRef<Avatar | null>(null);
   const cartesianRouteRef = useRef<Cesium.Cartesian3[] | null>(null);
   const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
@@ -182,9 +197,18 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
+    // Tear down previous route visuals.
     if (routePolylineRef.current) {
       viewer.entities.remove(routePolylineRef.current);
       routePolylineRef.current = null;
+    }
+    if (gradientSegmentsRef.current.length > 0) {
+      removeGradientPolylines(viewer, gradientSegmentsRef.current);
+      gradientSegmentsRef.current = [];
+    }
+    if (routeMarkersRef.current) {
+      removeRouteMarkers(viewer, routeMarkersRef.current);
+      routeMarkersRef.current = null;
     }
     if (avatarRef.current) {
       avatarRef.current.dispose();
@@ -195,48 +219,44 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
 
     if (!route) return;
 
-    // Pin the sun to mid-afternoon local time at the route's longitude so
-    // lighting stays flattering and shadows long, wherever the ride is.
-    {
-      const midLon = route.points[Math.floor(route.points.length / 2)].lon;
-      const utcBase = Cesium.JulianDate.fromIso8601(
-        `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
-      );
-      viewer.clock.currentTime = Cesium.JulianDate.addHours(
-        utcBase,
-        16 - midLon / 15,
-        new Cesium.JulianDate(),
-      );
-      viewer.clock.shouldAnimate = false;
-    }
+    // Choose a scene mood based on the route's character and apply it.
+    // The mood drives sun angle, fog density, and atmosphere tint.
+    const mood = moodForRoute(route);
+    const midLon = route.points[Math.floor(route.points.length / 2)].lon;
+    viewer.clock.currentTime = julianDateForMood(
+      midLon,
+      mood === 'golden-hour' ? 6.5 : mood === 'overcast' ? 2 : 4,
+    );
+    viewer.clock.shouldAnimate = false;
+    applySceneMood(viewer, mood);
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
 
-    routePolylineRef.current = viewer.entities.add({
-      name: route.name,
-      polyline: {
-        positions,
-        width: 6,
-        clampToGround: false,
-        material: new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.25,
-          color: Cesium.Color.fromCssColorString('#22d3ee'),
-        }),
-      },
-    });
+    // Build gradient-coloured polyline segments.
+    const segments = buildGradientPolylines(viewer, route, positions);
+    gradientSegmentsRef.current = segments;
+
+    // Build start / finish / km markers.
+    routeMarkersRef.current = buildRouteMarkers(viewer, route, positions);
 
     // With photoreal tiles the GPX elevations don't match the rendered
-    // surface — clamp the route polyline onto it once its tiles stream in.
+    // surface — clamp all segment positions onto the real surface once
+    // tiles have streamed in, then update each segment's position property.
     const pr = photorealPromiseRef.current;
     if (pr) {
-      const builtPoly = routePolylineRef.current;
+      const capturedSegments = segments;
       pr
         .then(() => clampCartesiansToScene(viewer.scene, positions, 1.5))
         .then((clamped) => {
-          if (viewer.isDestroyed() || routePolylineRef.current !== builtPoly) return;
-          if (builtPoly.polyline) {
-            builtPoly.polyline.positions = new Cesium.ConstantProperty(clamped);
+          if (viewer.isDestroyed()) return;
+          // Re-slice clamped positions back into each segment.
+          for (const seg of capturedSegments) {
+            if (!viewer.entities.contains(seg.entity)) continue;
+            const segPositions = clamped.slice(seg.startIdx, seg.endIdx + 1);
+            if (seg.entity.polyline) {
+              seg.entity.polyline.positions = new Cesium.ConstantProperty(segPositions);
+            }
           }
         })
         .catch(() => undefined);
