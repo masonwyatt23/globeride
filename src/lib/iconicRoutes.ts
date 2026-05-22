@@ -464,6 +464,298 @@ function makeOldLaHonda(): Route {
   });
 }
 
+/**
+ * Col du Tourmalet — 17.1 km from Luz-Saint-Sauveur, 1404 m ascent, avg 7.4 %.
+ * The most-climbed mountain in Tour de France history.
+ * Base: Luz-Saint-Sauveur (710 m) → summit: 2115 m.
+ */
+function makeColDuTourmalet(): Route {
+  return buildIconicRoute({
+    id: 'iconic-col-du-tourmalet',
+    name: 'Col du Tourmalet',
+    coords: [
+      [42.8730, -0.0030],  // Luz-Saint-Sauveur
+      [42.8820,  0.0120],  // Lower slopes through Barèges
+      [42.8900,  0.0320],  // Barèges village
+      [42.8970,  0.0560],  // Mid climb, gradient steepens
+      [42.9030,  0.0780],  // Upper ramps
+      [42.9105,  0.1000],  // Summit Col du Tourmalet
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  710 },
+      { t: 0.10, ele:  840 },
+      { t: 0.22, ele: 1030 },
+      { t: 0.38, ele: 1260 },
+      { t: 0.52, ele: 1470 },
+      { t: 0.65, ele: 1680 },
+      { t: 0.78, ele: 1870 },
+      { t: 0.90, ele: 2020 },
+      { t: 1.00, ele: 2115 },
+    ],
+    numPts: 360,
+  });
+}
+
+/**
+ * Alto de l'Angliru (Spain) — 12.5 km from La Vega, 1266 m ascent, avg 10.1 %.
+ * Vuelta a España's most feared summit — ramps exceed 23 %.
+ * Base: La Vega (295 m) → summit: 1570 m.
+ */
+function makeAngliru(): Route {
+  return buildIconicRoute({
+    id: 'iconic-angliru',
+    name: "Alto de l'Angliru",
+    coords: [
+      [43.2050, -5.9760],  // La Vega base
+      [43.2000, -5.9580],  // Lower section
+      [43.1940, -5.9400],  // Mid slopes — gradient already painful
+      [43.1870, -5.9210],  // Cueña les Cabres (23% ramp begins)
+      [43.1800, -5.9070],  // Upper nightmare ramps
+      [43.1742, -5.8972],  // Summit
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  295 },
+      { t: 0.10, ele:  435 },
+      { t: 0.22, ele:  620 },
+      { t: 0.36, ele:  820 },
+      { t: 0.50, ele: 1010 },
+      { t: 0.62, ele: 1170 },
+      { t: 0.74, ele: 1320 },
+      { t: 0.86, ele: 1460 },
+      { t: 0.94, ele: 1535 },
+      { t: 1.00, ele: 1570 },
+    ],
+    numPts: 320,
+  });
+}
+
+/**
+ * Monte Zoncolan (Italy) — 10.1 km from Ovaro, 1210 m ascent, avg 11.9 %.
+ * Italy's answer to the Angliru — one of the steepest roads in pro cycling.
+ * Base: Ovaro (395 m) → summit: 1730 m.
+ */
+function makeMonteZoncolan(): Route {
+  return buildIconicRoute({
+    id: 'iconic-monte-zoncolan',
+    name: 'Monte Zoncolan',
+    coords: [
+      [46.4700, 12.9380],  // Ovaro base
+      [46.4580, 12.9430],  // Lower switchbacks
+      [46.4470, 12.9510],  // Mid section (gradient 14–15%)
+      [46.4360, 12.9580],  // Upper ramps (15–18%)
+      [46.4260, 12.9650],  // Final approach
+      [46.4186, 12.9723],  // Summit
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  395 },
+      { t: 0.10, ele:  570 },
+      { t: 0.22, ele:  790 },
+      { t: 0.35, ele: 1000 },
+      { t: 0.50, ele: 1190 },
+      { t: 0.64, ele: 1370 },
+      { t: 0.78, ele: 1530 },
+      { t: 0.90, ele: 1660 },
+      { t: 1.00, ele: 1730 },
+    ],
+    numPts: 300,
+  });
+}
+
+/**
+ * Pico de Veleta (Spain) — 43 km from Granada, 2762 m ascent, avg 6.4 %.
+ * The highest paved road in Europe, finishing at 3398 m in the Sierra Nevada.
+ * Base: Granada (636 m) → summit: Veleta observatory (3398 m).
+ */
+function makePicoDeVeleta(): Route {
+  return buildIconicRoute({
+    id: 'iconic-pico-de-veleta',
+    name: 'Pico de Veleta',
+    coords: [
+      [37.1773, -3.5986],  // Granada city
+      [37.1500, -3.5700],  // Lower foothills
+      [37.1200, -3.5200],  // Sierra Nevada park entrance
+      [37.0900, -3.4700],  // Pradollano ski resort area
+      [37.0700, -3.4300],  // High-altitude road
+      [37.0540, -3.3700],  // Final ascent
+      [37.0511, -3.3609],  // Summit Veleta
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  636 },
+      { t: 0.12, ele:  900 },
+      { t: 0.25, ele: 1250 },
+      { t: 0.38, ele: 1700 },
+      { t: 0.50, ele: 2100 },
+      { t: 0.62, ele: 2500 },
+      { t: 0.73, ele: 2820 },
+      { t: 0.83, ele: 3080 },
+      { t: 0.92, ele: 3270 },
+      { t: 1.00, ele: 3398 },
+    ],
+    numPts: 480,
+  });
+}
+
+/**
+ * Col d'Izoard — 14.1 km from Arvieux, 985 m ascent, avg 7.0 %.
+ * A Tour de France legend — the barren Casse Déserte moonscape is unmistakable.
+ * Base: Arvieux (1080 m) → summit: 2360 m.
+ */
+function makeColDIzoard(): Route {
+  return buildIconicRoute({
+    id: 'iconic-col-d-izoard',
+    name: "Col d'Izoard",
+    coords: [
+      [44.7880,  6.7280],  // Arvieux base
+      [44.7760,  6.7150],  // Lower slopes
+      [44.7630,  6.7050],  // Casse Déserte approach
+      [44.7520,  6.6980],  // Casse Déserte — eerie rock towers
+      [44.7410,  6.6890],  // Upper ramps
+      [44.7305,  6.6820],  // Summit Col d'Izoard
+    ],
+    elevationProfile: [
+      { t: 0.00, ele: 1080 },
+      { t: 0.12, ele: 1210 },
+      { t: 0.25, ele: 1420 },
+      { t: 0.40, ele: 1640 },
+      { t: 0.55, ele: 1850 },
+      { t: 0.68, ele: 2020 },
+      { t: 0.80, ele: 2160 },
+      { t: 0.92, ele: 2300 },
+      { t: 1.00, ele: 2360 },
+    ],
+    numPts: 340,
+  });
+}
+
+/**
+ * Willunga Hill (Australia) — 3.7 km, 245 m ascent, avg 6.6 %.
+ * The iconic Santos Tour Down Under finish — short, sharp, and decisive.
+ * Base: Willunga town (90 m) → summit: 335 m.
+ */
+function makeWillungaHill(): Route {
+  return buildIconicRoute({
+    id: 'iconic-willunga-hill',
+    name: 'Willunga Hill',
+    coords: [
+      [-35.2730, 138.5580],  // Willunga town base
+      [-35.2690, 138.5480],  // Lower approach
+      [-35.2640, 138.5380],  // Steepest section (10–11%)
+      [-35.2590, 138.5290],  // Upper ramps
+      [-35.2545, 138.5220],  // Summit
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  90 },
+      { t: 0.15, ele: 130 },
+      { t: 0.32, ele: 175 },
+      { t: 0.52, ele: 225 },
+      { t: 0.70, ele: 272 },
+      { t: 0.85, ele: 308 },
+      { t: 1.00, ele: 335 },
+    ],
+    numPts: 200,
+  });
+}
+
+/**
+ * Box Hill (England) — 7.5 km round trip circuit, 200 m ascent, avg 5.0 %.
+ * Made famous by the 2012 Olympic road race — London's most celebrated climb.
+ * Base: Dorking (50 m) → summit: Box Hill NT car park (250 m).
+ */
+function makeBoxHill(): Route {
+  return buildIconicRoute({
+    id: 'iconic-box-hill',
+    name: 'Box Hill',
+    coords: [
+      [51.2330, -0.3310],  // Dorking base
+      [51.2400, -0.3210],  // Lower wooded section
+      [51.2470, -0.3100],  // Zigzag Road begins
+      [51.2530, -0.2990],  // Upper zigzags
+      [51.2577, -0.2913],  // Summit car park
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  50 },
+      { t: 0.18, ele:  95 },
+      { t: 0.35, ele: 140 },
+      { t: 0.55, ele: 185 },
+      { t: 0.75, ele: 222 },
+      { t: 1.00, ele: 250 },
+    ],
+    numPts: 220,
+  });
+}
+
+/**
+ * Central Park Loop (New York) — 9.7 km rolling circuit, ~100 m of rolling gain.
+ * The world's most iconic urban cycling loop — flat to gently rolling.
+ * Start/finish: Columbus Circle (17 m). Mostly flat with Harlem Hill as the stinger.
+ */
+function makeCentralParkLoop(): Route {
+  return buildIconicRoute({
+    id: 'iconic-central-park-loop',
+    name: 'Central Park Loop',
+    coords: [
+      [40.7685, -73.9820],  // Columbus Circle (start/finish)
+      [40.7750, -73.9710],  // West Drive north
+      [40.7900, -73.9580],  // Harlem Hill approach
+      [40.7970, -73.9520],  // Harlem Hill summit (highest point)
+      [40.7960, -73.9490],  // North end turnaround
+      [40.7870, -73.9530],  // East Drive heading south
+      [40.7720, -73.9660],  // Mid East Drive
+      [40.7580, -73.9730],  // Hilly area south
+      [40.7640, -73.9790],  // Cat Hill descent
+      [40.7685, -73.9820],  // Columbus Circle (return)
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  17 },
+      { t: 0.10, ele:  25 },
+      { t: 0.20, ele:  35 },
+      { t: 0.30, ele:  65 },  // Harlem Hill climb
+      { t: 0.36, ele:  90 },  // Harlem Hill summit
+      { t: 0.45, ele:  55 },  // Descent
+      { t: 0.55, ele:  40 },
+      { t: 0.65, ele:  55 },  // Cat Hill
+      { t: 0.75, ele:  35 },
+      { t: 0.88, ele:  25 },
+      { t: 1.00, ele:  17 },  // Back at Columbus Circle
+    ],
+    numPts: 280,
+  });
+}
+
+/**
+ * Promenade des Anglais coastal loop (Nice, France) — 11 km, ~50 m elevation.
+ * The glamorous flat seafront road of the Côte d'Azur — a rolling coastal circuit.
+ * Classic warm-weather flat ride used by WorldTour teams during winter training camps.
+ */
+function makeNicePromenade(): Route {
+  return buildIconicRoute({
+    id: 'iconic-nice-promenade',
+    name: 'Promenade des Anglais',
+    coords: [
+      [43.6950,  7.2660],  // Nice Aéroport end
+      [43.6960,  7.2450],  // Mid seafront heading east
+      [43.6970,  7.2200],  // Central Nice / Negresco hotel
+      [43.6980,  7.2000],  // Toward Old Town
+      [43.6990,  7.2100],  // Turn-around loop
+      [43.6980,  7.2300],  // Return leg
+      [43.6965,  7.2520],  // Port area
+      [43.6950,  7.2660],  // Return to start
+    ],
+    elevationProfile: [
+      { t: 0.00, ele:  5 },
+      { t: 0.12, ele:  8 },
+      { t: 0.25, ele: 12 },
+      { t: 0.40, ele: 18 },
+      { t: 0.50, ele: 22 },
+      { t: 0.62, ele: 15 },
+      { t: 0.75, ele: 10 },
+      { t: 0.88, ele:  7 },
+      { t: 1.00, ele:  5 },
+    ],
+    numPts: 240,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Exported catalogue
 // ---------------------------------------------------------------------------
@@ -568,6 +860,96 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
       "Silicon Valley's legendary benchmark climb. 8.7 km of perfectly paced 4.5% average through coastal redwoods — every Bay Area cyclist has a PR to beat here.",
     avgGradient: 4.5,
     maxGradient: 8.5,
+    difficulty: 'category 2',
+  },
+  {
+    route: makeColDuTourmalet(),
+    climbName: 'Col du Tourmalet',
+    region: 'France — Hautes-Pyrénées',
+    description:
+      "The most-climbed mountain in Tour de France history. 17.1 km through the Pyrenean heartland rising steadily to 2115 m — a monument of professional cycling.",
+    avgGradient: 7.4,
+    maxGradient: 13.0,
+    difficulty: 'hors catégorie',
+  },
+  {
+    route: makeAngliru(),
+    climbName: "Alto de l'Angliru",
+    region: 'Spain — Asturias',
+    description:
+      "The Vuelta a España's most feared summit. Ramps on the upper Cueña les Cabres section reach 23% — so steep that some riders have walked. Absolutely savage.",
+    avgGradient: 10.1,
+    maxGradient: 23.5,
+    difficulty: 'hors catégorie',
+  },
+  {
+    route: makeMonteZoncolan(),
+    climbName: 'Monte Zoncolan',
+    region: 'Italy — Friuli',
+    description:
+      "Italy's most feared Giro d'Italia climb. 10.1 km from Ovaro averaging nearly 12% with sustained stretches above 15% — a relentless wall of suffering.",
+    avgGradient: 11.9,
+    maxGradient: 22.0,
+    difficulty: 'hors catégorie',
+  },
+  {
+    route: makePicoDeVeleta(),
+    climbName: 'Pico de Veleta',
+    region: 'Spain — Sierra Nevada',
+    description:
+      "The highest paved road in Europe at 3398 m. A 43 km odyssey from Granada into the Sierra Nevada where the air thins and the views stretch to Africa on a clear day.",
+    avgGradient: 6.4,
+    maxGradient: 10.0,
+    difficulty: 'hors catégorie',
+  },
+  {
+    route: makeColDIzoard(),
+    climbName: "Col d'Izoard",
+    region: 'France — Hautes-Alpes',
+    description:
+      "One of the Tour de France's most atmospheric climbs. The barren Casse Déserte — a moonscape of rock towers and scree — makes the final kilometres unforgettable.",
+    avgGradient: 7.0,
+    maxGradient: 11.0,
+    difficulty: 'hors catégorie',
+  },
+  {
+    route: makeWillungaHill(),
+    climbName: 'Willunga Hill',
+    region: 'Australia — South Australia',
+    description:
+      "Short, sharp, and decisive. The 3.7 km Santos Tour Down Under finale has launched many sprint-climber victories — and shattered as many GC ambitions.",
+    avgGradient: 6.6,
+    maxGradient: 11.0,
+    difficulty: 'category 1',
+  },
+  {
+    route: makeBoxHill(),
+    climbName: 'Box Hill',
+    region: 'England — Surrey',
+    description:
+      "London's most celebrated climb, immortalised by the 2012 Olympic road race. The Zigzag Road winds 250 m above the Mole Valley through ancient beech woodland.",
+    avgGradient: 5.0,
+    maxGradient: 9.0,
+    difficulty: 'category 2',
+  },
+  {
+    route: makeCentralParkLoop(),
+    climbName: 'Central Park Loop',
+    region: 'USA — New York',
+    description:
+      "The world's most iconic urban cycling circuit. Nearly 10 km of rolling roads through Manhattan's green heart — Harlem Hill provides the only real sting.",
+    avgGradient: 1.5,
+    maxGradient: 8.0,
+    difficulty: 'category 2',
+  },
+  {
+    route: makeNicePromenade(),
+    climbName: 'Promenade des Anglais',
+    region: 'France — Côte d\'Azur',
+    description:
+      "The glamorous seafront boulevard of Nice — flat, fast, and sun-drenched. WorldTour teams train here all winter. Roll along the Mediterranean and enjoy the view.",
+    avgGradient: 0.5,
+    maxGradient: 3.0,
     difficulty: 'category 2',
   },
 ];

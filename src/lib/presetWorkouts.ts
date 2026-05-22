@@ -528,6 +528,237 @@ export const PRESET_WORKOUTS: Workout[] = [
     ],
     'test',
   ),
+
+  // ── Additional Endurance ────────────────────────────────────────────────
+  build(
+    'preset-z2-endurance-75',
+    'Z2 Endurance 75',
+    '75-min aerobic base ride with a mid-session tempo spike. Builds mitochondrial density while the brief tempo block maintains top-end sharpness without digging a fatigue hole.',
+    [
+      seg('w',  'warmup',   420, ramp(0.50, 0.65), '7 min warmup ramp'),
+      seg('s1', 'steady',  1800, pct(0.68),          '30 min @ 68% FTP'),
+      seg('t',  'steady',   600, pct(0.78),           '10 min tempo spike @ 78% FTP'),
+      seg('s2', 'steady',  1500, pct(0.68),           '25 min @ 68% FTP'),
+      seg('c',  'cooldown', 180, ramp(0.60, 0.45),  '3 min cooldown'),
+    ],
+    'endurance',
+  ),
+
+  build(
+    'preset-aerobic-decoupler',
+    'Aerobic Decoupler',
+    '60-min Z2 ride designed to test cardiac decoupling — monitor how your power:HR ratio drifts over the second 30 minutes. A healthy aerobic base shows < 5% drift.',
+    [
+      seg('w',  'warmup',   300, ramp(0.50, 0.65), '5 min warmup ramp'),
+      seg('s1', 'steady',  1800, pct(0.67),          '30 min aerobic @ 67% FTP'),
+      seg('s2', 'steady',  1500, pct(0.70),           '25 min aerobic @ 70% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.60, 0.45),  '5 min cooldown'),
+    ],
+    'endurance',
+  ),
+
+  // ── Additional Tempo ────────────────────────────────────────────────────
+  build(
+    'preset-tempo-race-pace',
+    'Race-Pace Tempo',
+    '3 × 20-min tempo blocks at 83% FTP with 5-min recoveries. Simulates the sustained mid-race effort of a road race or gran fondo — tough but completable.',
+    [
+      seg('w',  'warmup',   480, ramp(0.55, 0.78), '8 min warmup ramp'),
+      seg('t1', 'steady',  1200, pct(0.83),          '20 min tempo @ 83% FTP'),
+      seg('r1', 'recovery', 300, pct(0.55),           '5 min easy'),
+      seg('t2', 'steady',  1200, pct(0.83),           '20 min tempo @ 83% FTP'),
+      seg('r2', 'recovery', 300, pct(0.55),           '5 min easy'),
+      seg('t3', 'steady',  1200, pct(0.83),           '20 min tempo @ 83% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.65, 0.45),  '5 min cooldown'),
+    ],
+    'tempo',
+  ),
+
+  build(
+    'preset-tempo-sweetspot-blend',
+    'Tempo / Sweet Spot Blend',
+    'Alternating 10-min tempo and 5-min sweet-spot blocks — a metabolic seesaw that raises both thresholds simultaneously without crossing into true threshold territory.',
+    [
+      seg('w',  'warmup',   420, ramp(0.55, 0.78), '7 min warmup ramp'),
+      seg('t1', 'steady',   600, pct(0.78),          '10 min tempo @ 78% FTP'),
+      seg('s1', 'interval', 300, pct(0.90),           '5 min sweet spot @ 90% FTP'),
+      seg('t2', 'steady',   600, pct(0.80),           '10 min tempo @ 80% FTP'),
+      seg('s2', 'interval', 300, pct(0.90),           '5 min sweet spot @ 90% FTP'),
+      seg('t3', 'steady',   600, pct(0.82),           '10 min tempo @ 82% FTP'),
+      seg('s3', 'interval', 300, pct(0.92),           '5 min sweet spot @ 92% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.65, 0.45),  '5 min cooldown'),
+    ],
+    'tempo',
+  ),
+
+  // ── Additional Sweet Spot ───────────────────────────────────────────────
+  build(
+    'preset-sweet-spot-long-2x20',
+    'Sweet Spot Long 2×20',
+    'Two 20-minute sweet-spot blocks at 90% FTP with 5 min recovery. High training load in a single session — the staple of winter base building for serious amateurs.',
+    [
+      seg('w',  'warmup',   480, ramp(0.55, 0.82), '8 min warmup ramp'),
+      seg('s1', 'interval',1200, pct(0.90),          '20 min @ 90% FTP'),
+      seg('r',  'recovery', 300, pct(0.55),           '5 min recovery'),
+      seg('s2', 'interval',1200, pct(0.90),           '20 min @ 90% FTP'),
+      seg('c',  'cooldown', 360, ramp(0.60, 0.45),  '6 min cooldown'),
+    ],
+    'sweetspot',
+  ),
+
+  build(
+    'preset-sweet-spot-ladder',
+    'Sweet Spot Ladder',
+    'Ascending sweet-spot blocks: 6-8-10-12 min with 2-min floats. The ladder format builds mental toughness — each block feels shorter than the accumulated fatigue warrants.',
+    [
+      seg('w',  'warmup',   420, ramp(0.55, 0.82), '7 min warmup ramp'),
+      seg('s1', 'interval', 360, pct(0.88),          '6 min @ 88% FTP'),
+      seg('r1', 'recovery', 120, pct(0.55),           '2 min float'),
+      seg('s2', 'interval', 480, pct(0.89),           '8 min @ 89% FTP'),
+      seg('r2', 'recovery', 120, pct(0.55),           '2 min float'),
+      seg('s3', 'interval', 600, pct(0.90),           '10 min @ 90% FTP'),
+      seg('r3', 'recovery', 120, pct(0.55),           '2 min float'),
+      seg('s4', 'interval', 720, pct(0.91),           '12 min @ 91% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.60, 0.45),  '5 min cooldown'),
+    ],
+    'sweetspot',
+  ),
+
+  // ── Additional Threshold ────────────────────────────────────────────────
+  build(
+    'preset-threshold-4x6',
+    'Threshold 4×6',
+    'Four 6-minute threshold intervals at 100% FTP with 3-min recoveries. Short enough to execute cleanly; enough volume to drive strong adaptation. Quality over quantity.',
+    [
+      seg('w',  'warmup',   360, ramp(0.55, 0.85), '6 min warmup ramp'),
+      seg('t1', 'interval', 360, pct(1.00),          '6 min @ 100% FTP'),
+      seg('r1', 'recovery', 180, pct(0.55),           '3 min recovery'),
+      seg('t2', 'interval', 360, pct(1.00),           '6 min @ 100% FTP'),
+      seg('r2', 'recovery', 180, pct(0.55),           '3 min recovery'),
+      seg('t3', 'interval', 360, pct(1.00),           '6 min @ 100% FTP'),
+      seg('r3', 'recovery', 180, pct(0.55),           '3 min recovery'),
+      seg('t4', 'interval', 360, pct(1.02),           '6 min @ 102% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.60, 0.45),  '5 min cooldown'),
+    ],
+    'threshold',
+  ),
+
+  build(
+    'preset-micro-burst-threshold',
+    'Micro-Burst Threshold',
+    '4 sets of 5 × 30s micro-bursts at 115% / 85% FTP inside a threshold envelope. Spikes lactate then forces clearance — brutal lactate-shuttle training.',
+    [
+      seg('w',   'warmup',   480, ramp(0.55, 0.85), '8 min warmup ramp'),
+      ...intervalSet('mb1', 5, 30, 30, pct(1.15), pct(0.85), '30s @ 115% FTP', '30s @ 85% FTP'),
+      seg('r1',  'recovery', 180, pct(0.55),          '3 min recovery'),
+      ...intervalSet('mb2', 5, 30, 30, pct(1.15), pct(0.85), '30s @ 115% FTP', '30s @ 85% FTP'),
+      seg('r2',  'recovery', 180, pct(0.55),           '3 min recovery'),
+      ...intervalSet('mb3', 5, 30, 30, pct(1.15), pct(0.85), '30s @ 115% FTP', '30s @ 85% FTP'),
+      seg('r3',  'recovery', 180, pct(0.55),           '3 min recovery'),
+      ...intervalSet('mb4', 5, 30, 30, pct(1.15), pct(0.85), '30s @ 115% FTP', '30s @ 85% FTP'),
+      seg('c',   'cooldown', 360, ramp(0.60, 0.45), '6 min cooldown'),
+    ],
+    'threshold',
+  ),
+
+  // ── Additional VO2 Max / Intervals ──────────────────────────────────────
+  build(
+    'preset-vo2-40-20',
+    '40/20 VO2 Blasters',
+    '3 sets of 8 × 40s on / 20s off at 120% FTP. Longer on-intervals than the classic 30/30 — accumulates even more VO2 time while the 20s float keeps you honest.',
+    [
+      seg('w',  'warmup',   600, ramp(0.50, 0.82), '10 min warmup ramp'),
+      ...intervalSet('a1', 8, 40, 20, pct(1.20), pct(0.55), '40s @ 120% FTP', '20s @ 55%'),
+      seg('r1', 'recovery', 300, pct(0.50),          '5 min recovery'),
+      ...intervalSet('a2', 8, 40, 20, pct(1.20), pct(0.55), '40s @ 120% FTP', '20s @ 55%'),
+      seg('r2', 'recovery', 300, pct(0.50),           '5 min recovery'),
+      ...intervalSet('a3', 8, 40, 20, pct(1.20), pct(0.55), '40s @ 120% FTP', '20s @ 55%'),
+      seg('c',  'cooldown', 300, ramp(0.55, 0.40), '5 min cooldown'),
+    ],
+    'intervals',
+  ),
+
+  build(
+    'preset-attack-and-recover',
+    'Attack & Recover',
+    'Six 2-min VO2 efforts at 118% FTP with 4-min active recovery. Models the repeated attacks of a road race — you must recover quickly and go again.',
+    [
+      seg('w',  'warmup',   480, ramp(0.50, 0.80), '8 min warmup ramp'),
+      seg('a1', 'interval', 120, pct(1.18),          '2 min attack @ 118% FTP'),
+      seg('r1', 'recovery', 240, pct(0.60),           '4 min active recovery'),
+      seg('a2', 'interval', 120, pct(1.18),           '2 min attack @ 118% FTP'),
+      seg('r2', 'recovery', 240, pct(0.60),           '4 min active recovery'),
+      seg('a3', 'interval', 120, pct(1.18),           '2 min attack @ 118% FTP'),
+      seg('r3', 'recovery', 240, pct(0.60),           '4 min active recovery'),
+      seg('a4', 'interval', 120, pct(1.18),           '2 min attack @ 118% FTP'),
+      seg('r4', 'recovery', 240, pct(0.60),           '4 min active recovery'),
+      seg('a5', 'interval', 120, pct(1.18),           '2 min attack @ 118% FTP'),
+      seg('r5', 'recovery', 240, pct(0.60),           '4 min active recovery'),
+      seg('a6', 'interval', 120, pct(1.20),           '2 min attack @ 120% FTP'),
+      seg('c',  'cooldown', 300, ramp(0.55, 0.40),  '5 min cooldown'),
+    ],
+    'intervals',
+  ),
+
+  build(
+    'preset-punch-and-grind',
+    'Punch & Grind',
+    '5 rounds of 15s sprint + 5-min sweet-spot block. Simulates the race pattern of attacking out of corners then grinding over rolling terrain. Brutal combination.',
+    [
+      seg('w',   'warmup',   480, ramp(0.50, 0.78), '8 min warmup ramp'),
+      seg('p1',  'interval',  15, pct(1.60),          'Sprint 1 @ 160% FTP', 110),
+      seg('g1',  'interval', 300, pct(0.91),           '5 min grind @ 91% FTP', 72),
+      seg('p2',  'interval',  15, pct(1.60),           'Sprint 2 @ 160% FTP', 110),
+      seg('g2',  'interval', 300, pct(0.91),           '5 min grind @ 91% FTP', 72),
+      seg('p3',  'interval',  15, pct(1.60),           'Sprint 3 @ 160% FTP', 110),
+      seg('g3',  'interval', 300, pct(0.91),           '5 min grind @ 91% FTP', 72),
+      seg('p4',  'interval',  15, pct(1.60),           'Sprint 4 @ 160% FTP', 110),
+      seg('g4',  'interval', 300, pct(0.91),           '5 min grind @ 91% FTP', 72),
+      seg('p5',  'interval',  15, pct(1.60),           'Sprint 5 @ 160% FTP', 110),
+      seg('g5',  'interval', 300, pct(0.93),           '5 min grind @ 93% FTP', 72),
+      seg('c',   'cooldown', 300, ramp(0.60, 0.45),  '5 min cooldown'),
+    ],
+    'intervals',
+  ),
+
+  // ── Additional Climbing ─────────────────────────────────────────────────
+  build(
+    'preset-hc-climb-simulation',
+    'HC Climb Simulation',
+    '45-min sustained effort at 92% FTP mimicking a hors-catégorie climb at race pace. Low cadence, high torque — your legs will feel every metre of imaginary altitude.',
+    [
+      seg('w', 'warmup',   480, ramp(0.55, 0.82), '8 min warmup ramp', 80),
+      seg('c', 'interval',2700, pct(0.92),          '45 min HC climb @ 92% FTP', 68),
+      seg('d', 'cooldown', 420, ramp(0.65, 0.45), '7 min descent cooldown', 90),
+    ],
+    'sweetspot',
+  ),
+
+  build(
+    'preset-col-repeats-short',
+    'Short Col Repeats',
+    '8 × 4-min climbing efforts at 96% FTP with 2-min recovery descents. High-frequency lactate exposure builds the ability to repeat hard climbing efforts.',
+    [
+      seg('w',  'warmup',   420, ramp(0.55, 0.82), '7 min warmup ramp', 80),
+      seg('c1', 'interval', 240, pct(0.96),          '4 min col effort @ 96% FTP', 70),
+      seg('d1', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c2', 'interval', 240, pct(0.96),           '4 min col effort @ 96% FTP', 70),
+      seg('d2', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c3', 'interval', 240, pct(0.96),           '4 min col effort @ 96% FTP', 70),
+      seg('d3', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c4', 'interval', 240, pct(0.96),           '4 min col effort @ 96% FTP', 70),
+      seg('d4', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c5', 'interval', 240, pct(0.96),           '4 min col effort @ 96% FTP', 70),
+      seg('d5', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c6', 'interval', 240, pct(0.96),           '4 min col effort @ 96% FTP', 70),
+      seg('d6', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c7', 'interval', 240, pct(0.97),           '4 min col effort @ 97% FTP', 70),
+      seg('d7', 'recovery', 120, pct(0.55),           '2 min descent @ 55% FTP', 92),
+      seg('c8', 'interval', 240, pct(0.98),           '4 min col effort @ 98% FTP', 70),
+      seg('dn', 'cooldown', 360, ramp(0.65, 0.45),  '6 min cooldown'),
+    ],
+    'sweetspot',
+  ),
 ];
 
 /** ID of the flagship daily workout — referenced from the Home featured card. */
