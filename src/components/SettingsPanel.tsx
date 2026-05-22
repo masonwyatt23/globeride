@@ -595,8 +595,9 @@ function Section({
 
 function UnitsRow({ value, onChange }: { value: UnitSystem; onChange: (u: UnitSystem) => void }) {
   return (
-    <div className="flex items-center justify-end gap-1 text-xs">
+    <div className="flex items-center justify-end gap-1 text-xs" role="group" aria-label="Unit system">
       <button
+        aria-pressed={value === 'metric'}
         className={cn(
           'rounded-md px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           value === 'metric' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/60',
@@ -606,6 +607,7 @@ function UnitsRow({ value, onChange }: { value: UnitSystem; onChange: (u: UnitSy
         kg · km/h
       </button>
       <button
+        aria-pressed={value === 'imperial'}
         className={cn(
           'rounded-md px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           value === 'imperial' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/60',

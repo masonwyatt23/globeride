@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  AlertCircle,
   Bookmark,
   Library,
   MapPin,
@@ -99,8 +100,12 @@ export function RouteLibrary() {
   /* Error */
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2.5 text-xs text-destructive leading-snug">
-        {error}
+      <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/8 px-3.5 py-3 text-sm text-destructive">
+        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+        <div>
+          <p className="font-medium leading-snug">Could not load routes</p>
+          <p className="text-[12px] mt-0.5 opacity-80">{error}</p>
+        </div>
       </div>
     );
   }

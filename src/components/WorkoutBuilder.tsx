@@ -755,10 +755,12 @@ function NumField({
   step?: number;
   onChange: (v: number) => void;
 }) {
+  const id = `numfield-${label.toLowerCase().replace(/\s+/g, '-')}`;
   return (
     <div className="flex flex-col gap-0.5">
-      <label className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</label>
+      <label htmlFor={id} className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</label>
       <input
+        id={id}
         type="number"
         min={min}
         max={max}

@@ -354,8 +354,11 @@ function GearCard({
             </button>
           )
         ) : (
-          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Lock className="h-3 w-3" />
+          <div
+            className="flex items-center gap-1 text-[11px] text-muted-foreground"
+            aria-label={`Unlocks at level ${item.unlockLevel}`}
+          >
+            <Lock className="h-3 w-3" aria-hidden="true" />
             <span className="num">Lvl {item.unlockLevel}</span>
           </div>
         )}

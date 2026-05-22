@@ -128,9 +128,21 @@ export function Achievements() {
 
       {/* Badge grid */}
       {visible.length === 0 ? (
-        <p className="text-center text-xs text-muted-foreground py-4">
-          {filter === 'unlocked' ? 'No achievements earned yet — keep riding!' : 'Nothing to show.'}
-        </p>
+        <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 p-6 text-center">
+          {filter === 'unlocked' ? (
+            <>
+              <Trophy className="h-7 w-7 mx-auto mb-2.5 text-muted-foreground/40" aria-hidden="true" />
+              <p className="text-sm font-medium text-muted-foreground">No achievements earned yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">Complete rides and workouts to unlock badges.</p>
+            </>
+          ) : (
+            <>
+              <Lock className="h-7 w-7 mx-auto mb-2.5 text-muted-foreground/40" aria-hidden="true" />
+              <p className="text-sm font-medium text-muted-foreground">All achievements unlocked!</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">You've earned every badge available.</p>
+            </>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {visible.map((achievement) => {
