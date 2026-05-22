@@ -118,6 +118,14 @@ const CRANK_R = 0.17;
 const THIGH_L = 0.43;
 const SHIN_L = 0.43;
 
+// Derived geometry constants reused by multiple detail parts
+const SEATPOST_TOP = v3(0, -0.13, 0.67); // base of saddle rails
+const SEATPOST_BOT = v3(0, -0.06, 0.52); // seatpost emerges from seat-tube
+const DROP_LEFT  = v3(-0.21, 0.46, 0.86); // left end of flat bar section
+const DROP_RIGHT = v3( 0.21, 0.46, 0.86); // right end
+const HOOD_LEFT  = v3(-0.21, 0.44, 0.82); // brake hood under each drop
+const HOOD_RIGHT = v3( 0.21, 0.44, 0.82);
+
 /** A frame tube: a thin cylinder spanning two body-local points. */
 function tube(name: string, a: V3, b: V3, radius: number, role: ColorRole): PartSpec {
   const dir = sub(b, a);
@@ -192,8 +200,76 @@ function spokePart(name: string, hub: V3): PartSpec {
   };
 }
 
+/** A wheel hub — small cylinder centred on the hub, aligned with the axle (X). */
+function hubPart(name: string, hub: V3): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.045, 0.09, 0.045),
+    role: 'accent',
+    place: { pos: hub, rot: quatZTo(v3(1, 0, 0)) },
+  };
+}
+
+/**
+ * Rim accent — a thin-walled ring slightly inside the tyre to give the wheel
+ * a two-tone look (wheel colour for the rubber, accent for the rim bed).
+ * Implemented as a flat disc/ring approximated by a short wide cylinder.
+ */
+function rimAccent(name: string, hub: V3): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(WHEEL_R * 0.88, 0.025, WHEEL_R * 0.88),
+    role: 'accent',
+    place: { pos: hub, rot: quatZTo(v3(1, 0, 0)) },
+  };
+}
+
+/**
+ * Chainring — thin disc at the bottom bracket, spins with the crank.
+ * Oriented in the X–Z plane (same as the crank rotation plane).
+ */
+function chainringPart(): PartSpec {
+  return {
+    name: 'chainring',
+    kind: 'cylinder',
+    dims: v3(0.125, 0.018, 0.125),
+    role: 'accent',
+    place: (d) => ({ pos: BB, rot: Cesium.Quaternion.multiply(quatZTo(v3(1, 0, 0)), quatRotX(d.crankAngle), new Cesium.Quaternion()) }),
+  };
+}
+
+/**
+ * Pedal platform — a flat box at the pedal position, oriented roughly
+ * horizontal (world-up), following the crank.
+ */
+function pedalPart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.1, 0.08, 0.018),
+    role: 'accent',
+    place: (d) => ({ pos: pedalPos(side, d.crankAngle), rot: QUAT_IDENTITY }),
+  };
+}
+
+/**
+ * Hand — small ellipsoid resting on a brake hood.  Static (hands stay on the
+ * hoods regardless of crank position, which is correct for a road position).
+ */
+function handPart(name: string, pos: V3): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.045, 0.06, 0.04),
+    role: 'skin',
+    place: { pos, rot: QUAT_IDENTITY },
+  };
+}
+
 const PARTS: PartSpec[] = [
-  // --- wheels ---
+  // ---- wheels (tyre + rim accent + hub + spokes) ---------------------------
   {
     name: 'wheel-rear',
     kind: 'cylinder',
@@ -208,72 +284,139 @@ const PARTS: PartSpec[] = [
     role: 'wheel',
     place: { pos: FRONT_HUB, rot: quatZTo(v3(1, 0, 0)) },
   },
+  rimAccent('rim-rear', REAR_HUB),
+  rimAccent('rim-front', FRONT_HUB),
+  hubPart('hub-rear', REAR_HUB),
+  hubPart('hub-front', FRONT_HUB),
   spokePart('spoke-rear', REAR_HUB),
   spokePart('spoke-front', FRONT_HUB),
-  // --- frame ---
-  tube('down-tube', BB, HEAD_TOP, 0.035, 'frame'),
-  tube('seat-tube', BB, SADDLE_J, 0.032, 'frame'),
-  tube('top-tube', SADDLE_J, HEAD_TOP, 0.03, 'frame'),
-  tube('chain-stay', REAR_HUB, BB, 0.025, 'frame'),
-  tube('seat-stay', REAR_HUB, SADDLE_J, 0.022, 'frame'),
-  tube('fork', HEAD_TOP, FRONT_HUB, 0.028, 'frame'),
-  tube('steerer', HEAD_TOP, BAR, 0.026, 'frame'),
+
+  // ---- frame ---------------------------------------------------------------
+  tube('down-tube',  BB,       HEAD_TOP, 0.035, 'frame'),
+  tube('seat-tube',  BB,       SADDLE_J, 0.032, 'frame'),
+  tube('top-tube',   SADDLE_J, HEAD_TOP, 0.030, 'frame'),
+  tube('chain-stay', REAR_HUB, BB,       0.025, 'frame'),
+  tube('seat-stay',  REAR_HUB, SADDLE_J, 0.022, 'frame'),
+  tube('fork',       HEAD_TOP, FRONT_HUB, 0.028, 'frame'),
+  tube('steerer',    HEAD_TOP, BAR,      0.026, 'frame'),
+
+  // Seatpost — runs from the seat-tube junction to just under the saddle
+  tube('seatpost', SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
+
+  // Flat top section of the handlebar
   {
     name: 'handlebar',
     kind: 'box',
-    dims: v3(0.42, 0.07, 0.05),
+    dims: v3(0.42, 0.05, 0.04),
     role: 'frame',
     place: { pos: BAR, rot: QUAT_IDENTITY },
   },
+  // Drop sections — angled cylinders hanging down from each bar end
+  tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
+  tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
+
+  // Brake hoods — ergonomic bump where hands rest
+  {
+    name: 'hood-left',
+    kind: 'ellipsoid',
+    dims: v3(0.038, 0.065, 0.040),
+    role: 'frame',
+    place: { pos: HOOD_LEFT, rot: QUAT_IDENTITY },
+  },
+  {
+    name: 'hood-right',
+    kind: 'ellipsoid',
+    dims: v3(0.038, 0.065, 0.040),
+    role: 'frame',
+    place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY },
+  },
+
+  // Saddle — wider main body + narrower nose for a shaped profile
   {
     name: 'saddle',
     kind: 'box',
-    dims: v3(0.12, 0.26, 0.06),
+    dims: v3(0.14, 0.18, 0.05),
     role: 'frame',
     place: { pos: SADDLE, rot: QUAT_IDENTITY },
   },
-  crankPart('crank-left', -1),
-  crankPart('crank-right', 1),
-  // --- rider ---
+  {
+    name: 'saddle-nose',
+    kind: 'box',
+    dims: v3(0.07, 0.10, 0.04),
+    role: 'frame',
+    place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY },
+  },
+
+  // ---- drivetrain ----------------------------------------------------------
+  crankPart('crank-left',  -1),
+  crankPart('crank-right',  1),
+  chainringPart(),
+  pedalPart('pedal-left',  -1),
+  pedalPart('pedal-right',  1),
+
+  // ---- rider body ----------------------------------------------------------
   {
     name: 'hips',
     kind: 'box',
-    dims: v3(0.32, 0.22, 0.2),
+    dims: v3(0.30, 0.22, 0.20),
     role: 'kit',
     place: { pos: v3(0, -0.06, 0.82), rot: QUAT_IDENTITY },
   },
-  tube('torso', v3(0, -0.08, 0.86), v3(0, 0.2, 1.12), 0.13, 'kit'),
+  tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
+
+  // Upper arms (shoulder to elbow)
+  tube('upper-arm-left',  v3(-0.16, 0.18, 1.10), v3(-0.19, 0.34, 0.98), 0.048, 'kit'),
+  tube('upper-arm-right', v3( 0.16, 0.18, 1.10), v3( 0.19, 0.34, 0.98), 0.048, 'kit'),
+  // Forearms (elbow to hood)
+  tube('forearm-left',  v3(-0.19, 0.34, 0.98), v3(-0.21, 0.44, 0.86), 0.038, 'skin'),
+  tube('forearm-right', v3( 0.19, 0.34, 0.98), v3( 0.21, 0.44, 0.86), 0.038, 'skin'),
+
+  // Hands on the hoods
+  handPart('hand-left',  v3(-0.21, 0.46, 0.84)),
+  handPart('hand-right', v3( 0.21, 0.46, 0.84)),
+
+  // Head + helmet
   {
     name: 'head',
     kind: 'ellipsoid',
-    dims: v3(0.1, 0.12, 0.13),
+    dims: v3(0.10, 0.12, 0.13),
     role: 'skin',
-    place: { pos: v3(0, 0.3, 1.19), rot: QUAT_IDENTITY },
+    place: { pos: v3(0, 0.30, 1.19), rot: QUAT_IDENTITY },
   },
   {
     name: 'helmet',
     kind: 'ellipsoid',
-    dims: v3(0.12, 0.15, 0.1),
+    dims: v3(0.125, 0.16, 0.105),
     role: 'helmet',
-    place: { pos: v3(0, 0.29, 1.25), rot: QUAT_IDENTITY },
+    place: { pos: v3(0, 0.28, 1.255), rot: QUAT_IDENTITY },
   },
-  tube('arm-left', v3(-0.15, 0.2, 1.1), v3(-0.2, 0.46, 0.9), 0.05, 'kit'),
-  tube('arm-right', v3(0.15, 0.2, 1.1), v3(0.2, 0.46, 0.9), 0.05, 'kit'),
-  legPart('thigh-left', -1, 'thigh'),
-  legPart('thigh-right', 1, 'thigh'),
-  legPart('shin-left', -1, 'shin'),
-  legPart('shin-right', 1, 'shin'),
+  // Helmet visor — a thin flat box projecting forward from the brow
+  {
+    name: 'helmet-visor',
+    kind: 'box',
+    dims: v3(0.12, 0.06, 0.018),
+    role: 'helmet',
+    place: { pos: v3(0, 0.40, 1.21), rot: QUAT_IDENTITY },
+  },
+
+  // ---- legs ----------------------------------------------------------------
+  legPart('thigh-left',  -1, 'thigh'),
+  legPart('thigh-right',  1, 'thigh'),
+  legPart('shin-left',   -1, 'shin'),
+  legPart('shin-right',   1, 'shin'),
+
+  // Cycling shoes — follow the pedal position exactly (clipped in)
   {
     name: 'shoe-left',
     kind: 'box',
-    dims: v3(0.09, 0.22, 0.07),
+    dims: v3(0.09, 0.22, 0.06),
     role: 'accent',
     place: (d) => ({ pos: pedalPos(-1, d.crankAngle), rot: QUAT_IDENTITY }),
   },
   {
     name: 'shoe-right',
     kind: 'box',
-    dims: v3(0.09, 0.22, 0.07),
+    dims: v3(0.09, 0.22, 0.06),
     role: 'accent',
     place: (d) => ({ pos: pedalPos(1, d.crankAngle), rot: QUAT_IDENTITY }),
   },
