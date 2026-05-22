@@ -249,6 +249,42 @@ export interface StravaVerifyResult {
 }
 
 /**
+ * Returns a human-readable one-liner for a StravaError kind.
+ * Safe to call with any error — falls back to the error message.
+ */
+export function stravaErrorSummary(err: StravaError): string {
+  switch (err.kind) {
+    case 'creds_missing':
+      return 'Strava credentials are not configured.';
+    case 'refresh_failed':
+      return 'Strava rejected the refresh token — try re-authorizing.';
+    case 'insufficient_scope':
+      return 'Token lacks activity:write — re-authorize with the correct scope.';
+    case 'duplicate_activity':
+      return 'Duplicate activity — already uploaded to Strava.';
+    case 'processing_error':
+      return 'Strava could not process the activity file.';
+    case 'network_error':
+      return 'Cannot reach Strava — check your network connection.';
+    case 'timeout':
+      return 'Strava took too long to process the activity.';
+    default:
+      return err.message;
+  }
+}
+
+/**
+ * Returns true when a valid (non-expired) access token is cached in memory
+ * or localStorage. Does NOT make a network call — use verifyStravaAccess()
+ * for a real connectivity check.
+ */
+export function isTokenCached(): boolean {
+  const cached = loadCachedToken();
+  if (!cached) return false;
+  return isTokenFresh(cached);
+}
+
+/**
  * Probe Strava connectivity and scope before a ride finishes.
  * Refreshes the access token, then calls GET /athlete.
  *

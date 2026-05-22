@@ -143,6 +143,15 @@ export async function exchangeCodeForRefreshToken(
   // Persist override so strava.ts picks it up immediately
   saveRefreshTokenOverride(json.refresh_token);
 
+  // Cache athlete info for display without re-fetching
+  if (json.athlete) {
+    saveAthleteCache({
+      id: json.athlete.id,
+      firstname: json.athlete.firstname,
+      lastname: json.athlete.lastname,
+    });
+  }
+
   return {
     refreshToken: json.refresh_token,
     accessToken: json.access_token,
@@ -183,4 +192,62 @@ export function clearRefreshTokenOverride(): void {
   } catch {
     // ignore
   }
+}
+
+// ---------------------------------------------------------------------------
+// Athlete cache helpers — persist basic athlete info after a successful
+// OAuth exchange so the UI can show the athlete name without re-fetching.
+// ---------------------------------------------------------------------------
+
+const LS_ATHLETE_KEY = 'globeride.strava.athlete';
+
+export interface CachedAthlete {
+  id: number;
+  firstname: string;
+  lastname: string;
+}
+
+/**
+ * Persist basic athlete info returned by the OAuth exchange.
+ * Call after a successful exchangeCodeForRefreshToken().
+ */
+export function saveAthleteCache(athlete: CachedAthlete): void {
+  try {
+    localStorage.setItem(LS_ATHLETE_KEY, JSON.stringify(athlete));
+  } catch {
+    // ignore
+  }
+}
+
+/** Return the cached athlete, or null if absent / malformed. */
+export function getAthleteCache(): CachedAthlete | null {
+  try {
+    const raw = localStorage.getItem(LS_ATHLETE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedAthlete;
+  } catch {
+    return null;
+  }
+}
+
+/** Clear the athlete cache (call on disconnect). */
+export function clearAthleteCache(): void {
+  try {
+    localStorage.removeItem(LS_ATHLETE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Returns true when the app has both client credentials configured AND
+ * a refresh token override in localStorage (i.e. the user has completed
+ * the OAuth flow at least once). Does NOT verify the token is still valid.
+ */
+export function isStravaLinked(): boolean {
+  return !!(
+    import.meta.env.VITE_STRAVA_CLIENT_ID &&
+    import.meta.env.VITE_STRAVA_CLIENT_SECRET &&
+    getRefreshTokenOverride()
+  );
 }
