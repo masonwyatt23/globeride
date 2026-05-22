@@ -81,9 +81,10 @@ export function useWorkoutEngine(): void {
       lastT.current = tHigh;
       if (dt <= 0) return;
 
-      // Advance elapsed time in store (drives WorkoutHUD).
+      // Advance elapsed time in store (drives WorkoutHUD) then read back the
+      // committed value so segmentAt and the HUD always see the same number.
       s.advanceWorkoutElapsed(dt);
-      const elapsedSec = s.workoutElapsedSec + dt; // use the value we're about to commit
+      const elapsedSec = useRideStore.getState().workoutElapsedSec;
 
       // ---- Resolve current segment ----
       const cursor = segmentAt(s.activeWorkout, elapsedSec);

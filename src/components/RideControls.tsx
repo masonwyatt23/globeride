@@ -154,7 +154,7 @@ export function RideControls() {
             <Button
               variant="default"
               size="default"
-              className="rounded-pill sm:size-lg active:scale-[0.97] transition-transform"
+              className="rounded-pill sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={handleExport}
               title="Download your ride as a .FIT file"
             >
@@ -171,7 +171,7 @@ export function RideControls() {
             <Button
               variant="outline"
               size="default"
-              className="rounded-pill sm:size-lg active:scale-[0.97] transition-transform"
+              className="rounded-pill sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={reset}
               title="Reset to start of route"
             >

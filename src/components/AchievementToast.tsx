@@ -11,7 +11,7 @@
  * dismisses after TOAST_DURATION_MS. Multiple achievements stack sequentially.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIER_LABEL_STYLES } from '@/components/AchievementToast.styles';
@@ -149,24 +149,17 @@ function AchievementCard({
 
 export function AchievementToast() {
   const [queue, setQueue] = useState<ToastEntry[]>([]);
-  const nextKey = useState(0);
-  const keyRef = { current: nextKey[0] };
-  const setKey = nextKey[1];
+  const keyRef = useRef(0);
 
   const push = useCallback((achievements: Achievement[]) => {
-    setKey((k) => {
-      const key = k + 1;
-      keyRef.current = key;
-      setQueue((q) => [...q, { key, achievements }]);
+    const key = ++keyRef.current;
+    setQueue((q) => [...q, { key, achievements }]);
 
-      // Auto-dismiss after duration
-      setTimeout(() => {
-        setQueue((q) => q.filter((t) => t.key !== key));
-      }, TOAST_DURATION_MS + 350); // +350ms for exit animation
-
-      return key;
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Auto-dismiss after duration
+    setTimeout(() => {
+      setQueue((q) => q.filter((t) => t.key !== key));
+    }, TOAST_DURATION_MS + 350); // +350ms for exit animation
+  }, []);
 
   useEffect(() => {
     listeners.add(push);

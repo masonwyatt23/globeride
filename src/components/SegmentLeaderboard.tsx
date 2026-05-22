@@ -348,7 +348,7 @@ export function SegmentLeaderboard({ route, className, newPrIds }: Props) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Trophy className="h-4 w-4 text-amber-500" />
-          <span className="text-sm font-semibold text-foreground uppercase tracking-widest">
+          <span className="text-sm font-semibold text-foreground">
             Personal Records
           </span>
         </div>

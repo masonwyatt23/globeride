@@ -41,7 +41,7 @@ export function Explore() {
             setToken(t);
           }}
         />
-        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
           <ChevronLeft className="h-4 w-4" /> Back to setup
         </Button>
       </div>
@@ -58,7 +58,7 @@ export function Explore() {
           variant="outline"
           size="sm"
           className="rounded-pill pointer-events-auto glass glass-hairline border-transparent text-foreground"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/app')}
         >
           <ChevronLeft className="h-4 w-4" /> Back
         </Button>

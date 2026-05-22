@@ -274,6 +274,7 @@ export function removeGradientPolylines(
   viewer: Cesium.Viewer,
   segments: GradientSegment[],
 ): void {
+  if (viewer.isDestroyed()) return;
   for (const seg of segments) {
     viewer.entities.remove(seg.entity);
   }
@@ -284,6 +285,7 @@ export function removeRouteMarkers(
   viewer: Cesium.Viewer,
   markers: RouteMarkers,
 ): void {
+  if (viewer.isDestroyed()) return;
   for (const e of markers.entities) {
     viewer.entities.remove(e);
   }

@@ -198,7 +198,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   // through during loading and at the poles where the atmosphere thins.
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
+    if (!viewer || viewer.isDestroyed()) return;
     viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(
       theme === 'dark' ? '#0b1220' : '#dfe7f1',
     );
@@ -207,7 +207,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   // ---- Re-apply graphics quality when the user changes the tier ----
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
+    if (!viewer || viewer.isDestroyed()) return;
     applyGraphicsQuality(viewer, graphicsQuality, tilesetRef.current);
   }, [graphicsQuality]);
 

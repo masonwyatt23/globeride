@@ -43,9 +43,9 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Ride audio — synthesised ambient soundscape, effort cues, chimes
 - [x] Achievements & badges — 25 milestones tied to the rider profile
 
-## Wave 6 — Hardening & cohesion
-- [ ] Correctness pass — bug hunt + fixes across the 5 feature waves
-- [ ] Visual cohesion pass — consistency of spacing / type / states
+## Wave 6 — Hardening & cohesion  ✅
+- [x] Correctness pass — bug hunt + fixes across the ride + setup experiences
+- [x] Visual cohesion pass — consistency of spacing / type / states
 
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback

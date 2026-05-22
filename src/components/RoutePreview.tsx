@@ -137,12 +137,7 @@ export function RoutePreview() {
       </div>
 
       {/* ── Elevation sparkline ── */}
-      <div
-        className={cn(
-          'rounded-xl border px-3 pt-3 pb-1',
-          isDark ? 'border-white/8 bg-white/3' : 'border-black/8 bg-black/2',
-        )}
-      >
+      <div className="rounded-xl border border-border/40 bg-muted/20 px-3 pt-3 pb-1">
         <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">
           Elevation profile
         </div>
@@ -203,11 +198,11 @@ export function RoutePreview() {
       </div>
 
       {/* ── Gradient zone breakdown (stacked bar) ── */}
-      <GradientBreakdownBar zones={zones} isDark={isDark} />
+      <GradientBreakdownBar zones={zones} />
 
       {/* ── Climb list ── */}
       {climbs.length > 0 && (
-        <ClimbList climbs={climbs} isDark={isDark} />
+        <ClimbList climbs={climbs} />
       )}
     </div>
   );
@@ -287,7 +282,7 @@ function StatTile({
   valueClass?: string;
 }) {
   return (
-    <div className="rounded-lg border border-white/8 bg-white/3 dark:bg-white/3 bg-black/3 px-3 py-2 flex flex-col gap-1">
+    <div className="rounded-lg border border-border/40 bg-muted/20 px-3 py-2 flex flex-col gap-1">
       <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-wider">
         {icon}
         {label}
@@ -308,20 +303,15 @@ function StatTile({
 
 function GradientBreakdownBar({
   zones,
-  isDark,
 }: {
   zones: ReturnType<typeof import('@/lib/routeAnalysis').computeZoneBreakdown>;
-  isDark: boolean;
 }) {
   // Filter out zones with zero distance for the bar segments
   const nonEmpty = zones.filter((z) => z.distanceM > 0);
   if (nonEmpty.length === 0) return null;
 
   return (
-    <div className={cn(
-      'rounded-xl border px-3 py-3 space-y-2',
-      isDark ? 'border-white/8 bg-white/3' : 'border-black/8 bg-black/2',
-    )}>
+    <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3 space-y-2">
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
         Gradient zones
       </div>
@@ -381,16 +371,11 @@ const CATEGORY_STYLE: Record<ClimbCategory, { bg: string; text: string; border: 
 
 function ClimbList({
   climbs,
-  isDark,
 }: {
   climbs: ReturnType<typeof import('@/lib/routeAnalysis').detectClimbs>;
-  isDark: boolean;
 }) {
   return (
-    <div className={cn(
-      'rounded-xl border px-3 py-3 space-y-2',
-      isDark ? 'border-white/8 bg-white/3' : 'border-black/8 bg-black/2',
-    )}>
+    <div className="rounded-xl border border-border/40 bg-muted/20 px-3 py-3 space-y-2">
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">
         <ChevronUp className="h-3 w-3" />
         Notable climbs ({climbs.length})

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Library, Search, Bike, Weight, Wind, Sparkles, Globe2, PenLine, Dumbbell, History, FlaskConical, Calendar } from 'lucide-react';
+import { ArrowRight, Library, Bike, Weight, Wind, Sparkles, Globe2, Dumbbell, History, FlaskConical, Calendar } from 'lucide-react';
 
 import { AppHeader } from '@/components/AppHeader';
 import { WorkoutBuilder } from '@/components/WorkoutBuilder';
@@ -115,18 +115,7 @@ export function Home() {
                 onClick={() => navigate('/explore')}
               >
                 <Globe2 className="h-4 w-4" />
-                Explore on the 3D globe
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground hover:text-foreground"
-                onClick={() => navigate('/explore')}
-                title="Draw a custom route by clicking on the 3D globe"
-              >
-                <PenLine className="h-4 w-4" />
-                Draw a route on the map
+                Explore or draw on the 3D globe
               </Button>
 
               {route && (

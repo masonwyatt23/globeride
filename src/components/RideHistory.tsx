@@ -206,8 +206,6 @@ function Sparkline({
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
 
-  const d = `M ${pts.join(' L ')}`;
-
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}

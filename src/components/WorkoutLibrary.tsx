@@ -126,10 +126,10 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
           <li
             key={w.id}
             className={cn(
-              'glass glass-hairline rounded-xl p-3 flex items-center gap-3 transition-colors',
+              'rounded-xl border p-3 flex items-center gap-3 transition-all duration-150',
               isActive
-                ? 'ring-1 ring-accent/40 border-accent/30'
-                : 'border-border/50 hover:border-border/80',
+                ? 'border-accent/40 bg-accent/5 ring-1 ring-accent/25'
+                : 'border-border/60 bg-card/40 hover:border-border/90 hover:bg-card/60',
             )}
           >
             {/* Thumbnail shape preview — at-a-glance scan of the workout.

@@ -399,11 +399,12 @@ export function StravaConnect({
         setStatus('connected');
       } else if (!fresh.ok && result.athlete) {
         // Exchange gave us an athlete even if verify is flaky
-        setAthleteName(
-          [result.athlete.firstname, result.athlete.lastname].filter(Boolean).join(' '),
-        );
+        const name = [result.athlete.firstname, result.athlete.lastname]
+          .filter(Boolean)
+          .join(' ');
+        setAthleteName(name);
         setStatus('connected');
-        setVerifyResult({ ok: true, athleteName: athleteName });
+        setVerifyResult({ ok: true, athleteName: name });
       } else if (fresh.error?.kind === 'insufficient_scope') {
         setStatus('connected');
       } else {
@@ -414,7 +415,7 @@ export function StravaConnect({
       setConnectError(userFriendlyError(err));
       setOauthStep('waiting_code');
     }
-  }, [athleteName]);
+  }, []);
 
   const handleDisconnect = useCallback(() => {
     clearRefreshTokenOverride();

@@ -218,26 +218,7 @@ export function WorkoutBuilder({
   const workout = buildWorkout(name, segments, initialWorkout?.id);
   const tss = estimateTSS(workout, ftpW);
 
-  const addIntervalSet = useCallback(() => {
-    if (intervalN < 1) return;
-    for (let i = 0; i < intervalN; i++) {
-      dispatch({ type: 'add', kind: 'interval' });
-      // Immediately patch the just-added last segment for the on duration
-      dispatch({
-        type: 'update',
-        index: -1 as number, // we'll handle this differently below
-        patch: { durMin: Math.floor(intervalOnSec / 60), durSec: intervalOnSec % 60 },
-      });
-      dispatch({ type: 'add', kind: 'recovery' });
-      dispatch({
-        type: 'update',
-        index: -1 as number,
-        patch: { durMin: Math.floor(intervalOffSec / 60), durSec: intervalOffSec % 60 },
-      });
-    }
-  }, [intervalN, intervalOnSec, intervalOffSec]);
-
-  // Better interval set — build pairs then bulk-add
+  // Build interval/recovery pairs then bulk-add in one reducer dispatch
   const addIntervalSetBulk = useCallback(() => {
     if (intervalN < 1 || intervalOnSec < 1) return;
     const newSegs: EditableSegment[] = [];
@@ -512,12 +493,7 @@ function SegmentRow({
   const targetLabel = describeTarget(seg.target, ftpW);
 
   return (
-    <div
-      className={cn(
-        'glass glass-hairline rounded-xl p-2.5 flex flex-col gap-2',
-        'border border-border/40',
-      )}
-    >
+    <div className="rounded-xl border border-border/50 bg-card/40 p-2.5 flex flex-col gap-2">
       {/* Row header */}
       <div className="flex items-center gap-2">
         {/* Color dot */}

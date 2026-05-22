@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { MapPin } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
@@ -155,43 +155,20 @@ export function Minimap({ className }: { className?: string }) {
   const route    = useRideStore((s) => s.route);
   const distance = useRideStore((s) => s.distance);
 
-  // Stable path geometry — only recompute when route changes.
-  const pathData = useMemo(
-    () => (route ? buildPathData(route, 0) : null),
-    [route],
+  // One buildPathData call per distance change — covers done/remaining split,
+  // rider position, and start/finish markers all at once.
+  const splitData = useMemo(
+    () => (route ? buildPathData(route, distance) : null),
+    [route, distance],
   );
 
-  // Rider position in SVG coords — recomputed each render (driven by store).
-  const riderSvgPos = useMemo<[number, number] | null>(() => {
-    if (!route || !pathData) return null;
-    const pt = sampleRouteAtDistance(route, distance);
-    return pathData.project(pt.lat, pt.lon);
-  }, [route, distance, pathData]);
-
-  // Split path for done/remaining — recomputed each render.
-  const splitData = useMemo(() => {
-    if (!route || !pathData) return null;
-    return buildPathData(route, distance);
-  }, [route, distance, pathData]);
-
-  // Smooth the rider marker with a CSS transition on the circle element.
-  const riderRef = useRef<SVGCircleElement>(null);
-  const pulseRef = useRef<SVGCircleElement>(null);
-
-  // Animate pulse ring independently so it doesn't stutter.
-  const [pulse, setPulse] = useState(0);
-  useEffect(() => {
-    if (!route) return;
-    const id = setInterval(() => setPulse((p) => (p + 1) % 100), 1200);
-    return () => clearInterval(id);
-  }, [route]);
-
-  if (!route || !pathData || !splitData || !riderSvgPos) {
-    // No route loaded — render nothing.
+  if (!route || !splitData) {
     return null;
   }
 
-  const [rx, ry] = riderSvgPos;
+  // Rider SVG position derived from the already-computed split data.
+  const pt = sampleRouteAtDistance(route, distance);
+  const [rx, ry] = splitData.project(pt.lat, pt.lon);
   const [fx, fy] = splitData.firstPt;
   const [lx, ly] = splitData.lastPt;
 
@@ -213,6 +190,7 @@ export function Minimap({ className }: { className?: string }) {
       >
         {/* ── Background vignette ─────────────────────────────────────── */}
         <defs>
+          <style>{`@keyframes mm-pulse{0%{opacity:.6;r:5}70%{opacity:0;r:11}100%{opacity:0;r:11}}`}</style>
           <radialGradient id="mm-vignette" cx="50%" cy="50%" r="70%">
             <stop offset="0%" stopColor="transparent" />
             <stop offset="100%" stopColor="rgba(0,0,0,0.18)" />
@@ -283,29 +261,29 @@ export function Minimap({ className }: { className?: string }) {
             opacity={0.9}
           />
 
-          {/* ── Rider pulse ring ─────────────────────────────────────── */}
-          <circle
-            ref={pulseRef}
-            cx={rx} cy={ry}
-            r={7}
-            fill="none"
-            stroke="#22d3ee"
-            strokeWidth={1.5}
-            opacity={pulse % 2 === 0 ? 0.55 : 0}
-            style={{ transition: 'opacity 0.6s ease-out, r 0.6s ease-out' }}
-          />
-
-          {/* ── Rider dot ────────────────────────────────────────────── */}
-          <circle
-            ref={riderRef}
-            cx={rx} cy={ry}
-            r={5}
-            fill="#22d3ee"
-            stroke="rgba(0,0,0,0.55)"
-            strokeWidth={1.5}
-            filter="url(#mm-glow)"
-            style={{ transition: 'cx 0.15s linear, cy 0.15s linear' }}
-          />
+          {/* ── Rider group — translate moves both dot + pulse ring together. */}
+          {/* SVG cx/cy CSS transitions are unreliable; transform translate is universal. */}
+          <g
+            transform={`translate(${rx},${ry})`}
+            style={{ transition: 'transform 0.15s linear' }}
+          >
+            {/* Pulse ring — pure CSS animation via keyframes defined below */}
+            <circle
+              r={7}
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth={1.5}
+              style={{ animation: 'mm-pulse 1.8s ease-out infinite' }}
+            />
+            {/* Solid rider dot */}
+            <circle
+              r={5}
+              fill="#22d3ee"
+              stroke="rgba(0,0,0,0.55)"
+              strokeWidth={1.5}
+              filter="url(#mm-glow)"
+            />
+          </g>
         </g>
       </svg>
 

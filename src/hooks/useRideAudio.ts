@@ -21,11 +21,12 @@ import { useAudioStore } from '@/stores/audioStore';
 import { RideAudioEngine } from '@/lib/rideAudio';
 
 export function useRideAudio(): void {
+  // Lazy-initialise inside the ref so we never allocate during render
+  // (avoids a dangling AudioContext on React StrictMode's double-invoke).
   const engineRef = useRef<RideAudioEngine | null>(null);
-
-  // Ensure we have a single stable engine instance for the component lifetime.
-  if (!engineRef.current) {
-    engineRef.current = new RideAudioEngine();
+  function getEngine(): RideAudioEngine {
+    if (!engineRef.current) engineRef.current = new RideAudioEngine();
+    return engineRef.current;
   }
 
   // Track previous workout-segment index so we can detect transitions.
@@ -36,7 +37,7 @@ export function useRideAudio(): void {
   const engineRunningRef = useRef(false);
 
   useEffect(() => {
-    const engine = engineRef.current!;
+    const engine = getEngine();
     let rafId = 0;
 
     /**
