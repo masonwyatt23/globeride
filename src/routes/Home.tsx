@@ -23,6 +23,8 @@ import { WorkoutPicker } from '@/components/WorkoutPicker';
 import { TrainingPlans } from '@/components/TrainingPlans';
 import { AIWorkoutDesigner } from '@/components/AIWorkoutDesigner';
 import { RideHistory } from '@/components/RideHistory';
+import { FitnessChart } from '@/components/FitnessChart';
+import { PersonalRecords } from '@/components/PersonalRecords';
 import { GPXUploader } from '@/components/GPXUploader';
 import { FITUploader } from '@/components/FITUploader';
 import { RouteSearch } from '@/components/RouteSearch';
@@ -510,6 +512,8 @@ export function Home() {
                 {route && <SegmentLeaderboard route={route} className="mt-4" />}
               </CardContent>
             </Card>
+            <FitnessChart />
+            <PersonalRecords />
           </div>
         </HomeTabPanel>
 

@@ -67,10 +67,10 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
       procedural avatar kept as the offline fallback
 - [x] Garage 2.0 — selectable bike models + colourways
 
-## Wave 11 — Deeper training platform
-- [ ] Fitness / Form model — CTL / ATL / TSB performance-management chart from TSS history
-- [ ] Training-plan progression — calendar / schedule, track progress through a plan
-- [ ] Personal records board + long-term volume/fitness trends
+## Wave 11 — Deeper training platform  ✅
+- [x] Fitness / Form — CTL / ATL / TSB Performance Management Chart
+- [x] Training-plan progression — calendar view with streaks + today/next-up
+- [x] Personal records board + weekly/monthly trend charts
 
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback
