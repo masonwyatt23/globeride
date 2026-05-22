@@ -28,26 +28,29 @@ import { cn } from '@/lib/utils';
  * those — it's a status badge.
  */
 export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
-  const connection         = useRideStore((s) => s.connection);
-  const deviceName         = useRideStore((s) => s.deviceName);
-  const mode               = useRideStore((s) => s.mode);
-  const battery            = useRideStore((s) => s.batteryLevel);
-  const reconnectAttempt   = useRideStore((s) => s.reconnectAttempt);
+  const connection          = useRideStore((s) => s.connection);
+  const deviceName          = useRideStore((s) => s.deviceName);
+  const mode                = useRideStore((s) => s.mode);
+  const battery             = useRideStore((s) => s.batteryLevel);
+  const reconnectAttempt    = useRideStore((s) => s.reconnectAttempt);
   const reconnectMaxAttempts = useRideStore((s) => s.reconnectMaxAttempts);
-  const trainerControlMode = useRideStore((s) => s.trainerControlMode);
-  const targetPowerW       = useRideStore((s) => s.targetPowerW);
+  const trainerControlMode  = useRideStore((s) => s.trainerControlMode);
+  const targetPowerW        = useRideStore((s) => s.targetPowerW);
 
   const tone = useTone(connection, mode);
+  const fullTitle = ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt, trainerControlMode, targetPowerW });
 
   return (
     <div
       className={cn(
         'glass glass-hairline rounded-full flex items-center gap-2 px-3 py-1.5',
+        'transition-shadow duration-300',
         tone.ring,
       )}
       role="status"
       aria-live="polite"
-      title={ariaTitle({ connection, mode, deviceName, battery, reconnectAttempt, trainerControlMode, targetPowerW })}
+      aria-label={fullTitle}
+      title={fullTitle}
     >
       <StatusIcon
         connection={connection}
@@ -56,10 +59,10 @@ export function ConnectionStatus({ compact = false }: { compact?: boolean }) {
       />
       <div className={cn('flex items-center gap-2 min-w-0', compact && 'hidden sm:flex')}>
         <div className="flex flex-col leading-none min-w-0">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground" aria-hidden="true">
             {primaryLabel(connection, mode)}
           </span>
-          <span className="text-xs font-semibold text-foreground truncate max-w-[160px]">
+          <span className="text-xs font-semibold text-foreground truncate max-w-[160px]" aria-hidden="true">
             {secondaryLabel({ connection, mode, deviceName, reconnectAttempt, reconnectMaxAttempts, trainerControlMode, targetPowerW })}
           </span>
         </div>
@@ -103,37 +106,32 @@ function StatusIcon({
   className?: string;
 }) {
   if (mode === 'demo' && connection !== 'connected') {
-    return <Cpu className={className} />;
+    return <Cpu className={className} aria-hidden="true" />;
   }
   switch (connection) {
     case 'connected':
-      return <BluetoothConnected className={cn(className, 'animate-pulseGlow')} />;
+      return <BluetoothConnected className={cn(className, 'animate-pulseGlow')} aria-hidden="true" />;
     case 'reconnecting':
-      return <Loader2 className={cn(className, 'animate-spin')} />;
+      return <Loader2 className={cn(className, 'animate-spin')} aria-hidden="true" />;
     case 'connecting':
-      return <Loader2 className={cn(className, 'animate-spin')} />;
+      return <Loader2 className={cn(className, 'animate-spin')} aria-hidden="true" />;
     case 'error':
-      return <BluetoothOff className={className} />;
+      return <BluetoothOff className={className} aria-hidden="true" />;
     case 'disconnected':
     default:
-      return <Bluetooth className={className} />;
+      return <Bluetooth className={className} aria-hidden="true" />;
   }
 }
 
 function primaryLabel(connection: string, mode: string): string {
   if (mode === 'demo' && connection !== 'connected') return 'mode';
   switch (connection) {
-    case 'connected':
-      return 'trainer';
-    case 'reconnecting':
-      return 'reconnecting';
-    case 'connecting':
-      return 'connecting';
-    case 'error':
-      return 'error';
+    case 'connected':    return 'trainer';
+    case 'reconnecting': return 'reconnecting';
+    case 'connecting':   return 'connecting';
+    case 'error':        return 'error';
     case 'disconnected':
-    default:
-      return 'trainer';
+    default:             return 'trainer';
   }
 }
 
@@ -207,17 +205,18 @@ function ControlModeBadge({ mode }: { mode: string }) {
     <div
       className={cn(
         'flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold',
+        'transition-colors duration-300',
         isErg
           ? 'bg-amber-500/20 text-amber-300'
           : 'bg-muted/40 text-muted-foreground',
       )}
-      aria-label={isErg ? 'ERG mode' : 'Simulation mode'}
+      aria-label={isErg ? 'ERG mode active' : 'Simulation mode active'}
     >
       {isErg
-        ? <Target className="h-3 w-3" />
-        : <Waves className="h-3 w-3" />
+        ? <Target className="h-3 w-3" aria-hidden="true" />
+        : <Waves className="h-3 w-3" aria-hidden="true" />
       }
-      <span>{isErg ? 'ERG' : 'SIM'}</span>
+      <span aria-hidden="true">{isErg ? 'ERG' : 'SIM'}</span>
     </div>
   );
 }
@@ -228,12 +227,13 @@ function BatteryBadge({ level }: { level: number }) {
     <div
       className={cn(
         'flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
+        'transition-colors duration-300',
         tone,
       )}
       aria-label={`Trainer battery: ${level}%`}
     >
-      <Icon className="h-3 w-3" />
-      <span>{label}</span>
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      <span aria-hidden="true">{label}</span>
     </div>
   );
 }
@@ -246,11 +246,7 @@ function batteryStyle(level: number) {
     return { Icon: BatteryLow, tone: 'bg-amber-500/20 text-amber-300', label: `${level}%` };
   }
   if (level <= 70) {
-    return {
-      Icon: BatteryMedium,
-      tone: 'bg-muted/40 text-muted-foreground',
-      label: `${level}%`,
-    };
+    return { Icon: BatteryMedium, tone: 'bg-muted/40 text-muted-foreground', label: `${level}%` };
   }
   return { Icon: Battery, tone: 'bg-emerald-500/20 text-emerald-300', label: `${level}%` };
 }

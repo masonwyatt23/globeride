@@ -15,6 +15,9 @@ import { useThemeStore } from '@/stores/themeStore';
 /**
  * Live elevation profile across the entire route, with the rider's
  * current position marked. Downsamples to ~220 points for snappiness.
+ *
+ * Renders a skeleton placeholder when no route is loaded so the glass
+ * container above it never appears as a blank gap.
  */
 export function ElevationProfile() {
   const route    = useRideStore((s) => s.route);
@@ -36,7 +39,20 @@ export function ElevationProfile() {
     return out;
   }, [route]);
 
-  if (!route || series.length === 0) return null;
+  // Empty / no-route state — show a subtle placeholder so the glass box isn't blank
+  if (!route || series.length === 0) {
+    return (
+      <div
+        className="h-28 sm:h-32 w-full flex items-center justify-center"
+        style={{ minHeight: '6rem' }}
+        aria-label="Elevation profile: no route loaded"
+      >
+        <span className="text-[11px] text-muted-foreground/50 uppercase tracking-widest select-none">
+          No elevation data
+        </span>
+      </div>
+    );
+  }
 
   /* Theme-reactive tokens */
   const axisColor   = isDark ? 'hsl(215 18% 56%)' : 'hsl(215 15% 48%)';
@@ -47,7 +63,12 @@ export function ElevationProfile() {
   const tooltipFg   = isDark ? 'hsl(210 28% 96%)' : 'hsl(220 40% 10%)';
 
   return (
-    <div className="h-28 sm:h-32 w-full min-w-0" style={{ minHeight: '6rem' }}>
+    <div
+      className="h-28 sm:h-32 w-full min-w-0"
+      style={{ minHeight: '6rem' }}
+      role="img"
+      aria-label="Route elevation profile with current position marker"
+    >
       <ResponsiveContainer width="100%" height="100%" minWidth={60} minHeight={80}>
         <AreaChart data={series} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
           <defs>

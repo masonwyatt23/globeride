@@ -35,6 +35,10 @@ import {
 } from '@/lib/bluetoothSupport';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 
+// Suppress unused-import warnings for functions used indirectly
+void hrIsConnected;
+void cadenceIsConnected;
+
 /**
  * SensorConnect — Pair dedicated BLE Heart Rate and Cadence sensors.
  *
@@ -63,7 +67,7 @@ export function SensorConnect() {
   return (
     <div className="flex flex-col gap-4">
       <HrSensorRow report={report} />
-      <div className="h-px bg-border/60" />
+      <div className="h-px bg-border/60" aria-hidden="true" />
       <CadenceSensorRow report={report} />
     </div>
   );
@@ -74,12 +78,12 @@ export function SensorConnect() {
 // ---------------------------------------------------------------------------
 
 function HrSensorRow({ report }: { report: BluetoothSupportReport }) {
-  const status = useRideStore((s) => s.hrSensorStatus);
-  const deviceName = useRideStore((s) => s.hrSensorDeviceName);
-  const liveValue = useRideStore((s) => s.hrSensorValue);
+  const status            = useRideStore((s) => s.hrSensorStatus);
+  const deviceName        = useRideStore((s) => s.hrSensorDeviceName);
+  const liveValue         = useRideStore((s) => s.hrSensorValue);
   const setHrSensorStatus = useRideStore((s) => s.setHrSensorStatus);
   const ingestHrSensorData = useRideStore((s) => s.ingestHrSensorData);
-  const pushToast = useRideStore((s) => s.pushToast);
+  const pushToast         = useRideStore((s) => s.pushToast);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -108,7 +112,7 @@ function HrSensorRow({ report }: { report: BluetoothSupportReport }) {
         durationMs: 3_500,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to connect HR monitor';
+      const msg  = err instanceof Error ? err.message : 'Failed to connect HR monitor';
       const code = err instanceof BleSensorError ? err.code : 'unknown';
       setError(msg);
       setHrSensorStatus('error', null);
@@ -135,7 +139,7 @@ function HrSensorRow({ report }: { report: BluetoothSupportReport }) {
 
   return (
     <SensorRow
-      icon={<Heart className="h-4 w-4 text-rose-500 dark:text-rose-400" />}
+      icon={<Heart className="h-4 w-4 text-rose-500 dark:text-rose-400" aria-hidden="true" />}
       label="Heart rate monitor"
       sublabel="BLE Heart Rate Service (0x180D)"
       statusLine={statusLine}
@@ -143,7 +147,8 @@ function HrSensorRow({ report }: { report: BluetoothSupportReport }) {
       usable={report.usable}
       deviceName={deviceName}
       liveValue={liveValue !== null ? `${Math.round(liveValue)} bpm` : null}
-      valueBadgeIcon={<Heart className="h-3 w-3" />}
+      valueBadgeIcon={<Heart className="h-3 w-3" aria-hidden="true" />}
+      valueBadgeLabel={liveValue !== null ? `${Math.round(liveValue)} bpm` : undefined}
       error={error}
       onConnect={handleConnect}
       onDisconnect={handleDisconnect}
@@ -156,12 +161,12 @@ function HrSensorRow({ report }: { report: BluetoothSupportReport }) {
 // ---------------------------------------------------------------------------
 
 function CadenceSensorRow({ report }: { report: BluetoothSupportReport }) {
-  const status = useRideStore((s) => s.cadenceSensorStatus);
-  const deviceName = useRideStore((s) => s.cadenceSensorDeviceName);
-  const liveValue = useRideStore((s) => s.cadenceSensorValue);
+  const status                = useRideStore((s) => s.cadenceSensorStatus);
+  const deviceName            = useRideStore((s) => s.cadenceSensorDeviceName);
+  const liveValue             = useRideStore((s) => s.cadenceSensorValue);
   const setCadenceSensorStatus = useRideStore((s) => s.setCadenceSensorStatus);
   const ingestCadenceSensorData = useRideStore((s) => s.ingestCadenceSensorData);
-  const pushToast = useRideStore((s) => s.pushToast);
+  const pushToast             = useRideStore((s) => s.pushToast);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -192,7 +197,7 @@ function CadenceSensorRow({ report }: { report: BluetoothSupportReport }) {
         durationMs: 3_500,
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to connect cadence sensor';
+      const msg  = err instanceof Error ? err.message : 'Failed to connect cadence sensor';
       const code = err instanceof BleSensorError ? err.code : 'unknown';
       setError(msg);
       setCadenceSensorStatus('error', null);
@@ -224,7 +229,7 @@ function CadenceSensorRow({ report }: { report: BluetoothSupportReport }) {
 
   return (
     <SensorRow
-      icon={<Activity className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />}
+      icon={<Activity className="h-4 w-4 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />}
       label="Cadence sensor"
       sublabel={profileNote}
       statusLine={statusLine}
@@ -232,7 +237,8 @@ function CadenceSensorRow({ report }: { report: BluetoothSupportReport }) {
       usable={report.usable}
       deviceName={deviceName}
       liveValue={liveValue !== null ? `${Math.round(liveValue)} rpm` : null}
-      valueBadgeIcon={<Activity className="h-3 w-3" />}
+      valueBadgeIcon={<Activity className="h-3 w-3" aria-hidden="true" />}
+      valueBadgeLabel={liveValue !== null ? `${Math.round(liveValue)} rpm` : undefined}
       error={error}
       onConnect={handleConnect}
       onDisconnect={handleDisconnect}
@@ -254,6 +260,7 @@ interface SensorRowProps {
   deviceName: string | null;
   liveValue: string | null;
   valueBadgeIcon: React.ReactNode;
+  valueBadgeLabel?: string;
   error: string | null;
   onConnect: () => void;
   onDisconnect: () => void;
@@ -269,12 +276,13 @@ function SensorRow({
   deviceName,
   liveValue,
   valueBadgeIcon,
+  valueBadgeLabel,
   error,
   onConnect,
   onDisconnect,
 }: SensorRowProps) {
   const isConnected = status === 'connected';
-  const isBusy = status === 'connecting' || status === 'reconnecting';
+  const isBusy      = status === 'connecting' || status === 'reconnecting';
 
   return (
     <div className="flex flex-col gap-3">
@@ -293,30 +301,36 @@ function SensorRow({
         {/* Live value + status chips */}
         <div className="flex items-center gap-1.5 shrink-0">
           {isConnected && liveValue && (
-            <Badge variant="success" className="num">
+            <Badge variant="success" className="num" aria-label={valueBadgeLabel ?? liveValue}>
               {valueBadgeIcon}
               {liveValue}
             </Badge>
           )}
           {isConnected && !liveValue && (
-            <Badge variant="success" className="num">
-              <Zap className="h-3 w-3" /> LIVE
+            <Badge variant="success" className="num" aria-label="Sensor connected and streaming">
+              <Zap className="h-3 w-3" aria-hidden="true" /> LIVE
             </Badge>
           )}
           {status === 'reconnecting' && (
-            <Badge variant="muted" className="num">
-              <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite]" /> Reconnect
+            <Badge variant="muted" className="num" aria-label="Reconnecting to sensor">
+              <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite]" aria-hidden="true" /> Reconnect
             </Badge>
           )}
         </div>
       </div>
 
       {/* Status line */}
-      <div className="text-xs text-muted-foreground leading-snug">{statusLine}</div>
+      <div className="text-xs text-muted-foreground leading-snug" aria-live="polite">
+        {statusLine}
+      </div>
 
       {/* Error panel */}
       {status === 'error' && error && (
-        <div className="rounded-lg border border-destructive/35 bg-destructive/8 p-2.5">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-lg border border-destructive/35 bg-destructive/8 p-2.5"
+        >
           <div className="text-xs text-destructive leading-snug">{error}</div>
         </div>
       )}
@@ -326,9 +340,15 @@ function SensorRow({
         <Button
           variant="outline"
           size="sm"
+          aria-label={isBusy
+            ? (status === 'connecting' ? 'Connecting to sensor…' : 'Reconnecting to sensor…')
+            : !usable
+              ? 'Web Bluetooth not available'
+              : `Pair ${getSensorShortName(label)} sensor via Bluetooth`}
+          aria-busy={isBusy}
           onClick={onConnect}
           disabled={isBusy || !usable}
-          className="self-start"
+          className="self-start focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           {isBusy
             ? status === 'connecting'
@@ -342,8 +362,9 @@ function SensorRow({
         <Button
           variant="outline"
           size="sm"
+          aria-label={`Disconnect ${label}`}
           onClick={onDisconnect}
-          className="self-start"
+          className="self-start focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
         >
           Disconnect
         </Button>
@@ -366,18 +387,17 @@ function SensorStatusIcon({
   baseIcon: React.ReactNode;
 }) {
   if (status === 'connected') {
-    return <BluetoothConnected className="h-5 w-5 text-emerald-300 animate-pulseGlow" />;
+    return <BluetoothConnected className="h-5 w-5 text-emerald-300 animate-pulseGlow" aria-hidden="true" />;
   }
   if (status === 'connecting' || status === 'reconnecting') {
-    return <Loader2 className="h-5 w-5 text-primary animate-[spinSlow_1.5s_linear_infinite]" />;
+    return <Loader2 className="h-5 w-5 text-primary animate-[spinSlow_1.5s_linear_infinite]" aria-hidden="true" />;
   }
   if (status === 'error' || !usable) {
-    return <BluetoothOff className="h-5 w-5 text-destructive" />;
+    return <BluetoothOff className="h-5 w-5 text-destructive" aria-hidden="true" />;
   }
-  // Idle — show the metric icon dimly in the bluetooth colour so it's clear
-  // this row is BLE-based.
+  // Idle — show the metric icon dimly so it's clear this row is BLE-based.
   void baseIcon; // kept for future themed icon; currently using generic BT icon
-  return <Bluetooth className="h-5 w-5 text-muted-foreground" />;
+  return <Bluetooth className="h-5 w-5 text-muted-foreground" aria-hidden="true" />;
 }
 
 function sensorStatusLine(
@@ -386,14 +406,10 @@ function sensorStatusLine(
   error: string | null,
 ): string {
   switch (status) {
-    case 'connected':
-      return 'Streaming · dedicated sensor';
-    case 'connecting':
-      return 'Connecting…';
-    case 'reconnecting':
-      return 'Reconnecting…';
-    case 'error':
-      return error ?? 'Connection failed';
+    case 'connected':    return 'Streaming · dedicated sensor';
+    case 'connecting':   return 'Connecting…';
+    case 'reconnecting': return 'Reconnecting…';
+    case 'error':        return error ?? 'Connection failed';
     case 'disconnected':
     default:
       if (!report.usable) return report.reason ?? 'Web Bluetooth not available';
@@ -410,18 +426,12 @@ function getSensorShortName(label: string): string {
 function hrErrorTitle(code: string): string {
   switch (code) {
     case 'unsupported':
-    case 'insecure-context':
-      return 'Web Bluetooth unavailable';
-    case 'no-device-selected':
-      return 'No sensor selected';
-    case 'no-device-found':
-      return 'No compatible sensor found';
-    case 'gatt-connect-failed':
-      return "Couldn't open a GATT connection";
-    case 'service-not-found':
-      return 'Required BLE service not found';
-    default:
-      return 'Bluetooth connection error';
+    case 'insecure-context':   return 'Web Bluetooth unavailable';
+    case 'no-device-selected': return 'No sensor selected';
+    case 'no-device-found':    return 'No compatible sensor found';
+    case 'gatt-connect-failed':return "Couldn't open a GATT connection";
+    case 'service-not-found':  return 'Required BLE service not found';
+    default:                   return 'Bluetooth connection error';
   }
 }
 
@@ -434,32 +444,34 @@ function hrErrorTitle(code: string): string {
  * existing ConnectionStatus component in the ride view.
  */
 export function SensorStatusPills() {
-  const hrStatus = useRideStore((s) => s.hrSensorStatus);
-  const hrValue = useRideStore((s) => s.hrSensorValue);
+  const hrStatus  = useRideStore((s) => s.hrSensorStatus);
+  const hrValue   = useRideStore((s) => s.hrSensorValue);
   const cadStatus = useRideStore((s) => s.cadenceSensorStatus);
-  const cadValue = useRideStore((s) => s.cadenceSensorValue);
+  const cadValue  = useRideStore((s) => s.cadenceSensorValue);
 
-  const showHr = hrStatus !== 'disconnected';
+  const showHr  = hrStatus  !== 'disconnected';
   const showCad = cadStatus !== 'disconnected';
 
   if (!showHr && !showCad) return null;
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-wrap" role="group" aria-label="Sensor status">
       {showHr && (
         <SensorPill
-          icon={<Heart className="h-3 w-3 text-rose-400" />}
+          icon={<Heart className="h-3 w-3 text-rose-400" aria-hidden="true" />}
           status={hrStatus}
           value={hrValue !== null ? `${Math.round(hrValue)}` : null}
           unit="bpm"
+          ariaLabel={hrValue !== null ? `Heart rate: ${Math.round(hrValue)} bpm` : `Heart rate sensor: ${hrStatus}`}
         />
       )}
       {showCad && (
         <SensorPill
-          icon={<Activity className="h-3 w-3 text-emerald-400" />}
+          icon={<Activity className="h-3 w-3 text-emerald-400" aria-hidden="true" />}
           status={cadStatus}
           value={cadValue !== null ? `${Math.round(cadValue)}` : null}
           unit="rpm"
+          ariaLabel={cadValue !== null ? `Cadence: ${Math.round(cadValue)} rpm` : `Cadence sensor: ${cadStatus}`}
         />
       )}
     </div>
@@ -471,29 +483,35 @@ function SensorPill({
   status,
   value,
   unit,
+  ariaLabel,
 }: {
   icon: React.ReactNode;
   status: SensorConnectionStatus;
   value: string | null;
   unit: string;
+  ariaLabel: string;
 }) {
   const isConnected = status === 'connected';
-  const isBusy = status === 'connecting' || status === 'reconnecting';
+  const isBusy      = status === 'connecting' || status === 'reconnecting';
 
   return (
     <div
+      aria-label={ariaLabel}
       className={[
-        'glass glass-hairline rounded-full flex items-center gap-1.5 px-2.5 py-1',
+        'glass glass-hairline rounded-full flex items-center gap-1.5 px-2.5 py-1 transition-shadow duration-300',
         isConnected ? 'ring-1 ring-emerald-500/40' : isBusy ? 'ring-1 ring-primary/30' : 'ring-1 ring-destructive/30',
       ].join(' ')}
     >
-      {isBusy ? <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite] text-primary" /> : icon}
+      {isBusy
+        ? <Loader2 className="h-3 w-3 animate-[spinSlow_1.5s_linear_infinite] text-primary" aria-hidden="true" />
+        : icon
+      }
       {isConnected && value ? (
-        <span className="num text-xs font-semibold text-foreground tabular-nums">
+        <span className="num text-xs font-semibold text-foreground tabular-nums" aria-hidden="true">
           {value} <span className="text-[10px] text-muted-foreground">{unit}</span>
         </span>
       ) : (
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-[10px] text-muted-foreground" aria-hidden="true">
           {isBusy ? '…' : status === 'error' ? 'err' : '—'}
         </span>
       )}

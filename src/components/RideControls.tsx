@@ -79,26 +79,31 @@ export function RideControls() {
 
   // Glow color varies by ride state
   const glowClass =
-    rideState === 'running' ? 'shadow-[0_0_28px_-6px_hsl(var(--accent)/0.6)]' :
-    rideState === 'paused'  ? 'shadow-[0_0_24px_-6px_hsl(var(--primary)/0.5)]' :
-    rideState === 'finished'? 'shadow-[0_0_28px_-6px_hsl(var(--primary)/0.4)]' :
+    rideState === 'running'  ? 'shadow-[0_0_28px_-6px_hsl(var(--accent)/0.6)]' :
+    rideState === 'paused'   ? 'shadow-[0_0_24px_-6px_hsl(var(--primary)/0.5)]' :
+    rideState === 'finished' ? 'shadow-[0_0_28px_-6px_hsl(var(--primary)/0.4)]' :
     '';
 
   return (
-    <div className={cn(
-      'glass glass-hairline rounded-2xl sm:rounded-pill px-3 py-2.5 flex flex-col items-center gap-2 transition-shadow duration-500 max-w-[calc(100vw-1.5rem)]',
-      glowClass,
-    )}>
+    <div
+      className={cn(
+        'glass glass-hairline rounded-2xl sm:rounded-pill px-3 py-2.5 flex flex-col items-center gap-2 transition-shadow duration-500 max-w-[calc(100vw-1.5rem)]',
+        glowClass,
+      )}
+      role="group"
+      aria-label="Ride controls"
+    >
       <div className="flex flex-wrap items-center justify-center gap-2">
 
         {rideState === 'ready' && (
           <Button
             variant="accent"
             size="lg"
+            aria-label="Start ride"
             className="rounded-pill min-w-[8rem] gap-2 shadow-[0_0_20px_-4px_hsl(var(--accent)/0.5)] hover:shadow-[0_0_28px_-4px_hsl(var(--accent)/0.7)] active:scale-[0.97] transition-all"
             onClick={start}
           >
-            <Play className="h-4 w-4" fill="currentColor" />
+            <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" />
             Start ride
           </Button>
         )}
@@ -108,19 +113,21 @@ export function RideControls() {
             <Button
               variant="outline"
               size="default"
+              aria-label="Pause ride"
               className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={pause}
             >
-              <Pause className="h-4 w-4" />
+              <Pause className="h-4 w-4" aria-hidden="true" />
               Pause
             </Button>
             <Button
               variant="destructive"
               size="default"
+              aria-label="Finish ride"
               className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={finish}
             >
-              <Flag className="h-3.5 w-3.5" />
+              <Flag className="h-3.5 w-3.5" aria-hidden="true" />
               Finish
             </Button>
           </>
@@ -131,19 +138,21 @@ export function RideControls() {
             <Button
               variant="accent"
               size="default"
+              aria-label="Resume ride"
               className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={resume}
             >
-              <Play className="h-4 w-4" fill="currentColor" />
+              <Play className="h-4 w-4" fill="currentColor" aria-hidden="true" />
               Resume
             </Button>
             <Button
               variant="destructive"
               size="default"
+              aria-label="Finish ride"
               className="rounded-pill sm:text-base sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={finish}
             >
-              <Square className="h-3.5 w-3.5" fill="currentColor" />
+              <Square className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" />
               Finish
             </Button>
           </>
@@ -154,11 +163,12 @@ export function RideControls() {
             <Button
               variant="default"
               size="default"
+              aria-label="Download ride as .FIT file"
               className="rounded-pill sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={handleExport}
-              title="Download your ride as a .FIT file"
+              disabled={samples.length === 0}
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-4 w-4" aria-hidden="true" />
               Export .FIT
             </Button>
 
@@ -171,11 +181,11 @@ export function RideControls() {
             <Button
               variant="outline"
               size="default"
+              aria-label="Start a new ride from the beginning"
               className="rounded-pill sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
               onClick={reset}
-              title="Reset to start of route"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               New ride
             </Button>
           </>
@@ -218,13 +228,19 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
 
   if (phase === 'success' && activityId) {
     return (
-      <Button variant="accent" size="default" className="rounded-pill active:scale-[0.97] transition-transform" asChild>
+      <Button
+        variant="accent"
+        size="default"
+        aria-label={`View activity #${activityId} on Strava (opens in new tab)`}
+        className="rounded-pill active:scale-[0.97] transition-transform"
+        asChild
+      >
         <a
           href={`https://www.strava.com/activities/${activityId}`}
           target="_blank"
           rel="noopener noreferrer"
         >
-          <CheckCircle2 className="h-4 w-4" />
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           View on Strava
         </a>
       </Button>
@@ -236,11 +252,12 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
       <Button
         variant="outline"
         size="default"
+        aria-label={`${errorButtonLabel(errorKind)} — opens Strava settings`}
         className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40 active:scale-[0.97] transition-transform"
         asChild
       >
         <a href={actionUrl}>
-          <Settings className="h-4 w-4" />
+          <Settings className="h-4 w-4" aria-hidden="true" />
           {errorButtonLabel(errorKind)}
         </a>
       </Button>
@@ -252,11 +269,11 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
       <Button
         variant="outline"
         size="default"
+        aria-label={`${errorButtonLabel(errorKind)} — click to dismiss`}
         className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40 active:scale-[0.97] transition-transform"
         onClick={onReset}
-        title="Click to dismiss and retry"
       >
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircle className="h-4 w-4" aria-hidden="true" />
         {errorButtonLabel(errorKind)}
       </Button>
     );
@@ -267,14 +284,12 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
       <Button
         variant="outline"
         size="default"
-        className="rounded-pill opacity-60 active:scale-[0.97] transition-transform"
-        asChild
-        title="Strava credentials not configured — open Settings to connect"
+        aria-label="Strava not configured — open Settings to connect"
+        className="rounded-pill opacity-60 cursor-default active:scale-[0.97] transition-transform"
+        disabled
       >
-        <a href="#settings-strava">
-          <Upload className="h-4 w-4" />
-          Upload to Strava
-        </a>
+        <Upload className="h-4 w-4" aria-hidden="true" />
+        Upload to Strava
       </Button>
     );
   }
@@ -283,19 +298,20 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     <Button
       variant="outline"
       size="default"
+      aria-label={isLoading ? (phase === 'uploading' ? 'Uploading to Strava…' : 'Strava is processing…') : 'Upload this activity to Strava'}
+      aria-busy={isLoading}
       className="rounded-pill hover:border-[#FC4C02]/50 hover:text-[#FC4C02] focus-visible:ring-[#FC4C02]/50 active:scale-[0.97] transition-transform"
       onClick={onUpload}
       disabled={isLoading}
-      title={isLoading ? 'Uploading to Strava…' : 'Upload this activity to Strava'}
     >
       {isLoading ? (
         <>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           {phase === 'uploading' ? 'Uploading…' : 'Processing…'}
         </>
       ) : (
         <>
-          <Upload className="h-4 w-4" />
+          <Upload className="h-4 w-4" aria-hidden="true" />
           Upload to Strava
         </>
       )}
@@ -306,24 +322,24 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
 function StravaStatusBadge({ state }: { state: UploadState }) {
   if (state.phase === 'uploading') {
     return (
-      <Badge variant="muted" className="text-[10px]">
-        <Loader2 className="h-3 w-3 animate-spin" />
+      <Badge variant="muted" className="text-[10px]" role="status" aria-live="polite">
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
         Uploading .FIT to Strava…
       </Badge>
     );
   }
   if (state.phase === 'polling') {
     return (
-      <Badge variant="muted" className="text-[10px]">
-        <Loader2 className="h-3 w-3 animate-spin" />
+      <Badge variant="muted" className="text-[10px]" role="status" aria-live="polite">
+        <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
         Strava is processing your activity…
       </Badge>
     );
   }
   if (state.phase === 'success' && state.activityId) {
     return (
-      <Badge variant="success" className="text-[10px]">
-        <CheckCircle2 className="h-3 w-3" />
+      <Badge variant="success" className="text-[10px]" role="status" aria-live="polite">
+        <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
         Activity #{state.activityId} saved to Strava
       </Badge>
     );
@@ -337,12 +353,14 @@ function StravaStatusBadge({ state }: { state: UploadState }) {
       <Badge
         variant="destructive"
         className="text-[10px] max-w-[28rem] truncate cursor-pointer"
+        role="alert"
+        aria-live="assertive"
         title={state.errorMessage}
         {...(isSettingsIssue && state.actionUrl
           ? { onClick: () => { window.location.hash = state.actionUrl!.replace(/^#/, ''); } }
           : {})}
       >
-        <AlertCircle className="h-3 w-3 shrink-0" />
+        <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
         {isSettingsIssue
           ? `${state.errorMessage.split('.')[0]} — fix in Settings`
           : state.errorMessage}

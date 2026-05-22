@@ -8,6 +8,7 @@
  *   3. Overall workout progress bar.
  */
 
+import type { ReactNode } from 'react';
 import { Activity, ChevronRight, Zap, Timer, TrendingUp, TrendingDown } from 'lucide-react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -40,9 +41,10 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 function formatSec(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = Math.floor(sec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,8 +68,9 @@ export function WorkoutHUD() {
   const { segment, remainingInSegmentSec, elapsedInSegmentSec, next } = cursor;
   const totalSec   = totalDurationSec(activeWorkout);
   const progress   = totalSec > 0 ? Math.min(1, workoutElapsedSec / totalSec) : 0;
+  // Clamp segment progress to [0,100] — avoids negative or >100 values at boundaries
   const segPct     = segment.durationSec > 0
-    ? Math.min(1, elapsedInSegmentSec / segment.durationSec) * 100
+    ? Math.min(100, Math.max(0, (elapsedInSegmentSec / segment.durationSec) * 100))
     : 0;
 
   const colors   = KIND_COLORS[segment.kind] ?? KIND_COLORS['steady'];
@@ -75,7 +78,8 @@ export function WorkoutHUD() {
   const targetPct = ftpW > 0 && targetW !== null ? Math.round((targetW / ftpW) * 100) : null;
 
   // Actual vs target gap
-  const delta = targetW !== null && power > 0 ? Math.round(power - targetW) : null;
+  const safePower = power ?? 0;
+  const delta = targetW !== null && safePower > 0 ? Math.round(safePower - targetW) : null;
   const deltaColor =
     delta === null ? '' :
     Math.abs(delta) <= 5   ? 'text-emerald-400' :
@@ -88,8 +92,15 @@ export function WorkoutHUD() {
     nextW = resolveTargetWatts(next, 0, ftpW);
   }
 
+  // Safe remaining time — never show a negative countdown
+  const safeRemaining = Math.max(0, remainingInSegmentSec);
+
   return (
-    <div className="pointer-events-none flex flex-col gap-2">
+    <div
+      className="pointer-events-none flex flex-col gap-2"
+      role="region"
+      aria-label="Workout segment"
+    >
 
       {/* ── Segment card ──────────────────────────────────────────── */}
       <div className="pointer-events-auto glass glass-hairline rounded-2xl overflow-hidden">
@@ -97,6 +108,7 @@ export function WorkoutHUD() {
         <div
           className="h-0.5 w-full transition-colors duration-700"
           style={{ backgroundColor: colors.hex }}
+          aria-hidden="true"
         />
 
         <div className="p-3 sm:p-3.5 flex flex-col gap-2.5">
@@ -110,21 +122,34 @@ export function WorkoutHUD() {
                   'text-[10px] font-semibold uppercase tracking-wide ring-1',
                   colors.bg, colors.text, colors.ring,
                 )}
+                aria-label={`Segment type: ${KIND_LABELS[segment.kind] ?? segment.kind}`}
               >
-                <Activity className="h-2.5 w-2.5" />
+                <Activity className="h-2.5 w-2.5" aria-hidden="true" />
                 {KIND_LABELS[segment.kind] ?? segment.kind}
               </span>
               {/* Live pulse or paused dot */}
               {workoutRunning ? (
-                <span className="flex h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: colors.hex }} />
+                <span
+                  className="flex h-1.5 w-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: colors.hex }}
+                  aria-label="Workout running"
+                  role="status"
+                />
               ) : (
-                <span className="flex h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+                <span
+                  className="flex h-1.5 w-1.5 rounded-full bg-muted-foreground/30"
+                  aria-label="Workout paused"
+                  role="status"
+                />
               )}
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Timer className="h-3 w-3" />
-              <span className="num text-sm font-bold text-foreground tabular-nums">
-                {formatSec(Math.max(0, remainingInSegmentSec))}
+            <div
+              className="flex items-center gap-1 text-muted-foreground"
+              aria-label={`Time remaining in segment: ${formatSec(safeRemaining)}`}
+            >
+              <Timer className="h-3 w-3" aria-hidden="true" />
+              <span className="num text-sm font-bold text-foreground tabular-nums" aria-hidden="true">
+                {formatSec(safeRemaining)}
               </span>
             </div>
           </div>
@@ -134,11 +159,12 @@ export function WorkoutHUD() {
             <div className="flex items-end gap-3">
               {/* Target */}
               <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+                <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-muted-foreground" aria-hidden="true">
                   <Zap className="h-2.5 w-2.5 text-amber-400" />
                   <span>target</span>
                 </div>
                 <div
+                  aria-label={`Target power: ${targetW} watts${targetPct !== null ? ` (${targetPct}% FTP)` : ''}`}
                   className="num font-bold tabular-nums leading-none transition-colors duration-500"
                   style={{
                     fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
@@ -146,41 +172,37 @@ export function WorkoutHUD() {
                   }}
                 >
                   {targetW}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">W</span>
+                  <span className="text-xs font-normal text-muted-foreground ml-1" aria-hidden="true">W</span>
                 </div>
                 {targetPct !== null && (
-                  <div className="text-[10px] text-muted-foreground">{targetPct}% FTP</div>
+                  <div className="text-[10px] text-muted-foreground" aria-hidden="true">{targetPct}% FTP</div>
                 )}
               </div>
 
               {/* Actual power + delta */}
-              {power > 0 && (
+              {safePower > 0 && (
                 <div className="flex flex-col gap-0.5 ml-auto items-end">
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
+                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground" aria-hidden="true">
                     actual
                   </div>
-                  <div className="num text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-none">
-                    {Math.round(power)}
-                    <span className="text-xs font-normal text-muted-foreground ml-1">W</span>
+                  <div
+                    aria-label={`Actual power: ${Math.round(safePower)} watts`}
+                    className="num text-xl sm:text-2xl font-bold text-foreground tabular-nums leading-none"
+                  >
+                    {Math.round(safePower)}
+                    <span className="text-xs font-normal text-muted-foreground ml-1" aria-hidden="true">W</span>
                   </div>
                   {delta !== null && (
-                    <div className={cn('num text-[11px] font-semibold tabular-nums', deltaColor)}>
-                      {delta > 0
-                        ? <><TrendingUp className="inline h-2.5 w-2.5 mr-0.5" />+{delta}</>
-                        : delta < 0
-                          ? <><TrendingDown className="inline h-2.5 w-2.5 mr-0.5" />{delta}</>
-                          : '✓ on target'
-                      }
-                    </div>
+                    <DeltaLabel delta={delta} className={cn('num text-[11px] font-semibold tabular-nums', deltaColor)} />
                   )}
                 </div>
               )}
 
               {/* Cadence target */}
               {segment.cadenceTarget && (
-                <div className="flex flex-col gap-0.5 items-end">
-                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground">rpm</div>
-                  <div className="num text-sm font-semibold text-foreground/70 tabular-nums">{segment.cadenceTarget}</div>
+                <div className="flex flex-col gap-0.5 items-end" aria-label={`Target cadence: ${segment.cadenceTarget} rpm`}>
+                  <div className="text-[9px] uppercase tracking-widest text-muted-foreground" aria-hidden="true">rpm</div>
+                  <div className="num text-sm font-semibold text-foreground/70 tabular-nums" aria-hidden="true">{segment.cadenceTarget}</div>
                 </div>
               )}
             </div>
@@ -194,7 +216,14 @@ export function WorkoutHUD() {
           )}
 
           {/* Segment progress bar */}
-          <div className="relative h-1.5 rounded-full bg-muted/40 overflow-hidden">
+          <div
+            className="relative h-1.5 rounded-full bg-muted/40 overflow-hidden"
+            role="progressbar"
+            aria-valuenow={Math.round(segPct)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Segment progress: ${Math.round(segPct)}%`}
+          >
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
               style={{
@@ -207,21 +236,25 @@ export function WorkoutHUD() {
 
           {/* Up next */}
           {next && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-0.5 border-t border-border/30">
-              <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
-              <span className="opacity-60">Next:</span>
+            <div
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-0.5 border-t border-border/30"
+              aria-label={`Next segment: ${KIND_LABELS[next.kind] ?? next.kind}, ${formatSec(next.durationSec)}${nextW !== null ? `, ${nextW} W` : ''}`}
+            >
+              <ChevronRight className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
+              <span className="opacity-60" aria-hidden="true">Next:</span>
               <span
                 className="font-semibold"
                 style={{ color: (KIND_COLORS[next.kind] ?? KIND_COLORS['steady']).hex }}
+                aria-hidden="true"
               >
                 {KIND_LABELS[next.kind] ?? next.kind}
               </span>
-              <span className="opacity-40">·</span>
-              <span className="num opacity-60 tabular-nums">{formatSec(next.durationSec)}</span>
+              <span className="opacity-40" aria-hidden="true">·</span>
+              <span className="num opacity-60 tabular-nums" aria-hidden="true">{formatSec(next.durationSec)}</span>
               {nextW !== null && (
                 <>
-                  <span className="opacity-40">·</span>
-                  <span className="num opacity-60 tabular-nums">{nextW} W</span>
+                  <span className="opacity-40" aria-hidden="true">·</span>
+                  <span className="num opacity-60 tabular-nums" aria-hidden="true">{nextW} W</span>
                 </>
               )}
             </div>
@@ -245,13 +278,23 @@ export function WorkoutHUD() {
           <span className="font-semibold text-foreground/80 truncate max-w-[16ch]">
             {activeWorkout.name}
           </span>
-          <span className="num tabular-nums text-muted-foreground shrink-0">
+          <span
+            className="num tabular-nums text-muted-foreground shrink-0"
+            aria-label={`Workout time: ${formatSec(workoutElapsedSec)} of ${formatSec(totalSec)}`}
+          >
             {formatSec(workoutElapsedSec)}{' '}
-            <span className="opacity-40">/</span>{' '}
+            <span className="opacity-40" aria-hidden="true">/</span>{' '}
             {formatSec(totalSec)}
           </span>
         </div>
-        <div className="relative">
+        <div
+          className="relative"
+          role="progressbar"
+          aria-valuenow={Math.round(progress * 100)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Workout progress: ${Math.round(progress * 100)}%`}
+        >
           <div className="h-1 rounded-full bg-muted/40 overflow-hidden">
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
@@ -265,6 +308,7 @@ export function WorkoutHUD() {
           <div
             className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-[left] duration-500 ease-out"
             style={{ left: `${(progress * 100).toFixed(2)}%` }}
+            aria-hidden="true"
           >
             <div className="h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-background shadow-[0_0_6px_hsl(var(--accent)/0.7)]" />
           </div>
@@ -272,4 +316,28 @@ export function WorkoutHUD() {
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Delta label — shows +/- difference between actual and target power
+// ---------------------------------------------------------------------------
+
+function DeltaLabel({ delta, className }: { delta: number; className?: string }): ReactNode {
+  if (delta > 0) {
+    return (
+      <span className={className} aria-label={`${delta} watts above target`}>
+        <TrendingUp className="inline h-2.5 w-2.5 mr-0.5" aria-hidden="true" />
+        +{delta}
+      </span>
+    );
+  }
+  if (delta < 0) {
+    return (
+      <span className={className} aria-label={`${Math.abs(delta)} watts below target`}>
+        <TrendingDown className="inline h-2.5 w-2.5 mr-0.5" aria-hidden="true" />
+        {delta}
+      </span>
+    );
+  }
+  return <span className={className} aria-label="On target">✓ on target</span>;
 }
