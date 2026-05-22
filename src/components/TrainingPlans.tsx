@@ -14,6 +14,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import {
   Calendar,
+  CalendarDays,
   ChevronRight,
   CheckCircle2,
   Circle,
@@ -44,6 +45,7 @@ import { getPreset } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { usePlanStore } from '@/stores/planStore';
+import { TrainingCalendar } from '@/components/TrainingCalendar';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
 
@@ -155,6 +157,7 @@ function ActivePlanDashboard({
   const ftpW = useSettingsStore((s) => s.ftpW);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number>(0); // 0-based
+  const [activeView, setActiveView] = useState<'schedule' | 'calendar'>('calendar');
 
   if (!activePlan) return null;
 
@@ -288,7 +291,43 @@ function ActivePlanDashboard({
         </div>
       )}
 
-      {/* Weekly grid */}
+      {/* View tabs */}
+      <div className="flex items-center gap-1 border border-border/50 rounded-lg p-0.5 bg-muted/20 self-start">
+        <button
+          type="button"
+          onClick={() => setActiveView('calendar')}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            activeView === 'calendar'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <CalendarDays className="h-3 w-3" />
+          Calendar
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveView('schedule')}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            activeView === 'schedule'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Calendar className="h-3 w-3" />
+          Schedule
+        </button>
+      </div>
+
+      {/* Calendar view */}
+      {activeView === 'calendar' && (
+        <TrainingCalendar plan={plan} onRide={onRide} />
+      )}
+
+      {/* Weekly grid (schedule view) */}
+      {activeView === 'schedule' && (
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-foreground">Schedule</span>
@@ -379,6 +418,7 @@ function ActivePlanDashboard({
           );
         })}
       </div>
+      )}
 
       {/* Abandon plan */}
       <div className="flex justify-end pt-1">

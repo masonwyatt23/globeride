@@ -105,6 +105,134 @@ export function nextWorkoutDay(
 }
 
 // ---------------------------------------------------------------------------
+// Calendar / date-anchored helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Return a Date representing midnight (local time) of the calendar date that
+ * corresponds to plan day `dayNumber` (1-based), given the plan\'s start
+ * timestamp. Day 1 = the calendar date of startedAt; Day 2 = +1 day, etc.
+ */
+export function dayIndexToDate(startedAt: number, dayNumber: number): Date {
+  const base = new Date(startedAt);
+  base.setHours(0, 0, 0, 0);
+  const d = new Date(base);
+  d.setDate(d.getDate() + (dayNumber - 1));
+  return d;
+}
+
+/** Return a Date representing midnight of today (local time). */
+export function todayMidnight(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Return the PlanDay whose calendar date is today, or null if today falls
+ * outside the plan\'s schedule.
+ */
+export function todaysPlanDay(
+  plan: TrainingPlan,
+  progress: PlanProgress,
+): PlanDay | null {
+  const today = todayMidnight().getTime();
+  return (
+    plan.days.find((d) => {
+      const date = dayIndexToDate(progress.startedAt, d.day);
+      return date.getTime() === today;
+    }) ?? null
+  );
+}
+
+/**
+ * Compute the current training streak: consecutive workout days (going
+ * backwards from today) that have been marked complete.  Rest days are
+ * skipped — they neither break nor contribute to the streak.
+ */
+export function computeStreak(
+  plan: TrainingPlan,
+  progress: PlanProgress,
+): number {
+  const done = new Set(progress.completedDays);
+  const today = todayMidnight().getTime();
+
+  // Walk plan days from last to first (newest to oldest).
+  const reversed = [...plan.days].reverse();
+  let streak = 0;
+
+  for (const pd of reversed) {
+    const pdDate = dayIndexToDate(progress.startedAt, pd.day);
+    pdDate.setHours(0, 0, 0, 0);
+
+    // Skip future days
+    if (pdDate.getTime() > today) continue;
+
+    // Rest day: doesn\'t break or count streak
+    if (pd.workoutId === null) continue;
+
+    // Workout day: must be completed
+    if (done.has(pd.day)) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
+/**
+ * Return the calendar week index (0-based) that today falls in, relative
+ * to the plan start. Returns -1 if today is before the plan started;
+ * clamped to plan.weeks - 1 if today is past the end.
+ */
+export function currentCalendarWeek(
+  plan: TrainingPlan,
+  progress: PlanProgress,
+): number {
+  const start = new Date(progress.startedAt);
+  start.setHours(0, 0, 0, 0);
+  const today = todayMidnight();
+  const diffDays = Math.floor(
+    (today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays < 0) return -1;
+  return Math.min(Math.floor(diffDays / 7), plan.weeks - 1);
+}
+
+/**
+ * Format a Date to a short human-readable string like "May 22" or "Jun 1"
+ * using the browser\'s locale.
+ */
+export function formatShortDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Return the number of plan days that fall in the future (strictly after
+ * today\'s midnight).
+ */
+export function daysRemaining(
+  plan: TrainingPlan,
+  progress: PlanProgress,
+): number {
+  const today = todayMidnight().getTime();
+  return plan.days.filter((d) => {
+    const date = dayIndexToDate(progress.startedAt, d.day);
+    return date.getTime() > today;
+  }).length;
+}
+
+/**
+ * Return the projected end date of the plan — the calendar date of the last
+ * plan day.
+ */
+export function planEndDate(plan: TrainingPlan, progress: PlanProgress): Date {
+  return dayIndexToDate(progress.startedAt, plan.days.length);
+}
+
+// ---------------------------------------------------------------------------
 // Builder helpers (keep the plan tables below readable)
 // ---------------------------------------------------------------------------
 
