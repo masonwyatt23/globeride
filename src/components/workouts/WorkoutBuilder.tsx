@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { formatDurSec } from '@/lib/format';
 import {
   type Workout,
   type WorkoutSegment,
@@ -39,7 +40,7 @@ import {
 } from '@/lib/workout';
 import { saveWorkout } from '@/lib/workoutLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Segment color palette by kind
@@ -162,15 +163,6 @@ function editorReducer(state: EditableSegment[], action: EditorAction): Editable
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatDurSec(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (s > 0) return `${m}m ${s}s`;
-  return `${m}m`;
-}
 
 // ---------------------------------------------------------------------------
 // Props

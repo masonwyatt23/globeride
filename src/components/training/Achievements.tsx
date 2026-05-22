@@ -2,7 +2,7 @@
  * Achievements — badge grid shown inside the rider profile panel.
  *
  * Usage (integrator mounts this wherever appropriate, e.g. ProfilePanel):
- *   import { Achievements } from '@/components/Achievements';
+ *   import { Achievements } from '@/components/training/Achievements';
  *   <Achievements />
  *
  * Locked badges render greyed-out with their unlock criteria.

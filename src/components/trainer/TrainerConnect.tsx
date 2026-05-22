@@ -27,7 +27,7 @@ import {
   probeBluetoothAdapter,
   type BluetoothSupportReport,
 } from '@/lib/bluetoothSupport';
-import { BluetoothTroubleshooter } from '@/components/BluetoothTroubleshooter';
+import { BluetoothTroubleshooter } from '@/components/trainer/BluetoothTroubleshooter';
 import { cn } from '@/lib/utils';
 
 // Suppress unused-import warning: getTrainerControlMode is used indirectly

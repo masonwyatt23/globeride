@@ -14,7 +14,7 @@
  * Drop in as <PersonalRecords /> anywhere — no props required.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -39,13 +39,13 @@ import {
   Loader2,
   BarChart2,
   CalendarDays,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
-import { listRides } from '@/lib/rideHistory';
+import { formatDate, formatSpeed } from '@/lib/format';
+import { SectionHeader } from '@/components/ui/section-header';
 import type { RideRecord } from '@/lib/rideHistory';
+import { useRideHistory } from '@/hooks/useRideHistory';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   computePersonalRecords,
@@ -75,60 +75,6 @@ const TOOLTIP_STYLE: React.CSSProperties = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function formatDate(unixMs: number | null): string {
-  if (!unixMs) return '—';
-  return new Date(unixMs).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatSpeed(ms: number): string {
-  return `${(ms * 3.6).toFixed(1)} km/h`;
-}
-
-// ---------------------------------------------------------------------------
-// Section toggle header (shared pattern from RideAnalytics)
-// ---------------------------------------------------------------------------
-
-function SectionHeader({
-  icon,
-  title,
-  open,
-  onToggle,
-  id,
-  panelId,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  id: string;
-  panelId: string;
-}) {
-  return (
-    <button
-      type="button"
-      id={id}
-      aria-expanded={open}
-      aria-controls={panelId}
-      onClick={onToggle}
-      className="w-full flex items-center justify-between gap-2 group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-accent" aria-hidden="true">{icon}</span>
-        <span className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-          {title}
-        </span>
-      </div>
-      {open
-        ? <ChevronUp  className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-        : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />}
-    </button>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // 1 · PR stat cards
@@ -539,24 +485,12 @@ function EmptyState() {
 export function PersonalRecords() {
   const ftpW = useSettingsStore((s) => s.ftpW);
 
-  const [rides,   setRides]   = useState<RideRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const { rides, loading, error } = useRideHistory();
 
   // Section collapse state
   const [prOpen,    setPrOpen]    = useState(true);
   const [curveOpen, setCurveOpen] = useState(true);
   const [trendOpen, setTrendOpen] = useState(true);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    listRides()
-      .then(setRides)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load rides'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const prs     = useMemo(() => computePersonalRecords(rides, ftpW), [rides, ftpW]);
   const weekly  = useMemo(() => computeWeeklyTrends(rides, ftpW),   [rides, ftpW]);

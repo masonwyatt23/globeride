@@ -12,7 +12,7 @@
  *   - Show more / less pagination
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Clock,
@@ -34,7 +34,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDistance, formatDuration } from '@/lib/utils';
-import { listRides, deleteRide } from '@/lib/rideHistory';
+import { formatDate, formatDateShort, formatSpeed, formatPower } from '@/lib/format';
+import { deleteRide } from '@/lib/rideHistory';
+import { useRideHistory } from '@/hooks/useRideHistory';
 import type { RideRecord } from '@/lib/rideHistory';
 import { useRideStore } from '@/stores/rideStore';
 import type { ParsedFit } from '@/lib/fitParser';
@@ -45,29 +47,7 @@ const MAX_VISIBLE_DEFAULT = 5;
 // Formatting helpers
 // ---------------------------------------------------------------------------
 
-function formatDate(unixMs: number): string {
-  return new Date(unixMs).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
 
-function formatDateShort(unixMs: number): string {
-  return new Date(unixMs).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function formatSpeed(ms: number): string {
-  const kmh = ms * 3.6;
-  return `${kmh.toFixed(1)} km/h`;
-}
-
-function formatPower(w: number): string {
-  return w > 0 ? `${w} W` : '—';
-}
 
 function sourceLabel(source: RideRecord['source']): string {
   switch (source) {
@@ -413,22 +393,15 @@ export function RideHistory({ className }: RideHistoryProps) {
   const navigate = useNavigate();
   const loadReplay = useRideStore((s) => s.loadReplay);
 
-  const [rides, setRides] = useState<RideRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { rides: fetchedRides, loading, error, reload } = useRideHistory();
+  const [rides, setRides] = useState(fetchedRides);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(() => {
-    setLoading(true);
-    listRides()
-      .then(setRides)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load history'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { reload(); }, [reload]);
+  // Sync hook rides into local state (handles reload after delete)
+  useMemo(() => { setRides(fetchedRides); }, [fetchedRides]);
 
   const trends = useMemo(() => computeTrends(rides), [rides]);
 
@@ -442,7 +415,7 @@ export function RideHistory({ className }: RideHistoryProps) {
       setRides((prev) => prev.filter((r) => r.id !== id));
       if (expandedId === id) setExpandedId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete ride');
+      setDeleteError(err instanceof Error ? err.message : 'Could not delete ride');
     } finally {
       setPendingDeleteId(null);
     }

@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { formatDurShort } from '@/lib/format';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useAIStore } from '@/stores/aiStore';
 import { useRideStore } from '@/stores/rideStore';
@@ -66,14 +67,6 @@ function kindColor(kind: WorkoutSegment['kind']): string {
     case 'freeride': return 'bg-muted/60 text-muted-foreground';
     default:         return 'bg-muted/60 text-muted-foreground';
   }
-}
-
-function formatDurShort(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  if (m === 0) return `${s}s`;
-  if (s === 0) return `${m}m`;
-  return `${m}m ${s}s`;
 }
 
 function targetLabel(seg: WorkoutSegment, ftpW: number): string {

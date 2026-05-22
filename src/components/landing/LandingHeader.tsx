@@ -1,8 +1,8 @@
 import { Globe2, Github } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { InstallPWAButton } from '@/components/InstallPWAButton';
+import { ThemeToggle } from '@/components/setup/ThemeToggle';
+import { InstallPWAButton } from '@/components/setup/InstallPWAButton';
 
 export function LandingHeader() {
   const navigate = useNavigate();

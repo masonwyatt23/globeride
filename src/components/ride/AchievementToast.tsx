@@ -4,7 +4,7 @@
  * Self-contained: manages its own visibility via the achievementStore.
  * Mount once in the app (e.g. in Ride.tsx or App.tsx):
  *
- *   import { AchievementToast } from '@/components/AchievementToast';
+ *   import { AchievementToast } from '@/components/ride/AchievementToast';
  *   <AchievementToast />
  *
  * The toast stack is driven by `pendingToasts` in achievementStore. It auto-
@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { TIER_LABEL_STYLES } from '@/components/AchievementToast.styles';
+import { TIER_LABEL_STYLES } from '@/components/ride/AchievementToast.styles';
 import type { Achievement } from '@/lib/achievements';
 
 // ---------------------------------------------------------------------------

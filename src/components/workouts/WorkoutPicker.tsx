@@ -26,12 +26,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDurMin } from '@/lib/format';
 import { listWorkouts, deleteWorkout, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout, WorkoutCategory } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
-import { WorkoutPowerProfile } from '@/components/WorkoutPowerProfile';
+import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
 
 // ---------------------------------------------------------------------------
 // Category metadata
@@ -87,12 +88,7 @@ function matchesDuration(durationSec: number, filter: DurationFilter): boolean {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDurMin(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m} min`;
-}
+
 
 function resolveCategory(w: Workout): WorkoutCategory | 'all' {
   return w.category ?? 'custom';

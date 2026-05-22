@@ -18,6 +18,7 @@ import { type GraphicsQuality, QUALITY_LABELS } from '@/lib/graphicsQuality';
 import { CDA_BY_POSITION, CRR_BY_BIKE, type BikeType, type RiderPosition } from '@/lib/physics';
 import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
 import { cn } from '@/lib/utils';
+import { Section } from '@/components/ui/section-header';
 import {
   buildStravaAuthorizeUrl,
   exchangeCodeForRefreshToken,
@@ -570,26 +571,6 @@ function GarageSection() {
         ))}
       </div>
     </Section>
-  );
-}
-
-function Section({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        {icon}
-        <span>{title}</span>
-      </div>
-      {children}
-    </div>
   );
 }
 

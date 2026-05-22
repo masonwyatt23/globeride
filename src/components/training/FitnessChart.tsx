@@ -17,11 +17,11 @@
  * internally, no props required for data). An optional `className` prop is
  * provided for layout control.
  *
- *   import { FitnessChart } from '@/components/FitnessChart';
+ *   import { FitnessChart } from '@/components/training/FitnessChart';
  *   // Suggested mount: HomeTabs "Training" tab or ProfilePanel after Stats.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Area,
   CartesianGrid,
@@ -43,7 +43,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-import { listRides } from '@/lib/rideHistory';
+import { useRideHistory } from '@/hooks/useRideHistory';
 import { useSettingsStore } from '@/stores/settingsStore';
 import {
   computeTrainingLoadFromRecords,
@@ -464,20 +464,7 @@ export interface FitnessChartProps {
 export function FitnessChart({ className }: FitnessChartProps) {
   const ftpW = useSettingsStore((s) => s.ftpW);
 
-  const [rides, setRides] = useState<Parameters<typeof computeTrainingLoadFromRecords>[0]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadData = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    listRides()
-      .then(setRides)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load rides'))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { loadData(); }, [loadData]);
+  const { rides, loading, error, reload } = useRideHistory();
 
   const result = useMemo(
     () => computeTrainingLoadFromRecords(rides, ftpW),
@@ -503,7 +490,7 @@ export function FitnessChart({ className }: FitnessChartProps) {
         <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
         {error}
         <button
-          onClick={loadData}
+          onClick={reload}
           className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Retry"
         >
