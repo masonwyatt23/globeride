@@ -33,10 +33,10 @@ parallel sub-agents → integrate → typecheck + build → verify → commit/pu
 - [x] Rich pre-ride route preview — gradient zones, climb categorisation, difficulty
 - [x] Local-first segment leaderboards — personal records on route climbs
 
-## Wave 4 — Cohesion & performance
-- [ ] Global UI/UX consistency + motion-design pass; onboarding
-- [ ] Mobile / tablet responsiveness
-- [ ] Performance + quality settings
+## Wave 4 — Cohesion & performance  ✅
+- [x] First-run onboarding flow + motion-design micro-interactions
+- [x] Mobile / tablet responsiveness pass
+- [x] Graphics-quality tiers (low / medium / high) for the 3D globe
 
 ## Hardware-gated (needs the user's trainer)
 - [ ] Cadence — confirm FTMS flags from the Kickr; add a Cycling Power fallback

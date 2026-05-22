@@ -6,6 +6,7 @@ import { Ride } from '@/routes/Ride';
 import { Explore } from '@/routes/Explore';
 import { Toaster } from '@/components/Toaster';
 import { TrainerEventBridge } from '@/components/TrainerEventBridge';
+import { Onboarding } from '@/components/Onboarding';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Toaster />
+      <Onboarding />
     </BrowserRouter>
   );
 }
