@@ -34,7 +34,7 @@ export default defineConfig({
       workbox: {
         // Cesium ships some large WASM/JS chunks; bump the precache size limit.
         maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest,wasm,glb}'],
         navigateFallback: '/index.html',
       },
       devOptions: {
