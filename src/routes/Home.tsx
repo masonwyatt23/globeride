@@ -46,7 +46,7 @@ import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsSto
 import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
-import { cn } from '@/lib/utils';
+import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 
 /**
  * Landing / setup page — reorganised into four focused tabs:
@@ -72,8 +72,22 @@ export function Home() {
   const clearWorkout = useRideStore((s) => s.clearWorkout);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
 
-  const canRide = !!route;
   const willUseDemo = mode === 'demo' || connection !== 'connected';
+
+  /** Always-enabled CTA: auto-pairs a random iconic route and the daily easy
+   *  workout if the user hasn't already picked them, then navigates to /ride. */
+  const handleStartRide = () => {
+    const store = useRideStore.getState();
+    if (!store.route) {
+      const iconic = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
+      store.setRoute(iconic.route);
+    }
+    if (!store.activeWorkout) {
+      const dailyPreset = getPreset(DAILY_WORKOUT_ID);
+      if (dailyPreset) store.loadWorkout(dailyPreset);
+    }
+    navigate('/ride');
+  };
   const imperial = settings.units === 'imperial';
   const totalMassDisplay = imperial
     ? `${Math.round(kgToLb(settings.riderMassKg + settings.bikeMassKg))} lb`
@@ -139,15 +153,19 @@ export function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <GPXUploader />
-
-                  <Divider label="or replay a .FIT" />
-
-                  <FITUploader />
-
-                  <Divider label="or search a place" />
-
                   <RouteSearch />
+
+                  <details className="group">
+                    <summary className="cursor-pointer flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors list-none select-none">
+                      <span className="group-open:rotate-90 transition-transform inline-block">›</span>
+                      Advanced: upload your own GPX or replay a .FIT
+                    </summary>
+                    <div className="mt-3 space-y-4">
+                      <GPXUploader />
+                      <Divider label="or replay a .FIT" />
+                      <FITUploader />
+                    </div>
+                  </details>
 
                   <Button
                     variant="ghost"
@@ -222,7 +240,7 @@ export function Home() {
               </Card>
 
               {/* Step 3: Roll out */}
-              <Card className={cn(canRide && 'ring-1 ring-accent/30')}>
+              <Card className="ring-1 ring-accent/30">
                 <CardHeader>
                   <CardTitle>
                     <StepBadge n={3} /> Roll out
@@ -249,16 +267,17 @@ export function Home() {
                   <div className="flex items-center gap-3">
                     <Button
                       size="lg"
-                      variant={canRide ? 'accent' : 'outline'}
-                      disabled={!canRide}
-                      onClick={() => navigate('/ride')}
+                      variant="accent"
+                      onClick={handleStartRide}
                       className="rounded-pill active:scale-[0.97] transition-transform"
                     >
-                      {canRide ? 'Enter the world' : 'Pick a route first'}
-                      {canRide && <ArrowRight className="h-5 w-5" />}
+                      Enter the world
+                      <ArrowRight className="h-5 w-5" />
                     </Button>
-                    {!canRide && (
-                      <span className="text-xs text-muted-foreground">Choose a route above to unlock</span>
+                    {!route && (
+                      <span className="text-xs text-muted-foreground">
+                        Auto-pairing a scenic route + easy workout
+                      </span>
                     )}
                   </div>
                 </CardContent>
