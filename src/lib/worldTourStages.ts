@@ -10,6 +10,7 @@
 
 import type { Route, RoutePoint } from '@/types';
 import { haversine } from '@/lib/utils';
+import type { MoodId } from '@/lib/cesiumUtils';
 
 // ---------------------------------------------------------------------------
 // Extra metadata
@@ -38,6 +39,12 @@ export interface WorldTourStageInfo {
     difficulty: 'flat' | 'hilly' | 'mountain' | 'queen';
     /** ~80 char voice-over style overlay quote. */
     heroNarrative: string;
+    /**
+     * Preferred atmospheric mood for this stage.
+     * Applied at ride-start to tune sun angle, sky, fog, and ground tint.
+     * Falls back to `moodForRoute()` heuristics when absent.
+     */
+    mood?: MoodId;
   };
 }
 
@@ -410,6 +417,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 4850,
       difficulty: 'queen',
       heroNarrative: 'Three giants of the Alps — only the strongest survive Bonette.',
+      mood: 'alpine-storm',  // Bonette in summer invites dramatic storm fronts
     },
   },
   {
@@ -427,6 +435,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 5200,
       difficulty: 'queen',
       heroNarrative: "Mortirolo breaks the body — Sella breaks the spirit. Survive both.",
+      mood: 'overcast',  // Mortirolo and the Dolomites are moody and grey
     },
   },
   {
@@ -444,6 +453,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 3800,
       difficulty: 'mountain',
       heroNarrative: 'Gravel, gradient, glory — Asturias demands everything.',
+      mood: 'overcast',  // Asturian coast is perpetually green and overcast
     },
   },
   {
@@ -461,6 +471,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 5200,
       difficulty: 'queen',
       heroNarrative: 'Four passes, one winner — Galibier separates the greats.',
+      mood: 'alpine-storm',  // four cols in one day invite classic Tour storm drama
     },
   },
   {
@@ -478,6 +489,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 5400,
       difficulty: 'queen',
       heroNarrative: 'Under the three stone sentinels, legends are made.',
+      mood: 'dusk-cool',  // the late-stage Giro finish under the towers at dusk
     },
   },
   {
@@ -495,6 +507,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       ascentM: 3600,
       difficulty: 'mountain',
       heroNarrative: 'Where Spain meets France — the Tourmalet awaits both nations.',
+      mood: 'golden-hour',  // Vuelta stage finishes late — warm Pyrenean sunset light
     },
   },
 ];
