@@ -1,15 +1,17 @@
 import { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Play, Pause, Square, Save, RotateCcw, Upload,
   CheckCircle2, AlertCircle, Loader2, Settings,
-  Flag,
+  Flag, Home,
 } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { buildFit, downloadFit } from '@/lib/fitExporter';
-import { uploadFit, stravaCredsPresent, StravaError, type UploadState, type StravaErrorKind } from '@/lib/strava';
+import { uploadFit, stravaCredsPresent, StravaError, clearCachedToken, type UploadState, type StravaErrorKind } from '@/lib/strava';
+import { forceReauth } from '@/lib/stravaOauth';
 import { cn } from '@/lib/utils';
 
 /**
@@ -22,6 +24,7 @@ import { cn } from '@/lib/utils';
  * Post-ride: export .FIT and Strava upload inline.
  */
 export function RideControls() {
+  const navigate  = useNavigate();
   const rideState = useRideStore((s) => s.rideState);
   const start     = useRideStore((s) => s.start);
   const pause     = useRideStore((s) => s.pause);
@@ -188,6 +191,17 @@ export function RideControls() {
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               New ride
             </Button>
+
+            <Button
+              variant="outline"
+              size="default"
+              aria-label="Return to the home setup page"
+              className="rounded-pill sm:h-11 sm:px-5 active:scale-[0.97] transition-transform"
+              onClick={() => navigate('/app')}
+            >
+              <Home className="h-3.5 w-3.5" aria-hidden="true" />
+              Home
+            </Button>
           </>
         )}
       </div>
@@ -247,6 +261,23 @@ function StravaUploadButton({ uploadState, onUpload, onReset }: StravaUploadButt
     );
   }
 
+  // insufficient_scope: force re-auth in same tab (clears stale token + opens OAuth URL)
+  if (phase === 'error' && errorKind === 'insufficient_scope') {
+    return (
+      <Button
+        variant="outline"
+        size="default"
+        aria-label="Re-authorize Strava with activity:write scope"
+        className="rounded-pill border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 focus-visible:ring-destructive/40 active:scale-[0.97] transition-transform"
+        onClick={() => forceReauth(clearCachedToken)}
+      >
+        <Settings className="h-4 w-4" aria-hidden="true" />
+        Fix Strava permission
+      </Button>
+    );
+  }
+
+  // Other actionable errors (creds_missing, refresh_failed) — navigate to Settings
   if (phase === 'error' && actionUrl) {
     return (
       <Button

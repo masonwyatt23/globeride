@@ -251,3 +251,28 @@ export function isStravaLinked(): boolean {
     getRefreshTokenOverride()
   );
 }
+
+// ---------------------------------------------------------------------------
+// Force re-authorization — clears stale cached state then opens the OAuth URL
+// ---------------------------------------------------------------------------
+
+/**
+ * Clears the stale refresh-token override AND the cached access token, then
+ * redirects the current window to the Strava OAuth authorize URL so the user
+ * can re-grant the correct scope (`activity:write,activity:read_all`).
+ *
+ * Pass `clearCachedTokenFn` (= `clearCachedToken` from strava.ts) to also
+ * invalidate the in-memory + localStorage access-token cache.
+ *
+ * Opens in the SAME tab (not a new tab) — a direct user gesture is required
+ * to avoid popup blockers when navigating to a cross-origin URL.
+ */
+export function forceReauth(clearCachedTokenFn?: () => void): void {
+  // 1. Wipe the stale refresh token so it isn't reused after the redirect
+  clearRefreshTokenOverride();
+  // 2. Wipe the cached access token if caller supplied the helper
+  clearCachedTokenFn?.();
+  // 3. Redirect current window to the Strava authorize URL (same-tab)
+  const url = buildStravaAuthorizeUrl();
+  window.location.href = url;
+}
