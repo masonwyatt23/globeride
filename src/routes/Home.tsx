@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -16,6 +16,7 @@ import {
   Info,
   Users,
   Trophy,
+  Flag,
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
@@ -45,6 +46,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HomeTabBar, HomeTabPanel, type TabId } from '@/components/setup/HomeTabs';
+import { RaceLobby } from '@/components/race/RaceLobby';
+import { useRaceStore } from '@/stores/raceStore';
+import { decodeManifestUrl } from '@/lib/race/raceProtocol';
 import { useRideStore } from '@/stores/rideStore';
 import { makeDemoRoute } from '@/lib/sampleRoutes';
 import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsStore';
@@ -79,6 +83,23 @@ export function Home() {
 
   const willUseDemo = mode === 'demo' || connection !== 'connected';
 
+  // Deep-link: ?race=<base64> → auto-load manifest and strip query param
+  useEffect(() => {
+    const search = window.location.search;
+    if (!search.includes('race=')) return;
+    const manifest = decodeManifestUrl(window.location.href);
+    if (manifest) {
+      useRaceStore.getState().loadManifest(manifest);
+      // Switch to races tab so the user sees it
+      setActiveTab('races');
+    }
+    // Strip the ?race= param from the URL without a navigation
+    const url = new URL(window.location.href);
+    url.searchParams.delete('race');
+    window.history.replaceState({}, '', url.toString());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Always-enabled CTA: auto-pairs a random iconic route and the daily easy
    *  workout if the user hasn't already picked them, then navigates to /ride. */
   const handleStartRide = () => {
@@ -108,6 +129,7 @@ export function Home() {
     { id: 'ride' as TabId,     label: 'Ride',     icon: <Bike className="h-3.5 w-3.5" /> },
     { id: 'routes' as TabId,   label: 'Routes',   icon: <Route className="h-3.5 w-3.5" /> },
     { id: 'workouts' as TabId, label: 'Workouts', icon: <Dumbbell className="h-3.5 w-3.5" /> },
+    { id: 'races' as TabId,    label: 'Races',    icon: <Flag className="h-3.5 w-3.5" /> },
     { id: 'history' as TabId,  label: 'History',  icon: <History className="h-3.5 w-3.5" /> },
   ];
 
@@ -558,6 +580,18 @@ export function Home() {
             </Card>
 
             <AIWorkoutDesigner />
+          </div>
+        </HomeTabPanel>
+
+
+        {/* RACES tab */}
+        <HomeTabPanel id="races" activeTab={activeTab}>
+          <div className="space-y-5">
+            <Card>
+              <CardContent className="pt-5">
+                <RaceLobby />
+              </CardContent>
+            </Card>
           </div>
         </HomeTabPanel>
 
