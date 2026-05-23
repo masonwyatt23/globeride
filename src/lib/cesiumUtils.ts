@@ -296,8 +296,29 @@ export function flyToPoint(
  * A "mood" is a coherent set of scene-atmosphere parameters that makes the
  * globe feel like a specific time of day or weather condition.  We keep it
  * subtle — just enough variety to feel alive, never garish.
+ *
+ * Mood catalog:
+ *   clear-noon         — bright midday, deep blue sky, minimal fog
+ *   clear-afternoon    — warm ~16:00 afternoon light (legacy, kept for compat)
+ *   golden-hour        — low amber sun, hazy horizon, saturated sky
+ *   overcast           — flat grey sky, muted light, soft ground
+ *   fjord-rain         — cool blue, heavy low cloud, dense desaturated fog
+ *   alpine-storm       — dark dramatic sky, cold blue-purple, partial rays
+ *   mediterranean-mist — warm hazy yellow sun, light sea-salt fog
+ *   dusk-cool          — purple/pink horizon, low blue twilight
  */
-export type SceneMood = 'clear-afternoon' | 'golden-hour' | 'overcast';
+export type SceneMood =
+  | 'clear-noon'
+  | 'clear-afternoon'
+  | 'golden-hour'
+  | 'overcast'
+  | 'fjord-rain'
+  | 'alpine-storm'
+  | 'mediterranean-mist'
+  | 'dusk-cool';
+
+/** Convenience alias exported for route-metadata typing. */
+export type MoodId = SceneMood;
 
 interface MoodParams {
   /** UTC hour offset from the route's local noon for the sun angle. */
@@ -322,7 +343,27 @@ interface MoodParams {
   groundBrightnessShift: number;
 }
 
-const MOODS: Record<SceneMood, MoodParams> = {
+export const MOODS: Record<SceneMood, MoodParams> = {
+  // ------------------------------------------------------------------
+  // clear-noon — bright midday, deep blue sky, minimal fog
+  // ------------------------------------------------------------------
+  'clear-noon': {
+    sunHourFromNoon: 0,   // exactly noon — sun high, short shadows, crisp light
+    fogDensity: 0.00008,
+    fogMinimumBrightness: 0.20,
+    fogHeightScalar: 1.0,
+    atmosphereHueShift: 0.0,
+    atmosphereSaturationShift: 0.08,   // punchy deep blue sky
+    atmosphereBrightnessShift: 0.05,   // bright high-altitude feel
+    perFragmentAtmosphere: true,
+    atmosphereLightIntensity: 60,      // strongest direct sun
+    groundHueShift: 0.0,
+    groundSaturationShift: 0.06,
+    groundBrightnessShift: 0.03,
+  },
+  // ------------------------------------------------------------------
+  // clear-afternoon — warm ~16:00 light (legacy mood, kept for compat)
+  // ------------------------------------------------------------------
   'clear-afternoon': {
     sunHourFromNoon: 4,   // ~16:00 local — long shadows, warm directional light
     fogDensity: 0.00012,
@@ -365,23 +406,99 @@ const MOODS: Record<SceneMood, MoodParams> = {
     groundSaturationShift: -0.15,
     groundBrightnessShift: 0.05,
   },
+  // ------------------------------------------------------------------
+  // fjord-rain — cool blue, heavy cloud, dense desaturated fog.
+  // Norwegian fjords: low ceiling, dripping slate, moody silver light.
+  // ------------------------------------------------------------------
+  'fjord-rain': {
+    sunHourFromNoon: 1,   // near-overhead but heavily diffused through cloud
+    fogDensity: 0.00065,  // heavy — fjord mist blots the mid-distance
+    fogMinimumBrightness: 0.60,        // bright silver-grey fog fills the valleys
+    fogHeightScalar: 1.4,              // fog clings tight to the valley floor
+    atmosphereHueShift: -0.04,         // cool blue push
+    atmosphereSaturationShift: -0.30,  // heavily desaturated grey sky
+    atmosphereBrightnessShift: 0.10,   // diffuse cloud brightness
+    perFragmentAtmosphere: false,
+    atmosphereLightIntensity: 32,      // very low — thick cloud cover
+    groundHueShift: -0.03,             // cool blue ground haze
+    groundSaturationShift: -0.25,
+    groundBrightnessShift: 0.08,
+  },
+  // ------------------------------------------------------------------
+  // alpine-storm — dramatic dark clouds, cold blue-purple, partial rays.
+  // Galibier in August when a front rolls in from the west.
+  // ------------------------------------------------------------------
+  'alpine-storm': {
+    sunHourFromNoon: 3,   // mid-afternoon but storm light — low effective elevation
+    fogDensity: 0.00045,
+    fogMinimumBrightness: 0.35,        // dark, brooding fog layer
+    fogHeightScalar: 1.3,
+    atmosphereHueShift: -0.06,         // cold blue-purple sky tint
+    atmosphereSaturationShift: -0.10,  // slight desaturation — bruised storm sky
+    atmosphereBrightnessShift: -0.08,  // darker overall — storm shadow
+    perFragmentAtmosphere: true,       // partial rays between cloud gaps look great
+    atmosphereLightIntensity: 36,      // muted sun piercing cloud
+    groundHueShift: -0.05,             // cold purple-grey ground cast
+    groundSaturationShift: -0.12,
+    groundBrightnessShift: -0.06,
+  },
+  // ------------------------------------------------------------------
+  // mediterranean-mist — warm hazy yellow sun, light sea-salt fog.
+  // Mallorca, Nice, Côte d'Azur: warm, bright, slightly washed out.
+  // ------------------------------------------------------------------
+  'mediterranean-mist': {
+    sunHourFromNoon: 2.5, // mid-afternoon — sun still high but soft haze
+    fogDensity: 0.00020,
+    fogMinimumBrightness: 0.30,        // warm creamy sea haze
+    fogHeightScalar: 0.9,              // haze lingers above the coastline
+    atmosphereHueShift: 0.02,          // slight warm-yellow sky push
+    atmosphereSaturationShift: 0.06,   // modest — haze softens colour
+    atmosphereBrightnessShift: 0.06,   // bright bleached-out noon feel
+    perFragmentAtmosphere: true,
+    atmosphereLightIntensity: 58,      // strong Mediterranean sun
+    groundHueShift: 0.02,              // warm ochre/sea-salt ground tint
+    groundSaturationShift: 0.04,
+    groundBrightnessShift: 0.04,
+  },
+  // ------------------------------------------------------------------
+  // dusk-cool — purple/pink horizon, low blue twilight.
+  // Post-golden-hour: sun just below the horizon, blue-hour quality.
+  // ------------------------------------------------------------------
+  'dusk-cool': {
+    sunHourFromNoon: 7.5, // ~19:30 — sun at/below horizon, blue-hour ambience
+    fogDensity: 0.00030,
+    fogMinimumBrightness: 0.15,        // dark purplish twilight murk
+    fogHeightScalar: 0.75,             // haze spreads wide at low angles
+    atmosphereHueShift: -0.08,         // cool blue-purple horizon tint
+    atmosphereSaturationShift: 0.14,   // vivid purple-pink twilight band
+    atmosphereBrightnessShift: -0.10,  // distinctly dark — twilight
+    perFragmentAtmosphere: true,       // beautiful limb-glow at dusk
+    atmosphereLightIntensity: 30,      // very low — sun is gone
+    groundHueShift: -0.06,             // cool blue-violet ground haze
+    groundSaturationShift: 0.08,
+    groundBrightnessShift: -0.08,
+  },
 };
 
 /**
- * Pick a scene mood from the route's characteristics:
- * - Long/hilly alpine routes → golden-hour (dramatic)
- * - Short flat routes → clear-afternoon (default)
- * - High ascent:distance ratio → clear-afternoon (mountains look best sunny)
- * Falls back to 'clear-afternoon' for any route.
+ * Pick a scene mood from the route's characteristics when no explicit mood is
+ * attached to the route.  Callers should prefer the route's own `mood` field
+ * (set on IconicRouteInfo / WorldTourStageInfo) when available.
+ *
+ * Heuristics:
+ *   - Very long flat rides → golden-hour (dramatic light on open roads)
+ *   - Big alpine ascents   → clear-noon  (mountains look best in crisp sun)
+ *   - Medium routes        → golden-hour
+ *   - Default              → clear-noon
  */
 export function moodForRoute(route: { totalDistance: number; ascent: number }): SceneMood {
   const km = route.totalDistance / 1000;
   const ascentPerKm = route.ascent / Math.max(km, 1);
 
   if (km >= 40 && ascentPerKm < 10) return 'golden-hour'; // long flat/rolling
-  if (ascentPerKm >= 20) return 'clear-afternoon';         // big mountains — sunny
+  if (ascentPerKm >= 20) return 'clear-noon';              // big mountains — crisp
   if (km >= 20) return 'golden-hour';                      // medium routes
-  return 'clear-afternoon';
+  return 'clear-noon';
 }
 
 /**

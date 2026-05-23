@@ -10,6 +10,7 @@
 
 import type { Route, RoutePoint } from '@/types';
 import { haversine } from '@/lib/utils';
+import type { MoodId } from '@/lib/cesiumUtils';
 
 // ---------------------------------------------------------------------------
 // Extra metadata attached to each iconic route (not part of Route type).
@@ -33,6 +34,12 @@ export interface IconicRouteInfo {
   maxGradient: number;
   /** Difficulty tag used to pick badge colour. */
   difficulty: 'hors catégorie' | 'category 1' | 'category 2';
+  /**
+   * Preferred atmospheric mood for this route.
+   * Applied at ride-start to tune sun angle, sky, fog, and ground tint.
+   * Falls back to `moodForRoute()` heuristics when absent.
+   */
+  mood?: MoodId;
 }
 
 // ---------------------------------------------------------------------------
@@ -771,6 +778,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.9,
     maxGradient: 13.0,
     difficulty: 'hors catégorie',
+    mood: 'golden-hour',  // legendary afternoon finish light on the 21 bends
   },
   {
     route: makeMontVentoux(),
@@ -781,6 +789,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.5,
     maxGradient: 12.0,
     difficulty: 'hors catégorie',
+    mood: 'mediterranean-mist',  // Provence warmth and haze on the Giant
   },
   {
     route: makeStelvioPass(),
@@ -791,6 +800,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.4,
     maxGradient: 12.5,
     difficulty: 'hors catégorie',
+    mood: 'clear-noon',  // crisp alpine high-altitude light on the 48 hairpins
   },
   {
     route: makeMortirolo(),
@@ -801,6 +811,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 10.5,
     maxGradient: 18.0,
     difficulty: 'hors catégorie',
+    mood: 'overcast',  // brooding grey Lombard sky suits the suffering
   },
   {
     route: makeSaCalobra(),
@@ -811,6 +822,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.1,
     maxGradient: 10.0,
     difficulty: 'category 1',
+    mood: 'mediterranean-mist',  // Mallorcan sea-salt warmth and haze
   },
   {
     route: makeColDuGalibier(),
@@ -821,6 +833,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.0,
     maxGradient: 11.0,
     difficulty: 'hors catégorie',
+    mood: 'alpine-storm',  // Galibier is infamous for violent summer storms
   },
   {
     route: makeHautacam(),
@@ -831,6 +844,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 8.3,
     maxGradient: 13.5,
     difficulty: 'hors catégorie',
+    mood: 'overcast',  // Pyrenean cloud often clings to summit finishes
   },
   {
     route: makeTrollstigen(),
@@ -841,6 +855,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.8,
     maxGradient: 12.0,
     difficulty: 'category 1',
+    mood: 'fjord-rain',  // Norwegian fjord weather: cool, wet, misty waterfalls
   },
   {
     route: makeMaunaKea(),
@@ -851,6 +866,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.1,
     maxGradient: 14.0,
     difficulty: 'hors catégorie',
+    mood: 'golden-hour',  // Hawaiian sunset over the lava fields is iconic
   },
   {
     route: makeOldLaHonda(),
@@ -861,6 +877,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 4.5,
     maxGradient: 8.5,
     difficulty: 'category 2',
+    mood: 'clear-noon',  // crisp NorCal morning light through the redwoods
   },
   {
     route: makeColDuTourmalet(),
@@ -871,6 +888,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.4,
     maxGradient: 13.0,
     difficulty: 'hors catégorie',
+    mood: 'alpine-storm',  // Tourmalet is notorious for sudden Pyrenean squalls
   },
   {
     route: makeAngliru(),
@@ -881,6 +899,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 10.1,
     maxGradient: 23.5,
     difficulty: 'hors catégorie',
+    mood: 'overcast',  // Asturian green hills are always under grey skies
   },
   {
     route: makeMonteZoncolan(),
@@ -891,6 +910,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 11.9,
     maxGradient: 22.0,
     difficulty: 'hors catégorie',
+    mood: 'overcast',  // Friuli climbs often shrouded in cloud
   },
   {
     route: makePicoDeVeleta(),
@@ -901,6 +921,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 6.4,
     maxGradient: 10.0,
     difficulty: 'hors catégorie',
+    mood: 'clear-noon',  // Sierra Nevada clarity — views to Africa on a good day
   },
   {
     route: makeColDIzoard(),
@@ -911,6 +932,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 7.0,
     maxGradient: 11.0,
     difficulty: 'hors catégorie',
+    mood: 'golden-hour',  // Casse Déserte rock spires glow amber at golden hour
   },
   {
     route: makeWillungaHill(),
@@ -921,6 +943,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 6.6,
     maxGradient: 11.0,
     difficulty: 'category 1',
+    mood: 'clear-noon',  // South Australian summer sun at full blast
   },
   {
     route: makeBoxHill(),
@@ -931,6 +954,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 5.0,
     maxGradient: 9.0,
     difficulty: 'category 2',
+    mood: 'overcast',  // English weather: reliably grey and damp in Surrey
   },
   {
     route: makeCentralParkLoop(),
@@ -941,6 +965,7 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 1.5,
     maxGradient: 8.0,
     difficulty: 'category 2',
+    mood: 'golden-hour',  // evening loop around the park, Manhattan skyline glow
   },
   {
     route: makeNicePromenade(),
@@ -951,5 +976,6 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     avgGradient: 0.5,
     maxGradient: 3.0,
     difficulty: 'category 2',
+    mood: 'mediterranean-mist',  // Côte d'Azur warmth, haze, and sea glitter
   },
 ];

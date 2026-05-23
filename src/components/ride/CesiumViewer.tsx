@@ -15,13 +15,18 @@ import {
   getPhotorealTileset,
   getTerrainProvider,
   julianDateForMood,
+  MOODS,
   moodForRoute,
   resetFollowCam,
   routeToCartesians,
   setIonToken,
   setActiveViewer,
   setupBaseImagery,
+  type MoodId,
+  type SceneMood,
 } from '@/lib/cesiumUtils';
+import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
+import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
 import {
   buildGradientPolylines,
   buildRouteMarkers,
@@ -369,16 +374,24 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
 
     if (!route) return;
 
-    // Choose a scene mood based on the route's character and apply it.
-    // The mood drives sun angle, fog density, and atmosphere tint.
-    const mood = moodForRoute(route);
+    // Resolve the scene mood: prefer explicit mood from the route catalog,
+    // fall back to the heuristic moodForRoute() based on distance + ascent.
+    // Lookup order: IconicRoute catalog → WorldTourStage catalog → heuristic.
+    let resolvedMood: SceneMood = moodForRoute(route);
+    const iconicMatch = ICONIC_ROUTES.find((r) => r.route.id === route.id);
+    if (iconicMatch?.mood) {
+      resolvedMood = iconicMatch.mood as MoodId;
+    } else {
+      const wtsMatch = WORLD_TOUR_STAGES.find((s) => s.route.id === route.id);
+      if (wtsMatch?.info.mood) resolvedMood = wtsMatch.info.mood as MoodId;
+    }
+
+    // Apply the mood: clock time drives sun angle; atmosphere params set the sky.
     const midLon = route.points[Math.floor(route.points.length / 2)].lon;
-    viewer.clock.currentTime = julianDateForMood(
-      midLon,
-      mood === 'golden-hour' ? 6.5 : mood === 'overcast' ? 2 : 4,
-    );
+    const moodParams = MOODS[resolvedMood];
+    viewer.clock.currentTime = julianDateForMood(midLon, moodParams.sunHourFromNoon);
     viewer.clock.shouldAnimate = false;
-    applySceneMood(viewer, mood);
+    applySceneMood(viewer, resolvedMood);
 
     // ---- Spawn weather particles for this route's mood ----
     // resolveWeatherKind handles both the current string SceneMood and the
