@@ -428,23 +428,65 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
 }
 
 /**
- * Compute the UTC JulianDate that places the sun at a given local-time offset
- * from noon at a longitude.  Used to set the scene clock for mood lighting.
+ * Compute the UTC JulianDate that places the sun at the user's current local
+ * time of day at the route's longitude — so morning rides look like morning
+ * and evening rides look like evening.
  *
- * @param lonDeg   Route's representative longitude (degrees).
- * @param hoursFromNoon  Positive = afternoon/evening, negative = morning.
+ * The sun elevation is clamped to at least MIN_SUN_ELEVATION_DEG above the
+ * horizon so we never end up in midnight darkness mid-ride, regardless of the
+ * user's actual wall-clock time.
+ *
+ * The `hoursFromNoon` parameter is used as a fallback when the clamping
+ * logic overrides the real time (e.g. for night-time users who still want
+ * a readable daytime scene).
+ *
+ * @param lonDeg         Route's representative longitude (degrees, -180...180).
+ * @param hoursFromNoon  Mood-requested offset from local noon; used only when
+ *                       real local time would place the sun below the 15-degree
+ *                       floor.
  */
 export function julianDateForMood(lonDeg: number, hoursFromNoon: number): Cesium.JulianDate {
-  const utcBase = Cesium.JulianDate.fromIso8601(
-    `${new Date().toISOString().slice(0, 10)}T00:00:00Z`,
-  );
-  // Local noon in UTC = 12 - lon/15
-  const utcNoon = 12 - lonDeg / 15;
-  return Cesium.JulianDate.addHours(
-    utcBase,
-    utcNoon + hoursFromNoon,
-    new Cesium.JulianDate(),
-  );
+  const now      = new Date();
+  const todayIso = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const utcBase  = Cesium.JulianDate.fromIso8601(`${todayIso}T00:00:00Z`);
+
+  // Current UTC decimal hour (0-24).
+  const utcHour = now.getUTCHours() + now.getUTCMinutes() / 60;
+
+  // Solar offset: how many hours ahead of UTC the route longitude is.
+  // (lon/15 gives the offset in hours; +ve east, -ve west.)
+  const solarOffset = lonDeg / 15;
+
+  // Local solar decimal hour at the route's longitude.
+  const localSolar = utcHour + solarOffset;
+
+  // Hours from local solar noon — in the range (-12, 12].
+  const localFromNoon = ((localSolar - 12) % 24 + 36) % 24 - 12;
+
+  // Sun elevation at solar noon is approximately 90 - |latitude|.  We don't
+  // have the latitude here, so use a conservative 60-degree estimate that
+  // holds for latitudes 0-50 degrees.  The sun drops ~15 deg/hr from noon.
+  const noonElevDeg = 60;    // degrees, conservative estimate
+  const minSunDeg   = 15;    // never allow the sun below this elevation
+  // Maximum |hoursFromNoon| where the sun is still above minSunDeg.
+  const maxAbsHours = (noonElevDeg - minSunDeg) / 15; // = 3.0 hours
+
+  // If it's currently daytime at the route location, use the real time.
+  // If it's night or very low sun, fall back to the mood-requested offset,
+  // clamped so the sun stays above the floor.
+  let chosenFromNoon: number;
+  if (Math.abs(localFromNoon) <= maxAbsHours) {
+    chosenFromNoon = localFromNoon;
+  } else {
+    // Night at route location — use mood offset but keep sun readable.
+    chosenFromNoon = Math.max(-maxAbsHours, Math.min(maxAbsHours, hoursFromNoon));
+  }
+
+  // UTC noon at the route's longitude = 12 - solarOffset.
+  const utcNoon     = 12 - solarOffset;
+  const targetUtcHr = utcNoon + chosenFromNoon;
+
+  return Cesium.JulianDate.addHours(utcBase, targetUtcHr, new Cesium.JulianDate());
 }
 
 // ---- Active viewer registry -----------------------------------------------
