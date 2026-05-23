@@ -9,7 +9,55 @@
 
 import type { AvatarColors } from '@/lib/avatarConfig';
 
-export type GearKind = 'bike' | 'kit';
+export type GearKind = 'bike' | 'kit' | 'helmet';
+
+// ---------------------------------------------------------------------------
+// Helmet catalog — separate from GEAR_CATALOG since helmets use a simpler
+// data shape (no full AvatarColors spread, just a default shell color and an
+// xpUnlock threshold that mirrors the level-based gate used by bikes/kits).
+// ---------------------------------------------------------------------------
+
+export interface HelmetItem {
+  id: string;
+  name: string;
+  /** Dominant shell color shown in the helmet SVG illustration. */
+  defaultColor: string;
+  /** Secondary / vent color. */
+  accentColor: string;
+  /** Minimum level required to equip (mirrors GearItem.unlockLevel semantics). */
+  unlockLevel: number;
+}
+
+export const HELMETS: HelmetItem[] = [
+  {
+    id: 'helmet-starter',
+    name: 'Starter Lid',
+    defaultColor: '#94a3b8',
+    accentColor: '#e2e8f0',
+    unlockLevel: 0,
+  },
+  {
+    id: 'helmet-aero',
+    name: 'Aero TT',
+    defaultColor: '#1e3a5f',
+    accentColor: '#38bdf8',
+    unlockLevel: 3,
+  },
+  {
+    id: 'helmet-road',
+    name: 'Road Vent',
+    defaultColor: '#166534',
+    accentColor: '#86efac',
+    unlockLevel: 6,
+  },
+  {
+    id: 'helmet-pro',
+    name: 'Pro Aero',
+    defaultColor: '#1c1c1e',
+    accentColor: '#f59e0b',
+    unlockLevel: 10,
+  },
+];
 
 export interface GearItem {
   id: string;

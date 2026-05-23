@@ -13,6 +13,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Bike,
   Shirt,
+  HardHat,
   CheckCircle2,
   Lock,
   Palette,
@@ -29,7 +30,7 @@ import { Section } from '@/components/ui/section-header';
 import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { xpProgressInLevel, xpForLevel } from '@/lib/progression';
-import { GEAR_CATALOG, type GearItem, type GearKind } from '@/lib/gear';
+import { GEAR_CATALOG, HELMETS, type GearItem, type GearKind, type HelmetItem } from '@/lib/gear';
 import {
   AVATAR_COLOR_ROLES,
   AVATAR_PRESETS,
@@ -38,7 +39,7 @@ import {
 } from '@/lib/avatarConfig';
 
 // ---------------------------------------------------------------------------
-// Category config — extend here for Wave 19 (helmet, glasses)
+// Category config — bikes, kits, helmets
 // ---------------------------------------------------------------------------
 
 interface CategoryConfig {
@@ -48,8 +49,9 @@ interface CategoryConfig {
 }
 
 const CATEGORY_CONFIG: CategoryConfig[] = [
-  { kind: 'bike', label: 'Bikes', icon: <Bike className="h-3.5 w-3.5" /> },
-  { kind: 'kit',  label: 'Kits',  icon: <Shirt className="h-3.5 w-3.5" /> },
+  { kind: 'bike',   label: 'Bikes',   icon: <Bike    className="h-3.5 w-3.5" /> },
+  { kind: 'kit',    label: 'Kits',    icon: <Shirt   className="h-3.5 w-3.5" /> },
+  { kind: 'helmet', label: 'Helmets', icon: <HardHat className="h-3.5 w-3.5" /> },
 ];
 
 // ---------------------------------------------------------------------------
@@ -172,6 +174,255 @@ function JerseySvg({
       {/* Pocket stripe */}
       <rect x="26" y="46" width="48" height="6" fill={accent} opacity="0.2" />
     </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helmet SVG illustrations — one per helmet id
+// ---------------------------------------------------------------------------
+
+/** Starter helmet: simple round vented shell (entry-level road lid). */
+function HelmetStarterSvg({ shell, accent }: { shell: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-full">
+      {/* Main shell dome */}
+      <path d="M10 38 Q10 10 40 10 Q70 10 70 38 L66 42 Q40 48 14 42Z" fill={shell} opacity="0.92" />
+      {/* Vent slots */}
+      <rect x="24" y="16" width="6" height="12" rx="3" fill={accent} opacity="0.70" />
+      <rect x="34" y="13" width="6" height="14" rx="3" fill={accent} opacity="0.70" />
+      <rect x="44" y="16" width="6" height="12" rx="3" fill={accent} opacity="0.70" />
+      {/* Retention clip highlight */}
+      <path d="M14 42 Q40 50 66 42" stroke={accent} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.8" />
+      {/* Visor brim */}
+      <path d="M14 42 Q10 46 12 50 Q40 56 68 50 Q70 46 66 42" fill={shell} opacity="0.65" />
+    </svg>
+  );
+}
+
+/** Aero TT helmet: elongated teardrop tail, smooth shell, no vents. */
+function HelmetAeroSvg({ shell, accent }: { shell: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 90 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-full">
+      {/* Teardrop shell */}
+      <path d="M8 36 Q8 12 38 10 Q58 10 72 18 Q84 26 82 40 L76 44 Q50 52 18 44Z" fill={shell} opacity="0.93" />
+      {/* Aero tail */}
+      <path d="M72 18 Q86 24 84 38 L76 44 Q80 32 72 18Z" fill={shell} opacity="0.75" />
+      {/* Single center seam line */}
+      <path d="M36 10 Q44 10 72 18" stroke={accent} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.6" />
+      {/* Gloss highlight */}
+      <path d="M20 20 Q34 14 50 16" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.25" />
+      {/* Retention buckle strip */}
+      <path d="M18 44 Q50 54 76 44" stroke={accent} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.85" />
+      {/* Visor edge */}
+      <path d="M8 36 Q6 42 10 46 Q14 50 18 44" fill={accent} opacity="0.55" />
+    </svg>
+  );
+}
+
+/** Road Vent helmet: round shell with generous vent channels and a short visor. */
+function HelmetRoadSvg({ shell, accent }: { shell: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-full">
+      {/* Main shell */}
+      <path d="M12 38 Q12 8 40 8 Q68 8 68 38 L64 43 Q40 50 16 43Z" fill={shell} opacity="0.90" />
+      {/* Large vent channels */}
+      <rect x="19" y="14" width="7" height="16" rx="3.5" fill={accent} opacity="0.65" />
+      <rect x="30" y="11" width="7" height="18" rx="3.5" fill={accent} opacity="0.65" />
+      <rect x="41" y="11" width="7" height="18" rx="3.5" fill={accent} opacity="0.65" />
+      <rect x="52" y="14" width="7" height="16" rx="3.5" fill={accent} opacity="0.65" />
+      {/* Retention harness line */}
+      <path d="M16 43 Q40 52 64 43" stroke={accent} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.9" />
+      {/* Short front visor */}
+      <path d="M12 38 Q8 43 10 47 Q14 50 20 46 L16 43Z" fill={shell} opacity="0.70" />
+      {/* Shell highlight */}
+      <path d="M22 16 Q34 10 50 12" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.20" />
+    </svg>
+  );
+}
+
+/** Pro Aero helmet: aggressive low-profile teardrop with accent trim lines. */
+function HelmetProSvg({ shell, accent }: { shell: string; accent: string }) {
+  return (
+    <svg viewBox="0 0 90 58" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-full">
+      {/* Extended teardrop shell */}
+      <path d="M6 34 Q6 10 36 8 Q62 8 78 22 Q88 32 86 44 L78 48 Q50 56 16 46Z" fill={shell} opacity="0.95" />
+      {/* Long aero tail fin */}
+      <path d="M78 22 Q92 30 88 44 L78 48 Q84 38 78 22Z" fill={shell} opacity="0.70" />
+      {/* Accent trim lines */}
+      <path d="M16 46 Q50 56 78 48" stroke={accent} strokeWidth="3" strokeLinecap="round" fill="none" opacity="0.90" />
+      <path d="M34 8 Q62 8 78 22" stroke={accent} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.55" />
+      {/* Accent stripe along flank */}
+      <path d="M10 30 Q30 18 60 16 Q74 16 82 26" stroke={accent} strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.40" />
+      {/* Gloss highlight */}
+      <path d="M18 18 Q36 10 56 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none" opacity="0.22" />
+      {/* Visor cutout */}
+      <path d="M6 34 Q4 40 8 44 Q12 48 16 46 L10 38Z" fill={accent} opacity="0.50" />
+    </svg>
+  );
+}
+
+/** Dispatch the right SVG by helmet id, tinted with the user's avatar.helmet color. */
+function HelmetVisual({
+  item,
+  helmetColor,
+  size = 'md',
+}: {
+  item: HelmetItem;
+  helmetColor: string;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const h = size === 'sm' ? 'h-10' : size === 'lg' ? 'h-20' : 'h-14';
+  // Blend catalog accentColor with avatar helmet tint: use accentColor as-is,
+  // override the shell with the user's chosen helmet color.
+  const shell  = helmetColor;
+  const accent = item.accentColor;
+
+  const svgProps = { shell, accent };
+
+  return (
+    <div className={cn(h, 'w-full flex items-center justify-center px-2')}>
+      {item.id === 'helmet-aero' && <HelmetAeroSvg  {...svgProps} />}
+      {item.id === 'helmet-road' && <HelmetRoadSvg  {...svgProps} />}
+      {item.id === 'helmet-pro'  && <HelmetProSvg   {...svgProps} />}
+      {item.id === 'helmet-starter' && <HelmetStarterSvg {...svgProps} />}
+      {/* Fallback for any future helmets */}
+      {!['helmet-aero', 'helmet-road', 'helmet-pro', 'helmet-starter'].includes(item.id) && (
+        <HelmetStarterSvg {...svgProps} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helmet gear card
+// ---------------------------------------------------------------------------
+
+function HelmetCard({
+  item,
+  unlocked,
+  equipped,
+  xp,
+  helmetColor,
+  onEquip,
+}: {
+  item: HelmetItem;
+  unlocked: boolean;
+  equipped: boolean;
+  xp: number;
+  helmetColor: string;
+  onEquip: () => void;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  // Reuse the same LockedTooltip shape — build a minimal GearItem-compatible object
+  const fakeGearItem: GearItem = {
+    id: item.id,
+    name: item.name,
+    kind: 'helmet',
+    unlockLevel: item.unlockLevel,
+    colors: {
+      frame: item.defaultColor,
+      wheel: item.defaultColor,
+      kit: item.defaultColor,
+      skin: '#d8a877',
+      helmet: item.defaultColor,
+      accent: item.accentColor,
+    },
+  };
+
+  return (
+    <div
+      className={cn(
+        'relative flex flex-col gap-2 rounded-xl border p-3 transition-all duration-200 select-none',
+        unlocked
+          ? equipped
+            ? 'border-primary/50 bg-primary/6 ring-1 ring-primary/25 shadow-[0_0_18px_-4px_hsl(var(--primary)/0.30)]'
+            : 'border-border bg-card/40 hover:border-border/70 hover:bg-card/60 hover:-translate-y-0.5 hover:shadow-md cursor-pointer'
+          : 'border-border/30 bg-card/15 opacity-60 cursor-pointer',
+      )}
+      onClick={() => {
+        if (!unlocked) { setShowTooltip((v) => !v); return; }
+        if (!equipped) onEquip();
+      }}
+      role={unlocked && !equipped ? 'button' : undefined}
+      aria-label={
+        unlocked
+          ? equipped
+            ? `${item.name} — currently equipped`
+            : `Equip ${item.name}`
+          : `${item.name} — locked until level ${item.unlockLevel}`
+      }
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (!unlocked) { setShowTooltip((v) => !v); return; }
+          if (!equipped) onEquip();
+        }
+        if (e.key === 'Escape') setShowTooltip(false);
+      }}
+    >
+      {/* Equipped glow accent bar */}
+      {equipped && (
+        <div className="absolute inset-x-0 top-0 h-0.5 rounded-t-xl bg-gradient-to-r from-primary/60 via-primary to-accent/60" />
+      )}
+
+      {/* Helmet visual */}
+      <HelmetVisual item={item} helmetColor={helmetColor} size="md" />
+
+      {/* Name + kind chip */}
+      <div className="flex items-start justify-between gap-1 min-w-0">
+        <div className="min-w-0">
+          <div className="text-xs font-bold text-foreground truncate leading-tight">{item.name}</div>
+          <div className="text-[9px] text-muted-foreground uppercase tracking-widest mt-0.5">HELMET</div>
+        </div>
+        {/* Color dot pair */}
+        <div className="flex gap-0.5 shrink-0 mt-0.5">
+          {[item.defaultColor, item.accentColor].map((c, i) => (
+            <div
+              key={i}
+              className="h-2.5 w-2.5 rounded-full ring-1 ring-inset ring-black/10"
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Status row */}
+      <div className="flex items-center gap-1 min-h-[20px]">
+        {unlocked ? (
+          equipped ? (
+            <Badge variant="success" className="gap-1 text-[10px] px-1.5 py-0.5">
+              <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
+              Equipped
+            </Badge>
+          ) : (
+            <span className="text-[11px] font-medium text-primary/80">Tap to equip</span>
+          )
+        ) : (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Lock className="h-2.5 w-2.5 text-amber-400" aria-hidden="true" />
+            <span className="font-medium">Level {item.unlockLevel}</span>
+            <span className="text-muted-foreground/60">·</span>
+            <span className="num">{xpForLevel(item.unlockLevel).toLocaleString()} XP</span>
+          </div>
+        )}
+      </div>
+
+      {/* XP progress for locked items */}
+      {!unlocked && (
+        <div className="h-1 w-full rounded-full bg-muted/40 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-amber-500/70 to-amber-300/70 transition-all duration-500"
+            style={{ width: `${(Math.min(1, xp / xpForLevel(item.unlockLevel)) * 100).toFixed(1)}%` }}
+          />
+        </div>
+      )}
+
+      {/* Locked tooltip */}
+      {showTooltip && !unlocked && (
+        <LockedTooltip item={fakeGearItem} xp={xp} onClose={() => setShowTooltip(false)} />
+      )}
+    </div>
   );
 }
 
@@ -389,10 +640,12 @@ function GearCard({
 function ActiveGearSummary({
   equippedBike,
   equippedKit,
+  equippedHelmet,
   onCustomize,
 }: {
   equippedBike: GearItem | undefined;
   equippedKit: GearItem | undefined;
+  equippedHelmet: HelmetItem | undefined;
   onCustomize: () => void;
 }) {
   const avatar = useSettingsStore((s) => s.avatar);
@@ -448,6 +701,24 @@ function ActiveGearSummary({
           )}
           <div className="text-[10px] font-semibold text-foreground truncate">
             {equippedKit?.name ?? 'Custom'}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px bg-border/50 self-stretch" />
+
+        {/* Helmet preview */}
+        <div className="flex-1 flex flex-col gap-1.5">
+          <div className="text-[9px] uppercase tracking-widest text-muted-foreground/70">Helmet</div>
+          {equippedHelmet ? (
+            <div className="h-10 w-full">
+              <HelmetVisual item={equippedHelmet} helmetColor={avatar.helmet} size="sm" />
+            </div>
+          ) : (
+            <div className="h-10 flex items-center text-[10px] text-muted-foreground">Default</div>
+          )}
+          <div className="text-[10px] font-semibold text-foreground truncate">
+            {equippedHelmet?.name ?? 'Custom'}
           </div>
         </div>
 
@@ -668,36 +939,48 @@ function ColorModal({
 // ---------------------------------------------------------------------------
 
 export function Garage() {
-  const xp       = useProfileStore((s) => s.profile?.xp ?? 0);
-  const avatar   = useSettingsStore((s) => s.avatar);
+  const xp          = useProfileStore((s) => s.profile?.xp ?? 0);
+  const avatar      = useSettingsStore((s) => s.avatar);
+  const helmetId    = useSettingsStore((s) => s.helmetId);
   const setSettings = useSettingsStore((s) => s.setSettings);
 
   const { level, into, needed, pct } = xpProgressInLevel(xp);
 
-  // Active category tab
+  // Active category tab — helmets tab is always present (HELMETS is non-empty)
   const availableKinds = CATEGORY_CONFIG.filter((c) =>
-    GEAR_CATALOG.some((g) => g.kind === c.kind),
+    c.kind === 'helmet'
+      ? HELMETS.length > 0
+      : GEAR_CATALOG.some((g) => g.kind === c.kind),
   );
   const [activeKind, setActiveKind] = useState<GearKind>(availableKinds[0]?.kind ?? 'bike');
   const [showColorModal, setShowColorModal] = useState(false);
 
-  /** Items in the active category, sorted by unlockLevel ascending. */
-  const categoryItems = GEAR_CATALOG
-    .filter((g) => g.kind === activeKind)
-    .sort((a, b) => a.unlockLevel - b.unlockLevel);
+  /** Items in the active category (bikes/kits), sorted by unlockLevel ascending. */
+  const categoryItems = activeKind !== 'helmet'
+    ? GEAR_CATALOG.filter((g) => g.kind === activeKind).sort((a, b) => a.unlockLevel - b.unlockLevel)
+    : [];
 
-  /** True if this gear item's colors exactly match the current avatar. */
+  /** Helmets sorted by unlockLevel ascending. */
+  const helmetItems = HELMETS.slice().sort((a, b) => a.unlockLevel - b.unlockLevel);
+
+  /** True if a GearItem's colors exactly match the current avatar. */
   const isEquipped = useCallback(
     (item: GearItem) => AVATAR_COLOR_ROLES.every((r) => item.colors[r.key] === avatar[r.key]),
     [avatar],
   );
 
-  const equippedBike = GEAR_CATALOG.find((g) => g.kind === 'bike' && isEquipped(g));
-  const equippedKit  = GEAR_CATALOG.find((g) => g.kind === 'kit'  && isEquipped(g));
+  const equippedBike    = GEAR_CATALOG.find((g) => g.kind === 'bike' && isEquipped(g));
+  const equippedKit     = GEAR_CATALOG.find((g) => g.kind === 'kit'  && isEquipped(g));
+  const equippedHelmet  = HELMETS.find((h) => h.id === helmetId);
 
   // Empty state: user is still at level 1 with only the starter kit
   const totalUnlocked = GEAR_CATALOG.filter((g) => g.unlockLevel <= level).length;
   const showEarnMore  = totalUnlocked <= 1;
+
+  // Count helpers for the tab badges
+  function helmetUnlockedCount() {
+    return HELMETS.filter((h) => h.unlockLevel <= level).length;
+  }
 
   return (
     <>
@@ -730,6 +1013,7 @@ export function Garage() {
           <ActiveGearSummary
             equippedBike={equippedBike}
             equippedKit={equippedKit}
+            equippedHelmet={equippedHelmet}
             onCustomize={() => setShowColorModal(true)}
           />
 
@@ -739,29 +1023,35 @@ export function Garage() {
             role="tablist"
             aria-label="Gear categories"
           >
-            {availableKinds.map((cat) => (
-              <button
-                key={cat.kind}
-                role="tab"
-                aria-selected={activeKind === cat.kind}
-                aria-label={`Show ${cat.label}`}
-                onClick={() => setActiveKind(cat.kind)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-                  activeKind === cat.kind
-                    ? 'bg-card text-primary shadow-sm ring-1 ring-inset ring-border/60'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                )}
-              >
-                <span aria-hidden="true">{cat.icon}</span>
-                {cat.label}
-                <span className="ml-0.5 rounded-full bg-muted/60 px-1.5 py-0.5 text-[9px] num">
-                  {GEAR_CATALOG.filter((g) => g.kind === cat.kind && g.unlockLevel <= level).length}
-                  /
-                  {GEAR_CATALOG.filter((g) => g.kind === cat.kind).length}
-                </span>
-              </button>
-            ))}
+            {availableKinds.map((cat) => {
+              const unlockedCount = cat.kind === 'helmet'
+                ? helmetUnlockedCount()
+                : GEAR_CATALOG.filter((g) => g.kind === cat.kind && g.unlockLevel <= level).length;
+              const totalCount = cat.kind === 'helmet'
+                ? HELMETS.length
+                : GEAR_CATALOG.filter((g) => g.kind === cat.kind).length;
+              return (
+                <button
+                  key={cat.kind}
+                  role="tab"
+                  aria-selected={activeKind === cat.kind}
+                  aria-label={`Show ${cat.label}`}
+                  onClick={() => setActiveKind(cat.kind)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    activeKind === cat.kind
+                      ? 'bg-card text-primary shadow-sm ring-1 ring-inset ring-border/60'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                  )}
+                >
+                  <span aria-hidden="true">{cat.icon}</span>
+                  {cat.label}
+                  <span className="ml-0.5 rounded-full bg-muted/60 px-1.5 py-0.5 text-[9px] num">
+                    {unlockedCount}/{totalCount}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* ── Earn XP hero (when near-empty loadout) ── */}
@@ -770,8 +1060,8 @@ export function Garage() {
               <Sparkles className="h-6 w-6 text-primary/50 mx-auto" aria-hidden="true" />
               <div className="text-xs font-semibold text-foreground">Unlock your garage</div>
               <div className="text-[11px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                Complete rides to earn XP and unlock premium bikes, kits, and more. Each kilometer
-                earns 10 XP — finishing a workout adds 250 XP.
+                Complete rides to earn XP and unlock premium bikes, kits, helmets, and more. Each
+                kilometer earns 10 XP — finishing a workout adds 250 XP.
               </div>
               <div className="inline-flex items-center gap-1 text-[11px] text-primary font-medium">
                 <ChevronRight className="h-3 w-3" />
@@ -780,24 +1070,48 @@ export function Garage() {
             </div>
           )}
 
-          {/* ── Gear grid ── */}
-          <div
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-            role="list"
-            aria-label={`${availableKinds.find((c) => c.kind === activeKind)?.label ?? 'Gear'} collection`}
-          >
-            {categoryItems.map((item) => (
-              <div key={item.id} role="listitem">
-                <GearCard
-                  item={item}
-                  unlocked={item.unlockLevel <= level}
-                  equipped={isEquipped(item)}
-                  xp={xp}
-                  onEquip={() => setSettings({ avatar: item.colors })}
-                />
-              </div>
-            ))}
-          </div>
+          {/* ── Gear grid (bikes + kits) ── */}
+          {activeKind !== 'helmet' && (
+            <div
+              className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+              role="list"
+              aria-label={`${availableKinds.find((c) => c.kind === activeKind)?.label ?? 'Gear'} collection`}
+            >
+              {categoryItems.map((item) => (
+                <div key={item.id} role="listitem">
+                  <GearCard
+                    item={item}
+                    unlocked={item.unlockLevel <= level}
+                    equipped={isEquipped(item)}
+                    xp={xp}
+                    onEquip={() => setSettings({ avatar: item.colors })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Helmet grid ── */}
+          {activeKind === 'helmet' && (
+            <div
+              className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+              role="list"
+              aria-label="Helmets collection"
+            >
+              {helmetItems.map((item) => (
+                <div key={item.id} role="listitem">
+                  <HelmetCard
+                    item={item}
+                    unlocked={item.unlockLevel <= level}
+                    equipped={helmetId === item.id}
+                    xp={xp}
+                    helmetColor={avatar.helmet}
+                    onEquip={() => setSettings({ helmetId: item.id })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
         </div>
       </Section>
