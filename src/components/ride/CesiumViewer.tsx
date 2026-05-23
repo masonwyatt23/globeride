@@ -318,7 +318,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const currentRoute = useRideStore.getState().route;
     if (currentRoute && weatherSystemRef.current) {
       const mood = moodForRoute(currentRoute);
-      const weatherKind = resolveWeatherKind(mood);
+      const weatherKind = resolveWeatherKind(resolvedMood);
       weatherSystemRef.current.dispose();
       weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, graphicsQuality);
     }
@@ -396,7 +396,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // ---- Spawn weather particles for this route's mood ----
     // resolveWeatherKind handles both the current string SceneMood and the
     // extended object form that Wave 20.A adds (weather?: WeatherKind field).
-    const weatherKind = resolveWeatherKind(mood);
+    const weatherKind = resolveWeatherKind(resolvedMood);
     const currentQuality = useSettingsStore.getState().graphicsQuality;
     weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
 
