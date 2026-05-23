@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, Pause, Square, Save, RotateCcw, Upload,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { buildFit, downloadFit } from '@/lib/fitExporter';
@@ -35,7 +36,12 @@ export function RideControls() {
   const startedAt = useRideStore((s) => s.startedAt);
   const route     = useRideStore((s) => s.route);
 
+  const autoUploadStrava = useSettingsStore((s) => s.autoUploadStrava);
+
   const [uploadState, setUploadState] = useState<UploadState>({ phase: 'idle' });
+
+  // Prevents the auto-upload effect from firing more than once per ride instance.
+  const hasAutoUploadedRef = useRef(false);
 
   const handleExport = useCallback(() => {
     if (!startedAt || samples.length === 0) return;
@@ -77,6 +83,21 @@ export function RideControls() {
       }
     }
   }, [startedAt, samples, route?.name, uploadState.phase]);
+
+  // Auto-upload: fires once when the ride finishes, Strava is connected,
+  // the preference is on, and there are recorded samples.
+  useEffect(() => {
+    if (
+      rideState === 'finished' &&
+      autoUploadStrava &&
+      stravaCredsPresent() &&
+      samples.length > 0 &&
+      !hasAutoUploadedRef.current
+    ) {
+      hasAutoUploadedRef.current = true;
+      handleStravaUpload();
+    }
+  }, [rideState, autoUploadStrava, samples.length, handleStravaUpload]);
 
   if (!route) return null;
 

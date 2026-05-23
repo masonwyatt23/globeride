@@ -32,6 +32,8 @@ export interface RiderSettings {
   avatar: AvatarColors;
   /** 3-D globe rendering quality tier. */
   graphicsQuality: GraphicsQuality;
+  /** Automatically upload the .FIT to Strava when a ride finishes (requires Strava connected). */
+  autoUploadStrava: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -48,6 +50,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   units: 'metric',
   avatar: DEFAULT_AVATAR_COLORS,
   graphicsQuality: 'high' as GraphicsQuality,
+  autoUploadStrava: true,
 };
 
 interface SettingsStoreState extends RiderSettings {
@@ -81,6 +84,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           units: s.units,
           avatar: s.avatar,
           graphicsQuality: s.graphicsQuality,
+          autoUploadStrava: s.autoUploadStrava,
         }) satisfies RiderSettings,
     },
   ),

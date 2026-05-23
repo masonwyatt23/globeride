@@ -166,6 +166,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 type StravaFlowStep = 'idle' | 'waiting_code' | 'exchanging' | 'done';
 
 function StravaSection() {
+  const autoUploadStrava = useSettingsStore((st) => st.autoUploadStrava);
+  const setSettings = useSettingsStore((st) => st.setSettings);
+
   const [verifyResult, setVerifyResult] = useState<StravaVerifyResult | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [flowStep, setFlowStep] = useState<StravaFlowStep>('idle');
@@ -266,6 +269,24 @@ function StravaSection() {
             {verifying ? 'Checking…' : 'Test connection'}
           </button>
         </div>
+
+        {/* Auto-upload toggle */}
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2 cursor-pointer select-none">
+          <div>
+            <p className="text-xs font-medium text-foreground">Auto-upload finished rides</p>
+            <p className="text-[11px] text-muted-foreground">
+              Automatically upload to Strava when a ride finishes (requires Strava connected)
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Auto-upload finished rides to Strava"
+            checked={autoUploadStrava}
+            onChange={(e) => setSettings({ autoUploadStrava: e.target.checked })}
+            className="h-4 w-4 accent-primary cursor-pointer shrink-0"
+          />
+        </label>
 
         {/* Insufficient scope warning */}
         {verifyResult && !verifyResult.ok && verifyResult.error?.kind === 'insufficient_scope' && (
