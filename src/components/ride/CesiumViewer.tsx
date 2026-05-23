@@ -318,7 +318,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const currentRoute = useRideStore.getState().route;
     if (currentRoute && weatherSystemRef.current) {
       const mood = moodForRoute(currentRoute);
-      const weatherKind = resolveWeatherKind(resolvedMood);
+      const weatherKind = resolveWeatherKind(mood);
       weatherSystemRef.current.dispose();
       weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, graphicsQuality);
     }
