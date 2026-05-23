@@ -8,6 +8,8 @@ import { RouteSearch } from '@/components/setup/RouteSearch';
 import { RouteDrawer } from '@/components/routes/RouteDrawer';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
+import { ExploreMarkers } from '@/components/explore/ExploreMarkers';
+import { ExploreIntro } from '@/components/explore/ExploreIntro';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -51,6 +53,10 @@ export function Explore() {
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">
       <CesiumViewer ionToken={token} />
+      {/* Discovery overlay — pulsing globe pins for every curated route */}
+      <ExploreMarkers />
+      {/* Intro caption pill */}
+      <ExploreIntro />
 
       {/* Top overlay: back + search */}
       <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4 pointer-events-none">
