@@ -28,6 +28,7 @@ import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
+import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -51,6 +52,7 @@ export function Ride() {
   useWorkoutEngine();
   useRideHistoryRecorder();
   useRideAudio();
+  useCompanionReceiver();  // phone companion — ingests phone HR/cadence + handles remote control
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
