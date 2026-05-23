@@ -8,6 +8,16 @@ import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { Onboarding } from '@/components/profile/Onboarding';
 import { AchievementToast } from '@/components/ride/AchievementToast';
+import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
+
+/**
+ * Thin wrapper so the race result auto-toast hook can be called inside the
+ * React tree (hooks must live in a component). Renders nothing.
+ */
+function RaceResultAutoToast() {
+  useRaceResultCardAutoToast();
+  return null;
+}
 
 export default function App() {
   return (
@@ -25,6 +35,8 @@ export default function App() {
       <Toaster />
       <Onboarding />
       <AchievementToast />
+      {/* Race result card auto-toast — surfaces "Download result card" after a race */}
+      <RaceResultAutoToast />
     </BrowserRouter>
   );
 }
