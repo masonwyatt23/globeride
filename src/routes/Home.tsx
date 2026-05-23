@@ -41,6 +41,7 @@ import { IconicRoutes } from '@/components/routes/IconicRoutes';
 import { WorldTourStages } from '@/components/routes/WorldTourStages';
 import { AIRouteRecommender } from '@/components/routes/AIRouteRecommender';
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
+import { AICoach } from '@/components/training/AICoach';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -610,6 +611,7 @@ export function Home() {
                 {route && <SegmentLeaderboard route={route} className="mt-4" />}
               </CardContent>
             </Card>
+            <AICoach />
             <FitnessChart />
             <PersonalRecords />
           </div>

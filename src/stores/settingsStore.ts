@@ -36,6 +36,8 @@ export interface RiderSettings {
   autoUploadStrava: boolean;
   /** Currently equipped helmet id — defaults to the level-0 starter. */
   helmetId: string;
+  /** Free-form training goal persisted for the AI coach (e.g. "build base for a century"). */
+  coachGoal: string;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   graphicsQuality: 'high' as GraphicsQuality,
   autoUploadStrava: true,
   helmetId: 'helmet-starter',
+  coachGoal: '',
 };
 
 interface SettingsStoreState extends RiderSettings {
@@ -89,6 +92,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           graphicsQuality: s.graphicsQuality,
           autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
+          coachGoal: s.coachGoal,
         }) satisfies RiderSettings,
     },
   ),
