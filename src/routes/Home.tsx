@@ -34,6 +34,7 @@ import { ElevationProfile } from '@/components/ride/ElevationProfile';
 import { RouteLibrary } from '@/components/routes/RouteLibrary';
 import { RoutePreview } from '@/components/routes/RoutePreview';
 import { IconicRoutes } from '@/components/routes/IconicRoutes';
+import { AIRouteRecommender } from '@/components/routes/AIRouteRecommender';
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { Button } from '@/components/ui/button';
@@ -340,6 +341,18 @@ export function Home() {
         {/* ROUTES tab */}
         <HomeTabPanel id="routes" activeTab={activeTab}>
           <div className="space-y-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Generate a scenic route
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AIRouteRecommender onPicked={() => navigate('/ride')} />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
