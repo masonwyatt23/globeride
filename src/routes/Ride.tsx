@@ -31,6 +31,7 @@ import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { RideAnalytics } from '@/components/ride/RideAnalytics';
+import { ShareCard } from '@/components/ride/ShareCard';
 import { formatDistance, formatDuration, msToKmh, cn } from '@/lib/utils';
 import { computeMetrics } from '@/lib/metrics';
 
@@ -424,7 +425,10 @@ function FinishCard() {
           <RideAnalytics />
 
           {/* ---- Export / Strava controls ---- */}
-          <RideControls />
+          <div className="flex flex-wrap gap-2 items-center">
+            <RideControls />
+            <ShareCard />
+          </div>
         </CardContent>
       </Card>
     </div>
