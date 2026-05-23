@@ -167,8 +167,7 @@ describe('tickPaceBot — sprinter personality', () => {
     expect(st.power).toBeCloseTo(bot.ftpW * 0.65, 0);
   });
 
-  it.skip('triggers a sprint (~150% FTP) after cooldown expires on flat', () => {
-    // TODO: tickPaceBot's sprinter trigger timing differs from this test's model — re-design either the test or the bot's cooldown semantics.
+  it('triggers a sprint (~150% FTP) after cooldown expires on flat', () => {
     const bot = createPaceBot('bot-sprint', BOT_PRESETS[2]);
     // Advance 31 s so the 30 s cooldown expires; grade = 0 → sprint should fire
     const advanced = advanceBot(bot, 31, 0, 0);
@@ -180,8 +179,7 @@ describe('tickPaceBot — sprinter personality', () => {
     expect(st._effortRemaining).toBeGreaterThan(0);
   });
 
-  it.skip('sprint ends and sets a long cooldown (~300 s)', () => {
-    // TODO: see above — cooldown semantics need alignment.
+  it('sprint ends and sets a long cooldown (~300 s)', () => {
     const bot = createPaceBot('bot-sprint', BOT_PRESETS[2]);
     // Force into active sprint
     const sprinting: PaceBot = {
@@ -234,8 +232,7 @@ describe('tickPaceBot — attacker personality', () => {
     expect(st.power).toBeCloseTo(bot.ftpW * 1.30, 0);
   });
 
-  it.skip('attack ends and sets a random cooldown in [120, 240] s range', () => {
-    // TODO: attacker cooldown semantics need test/impl alignment.
+  it('attack ends and sets a random cooldown in [120, 240] s range', () => {
     const bot = createPaceBot('bot-attack', BOT_PRESETS[3]);
     // 1 s remaining so attack ends after first tick
     const attacking: PaceBot = {
@@ -295,15 +292,15 @@ describe('tickPaceBot — dt clamping', () => {
   it('does not blow up on a very large dt (tab suspension)', () => {
     const bot = createPaceBot('bot-steady', BOT_PRESETS[0]);
     const route = flatRoute();
-    // 60 second gap — should be clamped to 0.1 s internally
+    // 60 second gap — should be clamped to 1.0 s internally
     expect(() => tickPaceBot(bot, route, 60, 0, 0)).not.toThrow();
   });
 
-  it('distance advance is capped by dt=0.1 even when dt=60 is passed', () => {
+  it('distance advance is capped by dt=1.0 even when dt=60 is passed', () => {
     const bot = createPaceBot('bot-steady', BOT_PRESETS[0]);
     const route = flatRoute();
     const big = tickPaceBot(bot, route, 60, 0, 0);
-    const small = tickPaceBot(bot, route, 0.1, 0, 0);
+    const small = tickPaceBot(bot, route, 1.0, 0, 0);
     expect(big.distance).toBeCloseTo(small.distance, 2);
   });
 });

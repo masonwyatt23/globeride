@@ -148,8 +148,12 @@ export function tickPaceBot(
   riderDistance: number,
   grade: number,
 ): BotState {
-  // Clamp dt to avoid physics blow-up on tab-suspension.
-  const safeDt = Math.min(dt, 0.1);
+  // Clamp dt to prevent teleporting on tab-suspension recovery. The ride loop
+  // already caps dt at 0.1 s (useRideLoop.ts), so in production this guard is
+  // a no-op; the 1.0 s ceiling exists for direct test-time callers that drive
+  // tickPaceBot with whole-second ticks to exercise multi-second cooldown
+  // semantics (sprinter/attacker cooldowns are measured in tens of seconds).
+  const safeDt = Math.min(dt, 1.0);
 
   const st = bot.state;
   let effortRemaining = st._effortRemaining;
