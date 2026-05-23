@@ -27,6 +27,8 @@ import { useSegmentStore } from '@/stores/segmentStore';
 // ADDITIVE: achievement evaluation
 import { useAchievementStore } from '@/stores/achievementStore';
 import { enqueueAchievementToast } from '@/components/ride/AchievementToast';
+// ADDITIVE: World Tour stage detection (static import — no async needed)
+import { WORLD_TOUR_STAGES } from '@/lib/worldTourStages';
 
 const MIN_DURATION_SEC = 30;
 
@@ -101,15 +103,46 @@ export function useRideHistoryRecorder(): void {
           !!activeWorkout &&
           workoutElapsedSec > 0 &&
           workoutElapsedSec >= totalDurationSec(activeWorkout);
-        useProfileStore.getState().recordRide({
-          distanceM: distanceM,
+
+        // ── Wave 17-23 extra ride metadata ──────────────────────────────────
+        // Draft seconds: accumulated via _rideDraftSec on the ride store when
+        // the draft-accumulator extension is present; otherwise 0.
+        const draftSec: number = (s as { _rideDraftSec?: number })._rideDraftSec ?? 0;
+
+        // Bots: rider beat all bots when all bot distances are behind the rider.
+        const paceBots = s.paceBots ?? [];
+        const beatAllBots =
+          paceBots.length > 0 &&
+          paceBots.every((bot) => bot.state.distance < s.distance);
+
+        // World Tour stage: synchronous check against statically-imported catalog.
+        const isWorldTourStage = route
+          ? WORLD_TOUR_STAGES.some((wts) => wts.route.id === route.id)
+          : false;
+
+        // Companion opened: flag set by useCompanionReceiver during this session.
+        const companionOpenedThisRide: boolean =
+          (s as { _companionOpenedThisRide?: boolean })._companionOpenedThisRide ?? false;
+
+        // Mood: set by CesiumViewer/RideStore extension when available.
+        const mood: string | undefined =
+          (s as { _activeMood?: string })._activeMood;
+
+        const rideInput = {
+          distanceM,
           ascentM: record.ascentM,
           workoutCompleted,
-        });
+          draftSec,
+          beatAllBots,
+          isWorldTourStage,
+          companionOpenedThisRide,
+          mood,
+        };
+
+        useProfileStore.getState().recordRide(rideInput);
 
         // ADDITIVE: evaluate achievements against the post-ride profile snapshot.
         try {
-          const rideInput = { distanceM, ascentM: record.ascentM, workoutCompleted };
           const updatedProfile = useProfileStore.getState().profile;
           if (updatedProfile) {
             const newAchievements = useAchievementStore.getState().evaluateRide(updatedProfile, rideInput);

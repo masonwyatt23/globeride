@@ -23,6 +23,7 @@ import {
   verifyStravaAccess,
   clearCachedToken,
   stravaCredsPresent,
+  stravaErrorSummary,
   StravaError,
   type StravaUploadRecord,
   type UploadState,
@@ -790,5 +791,162 @@ describe('sessionStorage refresh token override precedence', () => {
     // The override token must appear in the POST body, not the env-var value
     expect(capturedBody).toContain('sessionStorage-override-rt');
     expect(capturedBody).not.toContain('test-refresh-token');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. stravaErrorSummary — human-readable messages for every error kind
+// ---------------------------------------------------------------------------
+
+describe('stravaErrorSummary', () => {
+  it('returns the rate_limited message for HTTP 429 errors', () => {
+    const err = new StravaError('too many requests', 'rate_limited', 429);
+    expect(stravaErrorSummary(err)).toBe('Strava rate limit reached — wait a minute and try again.');
+  });
+
+  it('returns a message containing the original error text for unknown kind', () => {
+    const err = new StravaError('something unexpected happened', 'unknown', 500);
+    const summary = stravaErrorSummary(err);
+    expect(summary).toContain('something unexpected happened');
+  });
+
+  it('returns correct summaries for all named error kinds', () => {
+    const cases: Array<[import('@/lib/strava').StravaErrorKind, string]> = [
+      ['creds_missing',      'credentials are not configured'],
+      ['refresh_failed',     'rejected the refresh token'],
+      ['insufficient_scope', 'activity:write'],
+      ['duplicate_activity', 'Duplicate'],
+      ['processing_error',   'could not process'],
+      ['network_error',      'network connection'],
+      ['rate_limited',       'rate limit'],
+      ['timeout',            'too long'],
+    ];
+    for (const [kind, fragment] of cases) {
+      const err = new StravaError('msg', kind);
+      expect(stravaErrorSummary(err)).toMatch(new RegExp(fragment, 'i'));
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. uploadFit — rate-limited (429) throws kind=rate_limited
+// ---------------------------------------------------------------------------
+
+describe('uploadFit — rate limiting', () => {
+  let originalFetch: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: makeLocalStorageMock(),
+      writable: true,
+      configurable: true,
+    });
+    clearCachedToken();
+    clearRefreshTokenOverride();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    clearCachedToken();
+    clearRefreshTokenOverride();
+    vi.useRealTimers();
+  });
+
+  it('throws StravaError with kind=rate_limited on upload HTTP 429', async () => {
+    vi.useFakeTimers();
+
+    const fetchMock = mockFetch([
+      tokenResponse,
+      { ok: false, status: 429, text: 'Too Many Requests' },
+    ]);
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const blob = new Blob(['fake-fit'], { type: 'application/vnd.ant.fit' });
+    const uploadPromise = uploadFit(blob, { name: 'Rate limited ride' });
+    const assertion = expect(uploadPromise).rejects.toSatisfy(
+      (e: unknown) => e instanceof StravaError && e.kind === 'rate_limited' && e.statusCode === 429,
+    );
+    await vi.runAllTimersAsync();
+    await assertion;
+  });
+
+  // TODO: add retry-on-429 test once uploadFit implements automatic back-off retries
+});
+
+// ---------------------------------------------------------------------------
+// 10. Uploaded-ride hash cache — write/read/eviction
+// ---------------------------------------------------------------------------
+
+describe('uploaded-ride hash cache (globeride.strava.uploaded.v1)', () => {
+  const CACHE_KEY = 'globeride.strava.uploaded.v1';
+  const CAP = 20;
+  let lsMock: ReturnType<typeof makeLocalStorageMock>;
+
+  beforeEach(() => {
+    lsMock = makeLocalStorageMock();
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: lsMock,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  /** Minimal inline implementations of the cache helpers (mirrors RideControls logic). */
+  function isUploaded(key: string): boolean {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+      return cache.includes(key);
+    } catch { return false; }
+  }
+
+  function markUploaded(key: string): void {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+      if (!cache.includes(key)) {
+        cache.push(key);
+        if (cache.length > CAP) cache.splice(0, cache.length - CAP);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+      }
+    } catch { /* ignore */ }
+  }
+
+  it('writes a ride key and reads it back correctly', () => {
+    const key = '1700000000000';
+    expect(isUploaded(key)).toBe(false);
+    markUploaded(key);
+    expect(isUploaded(key)).toBe(true);
+  });
+
+  it('does not duplicate a key that is already in the cache', () => {
+    markUploaded('key-a');
+    markUploaded('key-a');
+    const stored = JSON.parse(lsMock.getItem(CACHE_KEY) ?? '[]') as string[];
+    expect(stored.filter((k) => k === 'key-a').length).toBe(1);
+  });
+
+  it('returns false for a key not in the cache', () => {
+    markUploaded('key-present');
+    expect(isUploaded('key-absent')).toBe(false);
+  });
+
+  it('evicts the oldest entry when the cache exceeds 20 entries', () => {
+    // Fill to exactly CAP entries
+    for (let i = 0; i < CAP; i++) markUploaded(`ride-${i}`);
+    // Adding one more should drop 'ride-0'
+    markUploaded('ride-new');
+    const stored = JSON.parse(lsMock.getItem(CACHE_KEY) ?? '[]') as string[];
+    expect(stored.length).toBe(CAP);
+    expect(stored).not.toContain('ride-0');
+    expect(stored).toContain('ride-new');
+    expect(stored).toContain(`ride-${CAP - 1}`);
+  });
+
+  it('keeps the cache at exactly 20 entries after many writes', () => {
+    for (let i = 0; i < CAP + 10; i++) markUploaded(`ride-${i}`);
+    const stored = JSON.parse(lsMock.getItem(CACHE_KEY) ?? '[]') as string[];
+    expect(stored.length).toBe(CAP);
   });
 });

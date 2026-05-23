@@ -40,8 +40,43 @@ export function RideControls() {
 
   const [uploadState, setUploadState] = useState<UploadState>({ phase: 'idle' });
 
-  // Prevents the auto-upload effect from firing more than once per ride instance.
+  // ---------------------------------------------------------------------------
+  // Idempotency guard: localStorage-backed cache of already-uploaded ride keys.
+  // Key: `globeride.strava.uploaded.v1` → JSON array of ride start-time strings.
+  // Capped at 20 entries (oldest dropped). Survives FinishCard unmount/remount.
+  // In-session ref prevents a second auto-upload within the same component life.
+  // ---------------------------------------------------------------------------
   const hasAutoUploadedRef = useRef(false);
+
+  const UPLOADED_CACHE_KEY = 'globeride.strava.uploaded.v1';
+  const UPLOADED_CACHE_CAP = 20;
+
+  const isRideAlreadyUploaded = useCallback((rideKey: string): boolean => {
+    try {
+      const raw = localStorage.getItem(UPLOADED_CACHE_KEY);
+      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+      return cache.includes(rideKey);
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const markRideAsUploaded = useCallback((rideKey: string): void => {
+    try {
+      const raw = localStorage.getItem(UPLOADED_CACHE_KEY);
+      const cache: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+      if (!cache.includes(rideKey)) {
+        cache.push(rideKey);
+        // Keep only the most-recent UPLOADED_CACHE_CAP entries
+        if (cache.length > UPLOADED_CACHE_CAP) {
+          cache.splice(0, cache.length - UPLOADED_CACHE_CAP);
+        }
+        localStorage.setItem(UPLOADED_CACHE_KEY, JSON.stringify(cache));
+      }
+    } catch {
+      // localStorage unavailable — silent fail; in-session ref still guards
+    }
+  }, []);
 
   const handleExport = useCallback(() => {
     if (!startedAt || samples.length === 0) return;
@@ -61,11 +96,13 @@ export function RideControls() {
       : `GlobeRide — ${new Date(startedAt).toLocaleDateString()}`;
 
     try {
-      await uploadFit(
+      const result = await uploadFit(
         blob,
         { name: activityName, description: 'Uploaded via GlobeRide', trainer: true },
         (state) => setUploadState(state),
       );
+      // Persist the uploaded key so remounts don't re-trigger auto-upload
+      if (result.id) markRideAsUploaded(String(startedAt));
     } catch (err) {
       if (err instanceof StravaError) {
         setUploadState({
@@ -82,22 +119,26 @@ export function RideControls() {
         });
       }
     }
-  }, [startedAt, samples, route?.name, uploadState.phase]);
+  }, [startedAt, samples, route?.name, uploadState.phase, markRideAsUploaded]);
 
   // Auto-upload: fires once when the ride finishes, Strava is connected,
   // the preference is on, and there are recorded samples.
+  // Double-upload prevention: in-session ref (hasAutoUploadedRef) catches the
+  // common case; localStorage cache (isRideAlreadyUploaded) catches remounts.
   useEffect(() => {
     if (
       rideState === 'finished' &&
       autoUploadStrava &&
       stravaCredsPresent() &&
       samples.length > 0 &&
-      !hasAutoUploadedRef.current
+      startedAt &&
+      !hasAutoUploadedRef.current &&
+      !isRideAlreadyUploaded(String(startedAt))
     ) {
       hasAutoUploadedRef.current = true;
       handleStravaUpload();
     }
-  }, [rideState, autoUploadStrava, samples.length, handleStravaUpload]);
+  }, [rideState, autoUploadStrava, samples.length, startedAt, handleStravaUpload, isRideAlreadyUploaded]);
 
   if (!route) return null;
 

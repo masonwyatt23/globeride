@@ -33,6 +33,7 @@ import { getRefreshTokenOverride } from '@/lib/stravaOauth';
  * | duplicate_activity    | Strava recognised this as a duplicate upload             |
  * | processing_error      | Strava processed the file but reported an error          |
  * | network_error         | fetch() threw (offline, proxy unreachable, etc.)         |
+ * | rate_limited          | HTTP 429 — too many requests; back off and retry later   |
  * | timeout               | Poll loop exceeded POLL_MAX_ATTEMPTS × POLL_INTERVAL_MS  |
  * | unknown               | Catch-all for anything else                              |
  */
@@ -43,6 +44,7 @@ export type StravaErrorKind =
   | 'duplicate_activity'
   | 'processing_error'
   | 'network_error'
+  | 'rate_limited'
   | 'timeout'
   | 'unknown';
 
@@ -266,10 +268,12 @@ export function stravaErrorSummary(err: StravaError): string {
       return 'Strava could not process the activity file.';
     case 'network_error':
       return 'Cannot reach Strava — check your network connection.';
+    case 'rate_limited':
+      return 'Strava rate limit reached — wait a minute and try again.';
     case 'timeout':
       return 'Strava took too long to process the activity.';
     default:
-      return err.message;
+      return `Upload error: ${err.message}`;
   }
 }
 
@@ -536,6 +540,14 @@ export async function uploadFit(
         uploadRes.status,
         text,
         '#settings-strava',
+      );
+    }
+    if (uploadRes.status === 429) {
+      throw new StravaError(
+        'Strava rate limit reached — wait a minute and try again.',
+        'rate_limited',
+        429,
+        text,
       );
     }
     throw new StravaError(

@@ -23,6 +23,25 @@ export interface RideXpInput {
   distanceM: number;
   ascentM: number;
   workoutCompleted: boolean;
+  // ── Wave 17-23 feature fields (all optional for backwards-compat) ─────────
+  /** True when this ride finished a P2P race (any manifest). */
+  raceFinished?: boolean;
+  /** Finishing position in the race (1 = first). 0 or undefined = no race. */
+  racePosition?: number;
+  /** Total seconds spent in an aerodynamic draft cone during this ride. */
+  draftSec?: number;
+  /** True when the rider finished ahead of all loaded pace bots. */
+  beatAllBots?: boolean;
+  /** True when this ride's workout was recommended by the AI Coach within the same week. */
+  followedCoachRecommendation?: boolean;
+  /** The active scene mood id when the ride finished (from cesiumUtils MoodId). */
+  mood?: string;
+  /** ISO-3166-1 alpha-2 country code derived from the route start coords (optional). */
+  startCountry?: string;
+  /** True when this ride used a World Tour stage route. */
+  isWorldTourStage?: boolean;
+  /** True when the /companion screen was opened at least once during this session. */
+  companionOpenedThisRide?: boolean;
 }
 
 /** Cumulative XP required to reach level `level` (level 1 = 1000 XP). */
