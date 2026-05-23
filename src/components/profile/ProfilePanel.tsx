@@ -19,6 +19,7 @@ import { Section } from '@/components/ui/section-header';
 import { useProfileStore } from '@/stores/profileStore';
 import { xpProgressInLevel, xpForLevel } from '@/lib/progression';
 import { Garage } from '@/components/profile/Garage';
+import { ExportPanel } from '@/components/profile/ExportPanel';
 
 // ---------------------------------------------------------------------------
 // Panel
@@ -73,6 +74,7 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
               <StatsSection profile={profile} />
               <Garage />
               <Achievements />
+              <ExportPanel />
             </>
           )}
         </CardContent>
