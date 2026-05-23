@@ -113,27 +113,21 @@ const stageMap = new WeakMap<Cesium.Viewer, CinematicStages | undefined>();
  */
 export function applyCinematicEffects(
   viewer: Cesium.Viewer,
-  quality: GraphicsQuality,
+  _quality: GraphicsQuality,
 ): void {
   if (viewer.isDestroyed()) return;
 
-  // stageMap.has() distinguishes "never attempted" from "attempted and failed".
-  let stages = stageMap.get(viewer);
-  if (!stageMap.has(viewer)) {
-    const created = createStages(viewer);
-    // Store undefined on failure so we don't retry every quality change.
-    stageMap.set(viewer, created ?? undefined);
-    stages = created ?? undefined;
-  }
-  if (!stages) return; // creation failed — continue without effects
-
-  const wantBloom = quality === 'medium' || quality === 'high';
-  const wantAo = quality === 'high';
-  const wantVignette = quality === 'medium' || quality === 'high';
-
-  stages.bloom.enabled = wantBloom;
-  stages.ao.enabled = wantAo;
-  stages.vignetteGrade.enabled = wantVignette;
+  // ⚠ Disabled — production crash with "Cannot read properties of undefined
+  // (reading '_target')". Root cause: createStages() reaches into Cesium's
+  // internal bloom-composite tree (bloom.get(0).get(0) etc.); that structure
+  // is undocumented and varies between Cesium versions / asset combos. On the
+  // photoreal-3D-tiles + glTF avatar combination one of those nested handles
+  // returns a placeholder whose _target is set lazily, so the first frame
+  // throws. The post-process pipeline needs a fundamental rewrite that
+  // doesn't depend on the internal tree shape — until then, ride view ships
+  // without bloom / AO / vignette. The scene still has FXAA, MSAA, shadows,
+  // and the per-fragment atmosphere from cesiumUtils.applySceneMood().
+  return;
 }
 
 /**
@@ -157,7 +151,9 @@ export function destroyCinematicEffects(viewer: Cesium.Viewer): void {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-function createStages(viewer: Cesium.Viewer): CinematicStages | undefined {
+// Preserved for the future rewrite — see applyCinematicEffects() for context.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _createStages(viewer: Cesium.Viewer): CinematicStages | undefined {
   try {
     const col = viewer.scene.postProcessStages;
 
