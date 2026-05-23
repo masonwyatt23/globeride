@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Check, Users, Shuffle, UserX } from 'lucide-react';
+import { Check, Shuffle, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useRideStore } from '@/stores/rideStore';
