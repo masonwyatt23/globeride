@@ -25,6 +25,7 @@ import {
   saveRefreshTokenOverride,
   getRefreshTokenOverride,
   clearRefreshTokenOverride,
+  forceReauth,
 } from '@/lib/stravaOauth';
 import { verifyStravaAccess, stravaCredsPresent, clearCachedToken, type StravaVerifyResult } from '@/lib/strava';
 
@@ -271,10 +272,19 @@ function StravaSection() {
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/8 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 space-y-1">
             <p className="font-semibold">Refresh token lacks activity:write scope</p>
             <p>
-              Your current token (from the cotidie app) only has <code>activity:read</code>.
-              Uploads will fail with 401. Use the button below to re-authorize with
-              the correct scope.
+              Your current token only has <code>activity:read</code>.
+              Uploads will fail with 401. Click below to re-authorize with
+              the correct scope — this will clear the stale token and open
+              the Strava authorization page immediately.
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-1 border-amber-500/50 text-amber-700 dark:text-amber-300 hover:border-amber-500 hover:bg-amber-500/10 focus-visible:ring-amber-500/40"
+              onClick={() => forceReauth(clearCachedToken)}
+            >
+              Re-authorize with activity:write
+            </Button>
           </div>
         )}
 
