@@ -8,6 +8,8 @@ import { RouteSearch } from '@/components/setup/RouteSearch';
 import { RouteDrawer } from '@/components/routes/RouteDrawer';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
+import { ExploreMarkers } from '@/components/explore/ExploreMarkers';
+import { ExploreIntro } from '@/components/explore/ExploreIntro';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -63,7 +65,11 @@ export function Explore() {
       {/* Cinematic globe — owns its own Cesium viewer, separate from the ride view */}
       <ExploreGlobe ionToken={token} />
 
-      {/* MARKER_OVERLAY_SLOT — parallel agent mounts pulsing route markers here */}
+      {/* Pulsing globe pins for curated routes (iconic climbs + WT stages) */}
+      <ExploreMarkers />
+
+      {/* Intro caption pill */}
+      <ExploreIntro />
 
       {/* Top overlay: back + search */}
       <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4 pointer-events-none">

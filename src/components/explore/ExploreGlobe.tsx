@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
-import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
+import { setIonToken, setupBaseImagery, setActiveViewer } from '@/lib/cesiumUtils';
 
 /**
  * Altitude threshold (metres above the ellipsoid) below which the Google
@@ -47,8 +47,9 @@ const IDLE_RESUME_MS = 5_000;
  * - Idle auto-rotation at 0.5° s⁻¹, paused on interaction, resumes after
  *   5 s idle.
  *
- * The component intentionally does NOT call setActiveViewer — that registry
- * is for the ride view and RouteDrawer; the explore globe is independent.
+ * Registers itself via setActiveViewer so the discovery-marker overlay can
+ * find this viewer. On /explore, this is the only viewer mounted, so there
+ * is no clash with the ride view's registry usage.
  */
 export function ExploreGlobe({ ionToken }: { ionToken: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -74,6 +75,7 @@ export function ExploreGlobe({ ionToken }: { ionToken: string }) {
       navigationHelpButton: false,
       navigationInstructionsInitiallyVisible: false,
     });
+    setActiveViewer(viewer);
 
     // Remove Cesium's default Bing layer so setupBaseImagery can add its own
     // without doubling the layer — the idempotency guard in setupBaseImagery
@@ -249,6 +251,7 @@ export function ExploreGlobe({ ionToken }: { ionToken: string }) {
       if (resumeTimer !== null) clearTimeout(resumeTimer);
       ro.disconnect();
       handler.destroy();
+      setActiveViewer(null);
 
       if (!viewer.isDestroyed()) {
         scene.preRender.removeEventListener(onPreRender);
