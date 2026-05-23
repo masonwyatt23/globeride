@@ -338,6 +338,13 @@ html:not(.dark) .cesium-viewer {
   100% { opacity: 1; }
 }
 
+/* Achievement confetti particle trajectory */
+@keyframes confettiFly {
+  0%   { transform: translateX(-50%) translateY(0)       rotate(0deg);        opacity: 1; }
+  60%  { opacity: 1; }
+  100% { transform: translateX(-50%) translateY(calc(-1 * var(--dist, 60px))) rotate(var(--rotate, 180deg)); opacity: 0; }
+}
+
 /* Hide scrollbar on gallery scroll track (mobile) */
 .snap-x::-webkit-scrollbar {
   display: none;

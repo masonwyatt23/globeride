@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { Gauge, Zap, Heart, Activity, Mountain, TrendingUp, Timer, MapPin, Wind } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { findClimbs } from '@/lib/climbDetection';
+import { playClimbEntrySound } from '@/lib/rideAudio';
 
 /**
  * Elite ride HUD — the screen a cyclist stares at for an hour.
@@ -184,6 +187,7 @@ export function RideHUD() {
       </div>
 
       {/* ── Secondary row: cadence · HR · elev · time ────────────── */}
+      {/* Desktop / large screens */}
       <div
         className="pointer-events-auto glass glass-hairline rounded-2xl px-3 sm:px-4 py-2.5 grid grid-cols-4 gap-1.5 sm:gap-2"
         role="list"
@@ -265,6 +269,136 @@ export function RideHUD() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Climb-name HUD banner
+// ---------------------------------------------------------------------------
+
+/**
+ * ClimbBanner — slides in from the top when the rider enters a detected
+ * climb. Stays for 8 seconds, then fades out.
+ *
+ * Triggered when `distance` crosses into [startDistance, startDistance + 30m].
+ * The climb list is memoised so it never recomputes inside the render loop.
+ *
+ * Props come from the parent via the store — this component is self-contained.
+ */
+export function ClimbBanner() {
+  const distance = useRideStore((s) => s.distance);
+  const route    = useRideStore((s) => s.route);
+
+  // Stable climb list — recomputed only when the route changes.
+  const climbs = useMemo(
+    () => (route ? findClimbs(route) : []),
+    [route],
+  );
+
+  // Which climb key is currently "active" (recently entered)
+  const [activeClimbIdx, setActiveClimbIdx] = useState<number | null>(null);
+  const [phase, setPhase]   = useState<'in' | 'hold' | 'out'>('in');
+  const seenRef             = useRef<Set<number>>(new Set());
+  const timerRef            = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Portal window: the 30m just after a climb's startDistance.
+  const PORTAL_WINDOW_M = 30;
+
+  useEffect(() => {
+    // Find any climb whose portal window contains the current distance.
+    const idx = climbs.findIndex(
+      (c) => distance >= c.startDistance && distance <= c.startDistance + PORTAL_WINDOW_M,
+    );
+
+    if (idx !== -1 && !seenRef.current.has(idx)) {
+      // New climb entry — show the banner.
+      seenRef.current.add(idx);
+      setActiveClimbIdx(idx);
+      setPhase('in');
+      playClimbEntrySound();
+
+      // Clear any previous timer.
+      if (timerRef.current) clearTimeout(timerRef.current);
+
+      // After 8s total: start fade-out (600ms), then unmount.
+      timerRef.current = setTimeout(() => {
+        setPhase('out');
+        timerRef.current = setTimeout(() => {
+          setActiveClimbIdx(null);
+        }, 650);
+      }, 8_000);
+    }
+  }, [distance, climbs]);
+
+  // Cleanup on unmount.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  if (activeClimbIdx === null) return null;
+
+  const climb = climbs[activeClimbIdx];
+  if (!climb) return null;
+
+  const lengthKm = (climb.lengthM / 1000).toFixed(1);
+  const gradientStr = climb.avgGradient.toFixed(1);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label={`Entering ${climb.name}: ${lengthKm} km at ${gradientStr}% average gradient`}
+      className={cn(
+        // Position: top-center, above all HUD panels
+        'fixed top-4 left-1/2 -translate-x-1/2 z-[300]',
+        'pointer-events-none select-none',
+        phase === 'in'  && 'animate-slideDown',
+        phase === 'out' && 'animate-fadeOut',
+      )}
+    >
+      <div
+        className="relative flex items-center gap-3 px-5 py-3 rounded-2xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, rgba(8,14,28,0.92) 0%, rgba(3,25,40,0.88) 100%)',
+          border: '1px solid rgba(34,211,238,0.30)',
+          backdropFilter: 'blur(20px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+          boxShadow: '0 0 32px -8px rgba(34,211,238,0.35), inset 0 1px 0 rgba(255,255,255,0.07)',
+        }}
+      >
+        {/* Cyan glow strip at the bottom */}
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 h-px w-3/4 rounded-full"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.7), transparent)' }}
+          aria-hidden="true"
+        />
+
+        {/* Mountain icon */}
+        <Mountain
+          className="h-5 w-5 shrink-0"
+          style={{ color: '#22d3ee' }}
+          aria-hidden="true"
+        />
+
+        {/* Climb info */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span
+            className="text-sm sm:text-base font-bold uppercase tracking-widest leading-none"
+            style={{ color: '#e2e8f0' }}
+          >
+            {climb.name}
+          </span>
+
+          <div className="flex items-center gap-2 text-[11px] sm:text-xs font-semibold tabular-nums" style={{ color: '#94a3b8' }}>
+            <span aria-hidden="true">·</span>
+            <span>{lengthKm} km</span>
+            <span aria-hidden="true">·</span>
+            <span style={{ color: '#22d3ee' }}>{gradientStr}% avg</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

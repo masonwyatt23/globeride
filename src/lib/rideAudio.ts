@@ -346,3 +346,101 @@ export class RideAudioEngine {
     }, 420);
   }
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Standalone one-shot helpers
+// (Use these from components that don't own a RideAudioEngine instance.)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lazily created shared AudioContext for standalone helpers.
+ * Avoids the autoplay restriction — created on first call after a user gesture.
+ */
+let _sharedCtx: AudioContext | null = null;
+
+function getSharedCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (!_sharedCtx) {
+    try {
+      _sharedCtx = new AudioContext();
+    } catch {
+      return null;
+    }
+  }
+  if (_sharedCtx.state === 'suspended') {
+    _sharedCtx.resume().catch(() => {/* ignore */});
+  }
+  return _sharedCtx;
+}
+
+/**
+ * Gentle ascending chime — played when an achievement unlocks.
+ * Three short sine tones: C5 → E5 → G5 (major triad arpeggio).
+ */
+export function playAchievementSound(): void {
+  const ctx = getSharedCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+  const noteDuration = 0.12;
+  const noteGap      = 0.09;
+
+  notes.forEach((freq, i) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    const start = now + i * (noteDuration + noteGap);
+    const end   = start + noteDuration;
+
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.18, start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, end);
+
+    osc.start(start);
+    osc.stop(end + 0.05);
+  });
+}
+
+/**
+ * Subtle bass pulse — played when the rider enters a named climb.
+ * Deep bass hit + subtle bell accent to signal the start of a challenge.
+ */
+export function playClimbEntrySound(): void {
+  const ctx = getSharedCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+
+  const notes = [
+    { freq: 110, start: 0,    dur: 0.18, vol: 0.22 },  // deep bass hit
+    { freq: 440, start: 0.12, dur: 0.22, vol: 0.10 },  // subtle bell accent
+  ];
+
+  notes.forEach(({ freq, start, dur, vol }) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    const t0 = now + start;
+    const t1 = t0 + dur;
+
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t1);
+
+    osc.start(t0);
+    osc.stop(t1 + 0.05);
+  });
+}

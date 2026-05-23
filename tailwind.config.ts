@@ -121,6 +121,10 @@ export default {
           '60%':  { transform: 'scale(1.04)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
+        fadeOut: {
+          '0%':   { opacity: '1' },
+          '100%': { opacity: '0', pointerEvents: 'none' },
+        },
       },
       animation: {
         pulseGlow:    'pulseGlow 2.2s ease-in-out infinite',
@@ -135,6 +139,7 @@ export default {
         slideInRight: 'slideInRight 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
         slideInLeft:  'slideInLeft 300ms cubic-bezier(0.2, 0.8, 0.2, 1)',
         popIn:        'popIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        fadeOut:      'fadeOut 600ms ease-in forwards',
       },
     },
   },
