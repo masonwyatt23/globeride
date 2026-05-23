@@ -15,6 +15,7 @@ import {
   Route,
   Info,
   Users,
+  Trophy,
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
@@ -36,6 +37,7 @@ import { ElevationProfile } from '@/components/ride/ElevationProfile';
 import { RouteLibrary } from '@/components/routes/RouteLibrary';
 import { RoutePreview } from '@/components/routes/RoutePreview';
 import { IconicRoutes } from '@/components/routes/IconicRoutes';
+import { WorldTourStages } from '@/components/routes/WorldTourStages';
 import { AIRouteRecommender } from '@/components/routes/AIRouteRecommender';
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
@@ -380,6 +382,18 @@ export function Home() {
               </CardHeader>
               <CardContent>
                 <IconicRoutes onPicked={() => navigate('/ride')} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="h-3.5 w-3.5 text-primary" />
+                  World Tour stages
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WorldTourStages onPicked={() => navigate('/ride')} />
               </CardContent>
             </Card>
 
