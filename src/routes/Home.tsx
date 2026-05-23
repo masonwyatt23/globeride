@@ -14,9 +14,11 @@ import {
   Calendar,
   Route,
   Info,
+  Users,
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
+import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
 import { WorkoutBuilder } from '@/components/workouts/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/workouts/WorkoutLibrary';
 import { WorkoutPicker } from '@/components/workouts/WorkoutPicker';
@@ -237,6 +239,22 @@ export function Home() {
                     your trainer doesn't broadcast HR or cadence.
                   </p>
                   <SensorConnect />
+                </CardContent>
+              </Card>
+
+              {/* Pace partners */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                    Pace partners
+                    <span className="ml-1.5 text-muted-foreground font-normal normal-case tracking-normal">
+                      (optional)
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PaceBotsPanel />
                 </CardContent>
               </Card>
 
