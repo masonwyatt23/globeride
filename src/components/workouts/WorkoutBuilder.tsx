@@ -757,6 +757,7 @@ function NumField({
         max={max}
         step={step}
         value={value}
+        aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-20 text-xs text-center rounded border border-border/60 bg-background/40 py-1 px-1.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       />

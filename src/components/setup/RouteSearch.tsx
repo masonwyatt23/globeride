@@ -122,6 +122,7 @@ export function RouteSearch({ variant = 'inline', onRouteReady }: RouteSearchPro
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <input
           type="search"
+          aria-label="Search for a place"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setShowResults(true)}
@@ -224,6 +225,7 @@ export function RouteSearch({ variant = 'inline', onRouteReady }: RouteSearchPro
             </div>
             <input
               type="range"
+              aria-label="Route distance in km"
               min={2}
               max={80}
               step={1}
@@ -244,6 +246,7 @@ export function RouteSearch({ variant = 'inline', onRouteReady }: RouteSearchPro
               </div>
               <input
                 type="range"
+                aria-label="Route heading in degrees"
                 min={0}
                 max={359}
                 step={1}

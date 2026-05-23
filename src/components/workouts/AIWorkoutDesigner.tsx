@@ -332,6 +332,7 @@ export function AIWorkoutDesigner() {
           <div className="relative">
             <textarea
               id="ai-workout-prompt"
+              aria-label="Describe your workout"
               ref={textareaRef}
               value={prompt}
               onChange={(e) => {
