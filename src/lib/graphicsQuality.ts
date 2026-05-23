@@ -45,6 +45,12 @@ export interface QualityParams {
    * Enabled on medium and high.
    */
   vignetteGrade: boolean;
+  /**
+   * Weather particle systems (rain, snow, fog).
+   * Enabled on medium and high; skipped on low for integrated-GPU performance.
+   * Particle counts are further scaled within weatherParticles.ts per tier.
+   */
+  particles: boolean;
 }
 
 export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
@@ -61,6 +67,7 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     bloom: false,
     ambientOcclusion: false,
     vignetteGrade: false,
+    particles: false,
   },
   medium: {
     msaaSamples: 2,
@@ -75,6 +82,7 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     bloom: true,
     ambientOcclusion: false,
     vignetteGrade: true,
+    particles: true,
   },
   high: {
     msaaSamples: 4,
@@ -85,10 +93,11 @@ export const QUALITY_PARAMS: Record<GraphicsQuality, QualityParams> = {
     shadowMaxDistance: 2500,
     maximumScreenSpaceError: 8,
     fogDensity: 0.00012,
-    // Full cinematic suite on high — bloom, AO, and vignette/grade.
+    // Full cinematic suite on high — bloom, AO, vignette/grade, and particles.
     bloom: true,
     ambientOcclusion: true,
     vignetteGrade: true,
+    particles: true,
   },
 };
 

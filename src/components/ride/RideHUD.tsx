@@ -220,6 +220,9 @@ export function RideHUD() {
         />
       </div>
 
+      {/* ── Wind indicator chip ───────────────────────────────────── */}
+      <WindChip />
+
       {/* ── Route progress strip ─────────────────────────────────── */}
       {route && (
         <div className="pointer-events-auto glass glass-hairline rounded-2xl px-3 sm:px-4 py-2.5 flex flex-col gap-2">
@@ -269,6 +272,117 @@ export function RideHUD() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Wind indicator chip
+// ---------------------------------------------------------------------------
+
+/**
+ * Small glass chip showing wind direction relative to the rider's heading.
+ * Reads windSpeedMs + windDirectionDeg from settingsStore.
+ *
+ * windDirectionDeg convention (physics.ts): 0 = headwind, 180 = tailwind.
+ * We rotate an arrow SVG to match that bearing so it visually points toward
+ * where the wind is coming from relative to the rider.
+ *
+ * Only rendered when windSpeedMs > 0 so it's invisible on calm days.
+ */
+function WindChip() {
+  const windSpeedMs    = useSettingsStore((s) => s.windSpeedMs);
+  const windDirDeg     = useSettingsStore((s) => s.windDirectionDeg);
+
+  // Don't show chip when wind is effectively zero.
+  if (windSpeedMs < 0.5) return null;
+
+  const windKmh = Math.round(windSpeedMs * 3.6);
+
+  // Derive label from direction angle.
+  // 0° = headwind (coming from front), 180° = tailwind (from behind).
+  // We normalise to 0-360 and bucket into 8 directions.
+  const norm = ((windDirDeg % 360) + 360) % 360;
+
+  let label: string;
+  let arrowColor: string;
+  // Headwind: 0 ± 45 → from front
+  // Tailwind: 180 ± 45 → from behind
+  // Crosswind: everything else
+  if (norm <= 45 || norm >= 315) {
+    label = `Headwind ${windKmh} km/h`;
+    arrowColor = '#f87171'; // rose — adverse
+  } else if (norm >= 135 && norm <= 225) {
+    label = `Tailwind ${windKmh} km/h`;
+    arrowColor = '#34d399'; // emerald — beneficial
+  } else if (norm > 45 && norm < 135) {
+    label = `Crosswind from right ${windKmh} km/h`;
+    arrowColor = '#fbbf24'; // amber — neutral
+  } else {
+    label = `Crosswind from left ${windKmh} km/h`;
+    arrowColor = '#fbbf24';
+  }
+
+  // The arrow SVG points "up" by default (north/forward).
+  // windDirDeg=0 means the wind is in the rider's face → arrow points toward rider (down).
+  // Rotate 180° + windDirDeg so it always points in the wind's travel direction.
+  const arrowRotation = (windDirDeg + 180) % 360;
+
+  return (
+    <div
+      className="pointer-events-auto"
+      title={label}
+      aria-label={label}
+    >
+      <div
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl select-none"
+        style={{
+          background: 'rgba(15, 23, 42, 0.60)',
+          border: '1px solid rgba(148, 163, 184, 0.15)',
+          backdropFilter: 'blur(12px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(12px) saturate(140%)',
+          boxShadow: '0 1px 8px rgba(0,0,0,0.25)',
+        }}
+      >
+        {/* Rotating wind-direction arrow */}
+        <div
+          aria-hidden="true"
+          style={{
+            transform: `rotate(${arrowRotation}deg)`,
+            transition: 'transform 0.6s ease-out',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Wind
+            className="h-3 w-3 shrink-0"
+            style={{ color: arrowColor }}
+          />
+        </div>
+
+        {/* Label */}
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wide tabular-nums"
+          style={{ color: arrowColor }}
+        >
+          {windKmh} km/h
+        </span>
+
+        {/* Tiny direction hint */}
+        <span
+          className="text-[9px] text-muted-foreground/60 uppercase tracking-widest"
+          aria-hidden="true"
+        >
+          {norm <= 45 || norm >= 315
+            ? 'HEAD'
+            : norm >= 135 && norm <= 225
+              ? 'TAIL'
+              : norm > 45 && norm < 135
+                ? 'R-CROSS'
+                : 'L-CROSS'}
+        </span>
+      </div>
     </div>
   );
 }

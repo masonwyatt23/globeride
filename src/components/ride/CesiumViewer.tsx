@@ -37,6 +37,11 @@ import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicE
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
+import {
+  createWeatherSystem,
+  type WeatherSystem,
+  type WeatherKind,
+} from '@/lib/weatherParticles';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -49,6 +54,48 @@ const GHOST_COLORS: AvatarColors = {
   helmet: '#7dd3fc',
   accent: '#93c5fd',
 };
+
+// ---------------------------------------------------------------------------
+// Heuristic: derive a WeatherKind from the mood name string for when the
+// Wave 20.A MOODS `weather` extension is not yet merged.
+// Maps known weather-associated mood strings; everything else is 'none'.
+// ---------------------------------------------------------------------------
+function weatherKindFromMoodName(moodName: string): WeatherKind {
+  if (
+    moodName === 'fjord-rain' ||
+    moodName === 'alpine-storm' ||
+    moodName === 'overcast-rain'
+  ) return 'rain';
+
+  if (
+    moodName === 'alpine-snow' ||
+    moodName === 'winter-ride'
+  ) return 'snow';
+
+  if (
+    moodName === 'mediterranean-mist' ||
+    moodName === 'coastal-fog' ||
+    moodName === 'valley-fog'
+  ) return 'fog';
+
+  return 'none';
+}
+
+/**
+ * Resolve the WeatherKind for a mood value. Supports both the current
+ * string-based SceneMood and the extended object form that Wave 20.A will
+ * introduce (where each mood entry may carry an optional `weather` field).
+ */
+function resolveWeatherKind(mood: unknown): WeatherKind {
+  // Wave 20.A extended form: mood object with optional weather field.
+  if (mood && typeof mood === 'object' && 'weather' in mood) {
+    const w = (mood as { weather?: WeatherKind }).weather;
+    return w ?? 'none';
+  }
+  // Current string form.
+  if (typeof mood === 'string') return weatherKindFromMoodName(mood);
+  return 'none';
+}
 
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
@@ -77,6 +124,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const ghostRidesRef = useRef<GhostRide[]>([]);
   // Pace bot avatar refs — one Avatar per active bot, parallel to rideStore.paceBots.
   const botAvatarsRef = useRef<Avatar[]>([]);
+  // Weather particle system — recreated on route change and quality change.
+  const weatherSystemRef = useRef<WeatherSystem | null>(null);
 
   const route = useRideStore((s) => s.route);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
@@ -196,6 +245,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       ro.disconnect();
       removeTickRef.current?.();
       removeTickRef.current = null;
+      // Dispose weather system before destroying the viewer.
+      weatherSystemRef.current?.dispose();
+      weatherSystemRef.current = null;
       // Dispose ghost avatars — viewer.entities.remove needs isDestroyed guard.
       for (const ga of ghostAvatarsRef.current) {
         if (!viewer.isDestroyed()) ga.dispose();
@@ -250,11 +302,21 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   }, [theme]);
 
   // ---- Re-apply graphics quality when the user changes the tier ----
+  // Also recreate the weather system at the new particle count budget.
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || viewer.isDestroyed()) return;
     applyGraphicsQuality(viewer, graphicsQuality, tilesetRef.current);
     applyCinematicEffects(viewer, graphicsQuality);
+
+    // Rebuild weather system at new quality budget when a route is loaded.
+    const currentRoute = useRideStore.getState().route;
+    if (currentRoute && weatherSystemRef.current) {
+      const mood = moodForRoute(currentRoute);
+      const weatherKind = resolveWeatherKind(mood);
+      weatherSystemRef.current.dispose();
+      weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, graphicsQuality);
+    }
   }, [graphicsQuality]);
 
   // ---- Live avatar recolouring from the Garage settings ----
@@ -301,6 +363,10 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     cartesianRouteRef.current = null;
     resetFollowCam();
 
+    // Dispose the previous weather system before building a new one.
+    weatherSystemRef.current?.dispose();
+    weatherSystemRef.current = null;
+
     if (!route) return;
 
     // Choose a scene mood based on the route's character and apply it.
@@ -313,6 +379,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     );
     viewer.clock.shouldAnimate = false;
     applySceneMood(viewer, mood);
+
+    // ---- Spawn weather particles for this route's mood ----
+    // resolveWeatherKind handles both the current string SceneMood and the
+    // extended object form that Wave 20.A adds (weather?: WeatherKind field).
+    const weatherKind = resolveWeatherKind(mood);
+    const currentQuality = useSettingsStore.getState().graphicsQuality;
+    weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
@@ -521,6 +594,15 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           dt,
         );
       }
+
+      // ---- Weather particle system update ----
+      // Reposition spawn volume above the rider each frame. Zero allocations.
+      weatherSystemRef.current?.update({
+        lat: sampled.lat,
+        lon: sampled.lon,
+        ele: sampled.ele,
+        heading,
+      });
 
       // ---- Pace bot avatar updates ----
       const bots = useRideStore.getState().paceBots;
