@@ -301,3 +301,44 @@ button, [role="button"], a {
 html:not(.dark) .cesium-viewer {
   background: #dce5f0;
 }
+
+/* -------------------------------------------------------------------------
+   Landing page — hero globe & scroll indicator keyframes
+------------------------------------------------------------------------- */
+@keyframes globeSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes globeRingPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.04); }
+}
+
+@keyframes atmospherePulse {
+  0%,100% { opacity: 0.9; }
+  50%      { opacity: 1; }
+}
+
+@keyframes routeDraw {
+  0%   { stroke-dashoffset: 200; opacity: 0; }
+  10%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes riderAppear {
+  0%   { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes scrollDot {
+  0%   { transform: translateY(0); opacity: 1; }
+  60%  { transform: translateY(14px); opacity: 0.2; }
+  61%  { transform: translateY(0); opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Hide scrollbar on gallery scroll track (mobile) */
+.snap-x::-webkit-scrollbar {
+  display: none;
+}

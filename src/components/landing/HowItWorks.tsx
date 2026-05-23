@@ -1,63 +1,80 @@
 import { Upload, Bluetooth, Trophy } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-const STEPS = [
+interface Step {
+  n: string;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  accent: string;
+}
+
+const STEPS: Step[] = [
   {
     n: '01',
     icon: <Upload className="h-6 w-6" />,
     title: 'Pick your route',
-    description:
-      'Upload any GPX from Strava, Komoot, or Garmin. Or search a place and GlobeRide generates a road route on the spot using real OSM cycling paths. Or draw your own directly on the 3D globe.',
+    description: 'Upload any GPX from Strava, Komoot, or Garmin — or search a place and GlobeRide generates a real OSM cycling route on the spot. 19 iconic climbs included.',
+    accent: '#22d3ee',
   },
   {
     n: '02',
     icon: <Bluetooth className="h-6 w-6" />,
     title: 'Pair your trainer',
-    description:
-      'Tap "Connect trainer" and GlobeRide pairs with your smart trainer via Web Bluetooth in seconds — Wahoo Kickr, Tacx Neo, Saris H3, and any FTMS-compatible device. No app, no dongle.',
+    description: 'Tap "Connect" and GlobeRide pairs with your FTMS smart trainer via Web Bluetooth in seconds. Wahoo Kickr, Tacx Neo, Saris H3 — no app, no dongle.',
+    accent: 'hsl(158 80% 42%)',
   },
   {
     n: '03',
     icon: <Trophy className="h-6 w-6" />,
-    title: 'Ride and record',
-    description:
-      'Roll out and ride in real time. The globe follows your position, the trainer feels every climb, and every pedal stroke is logged. When you finish, export a Strava-ready .FIT in one tap.',
+    title: 'Ride and export',
+    description: 'Roll out and ride in real time. The globe follows your position, the trainer feels every climb, every pedal stroke is logged. One tap to export Strava-ready .FIT.',
+    accent: 'hsl(38 90% 56%)',
   },
-] as const;
+];
 
 export function HowItWorks() {
   return (
     <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
-      {/* Background accent */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[60rem] w-[60rem] rounded-full bg-accent/4 dark:bg-accent/6 blur-[140px]" />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[60rem] w-[60rem] rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(195 92% 56% / 0.04) 0%, transparent 70%)' }}
+        />
       </div>
 
       <div className="max-w-6xl mx-auto">
-        {/* Section header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-5">
+          <div
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
+            style={{ background: 'hsl(195 92% 56% / 0.06)', border: '1px solid hsl(195 92% 56% / 0.18)', color: 'hsl(195 92% 56%)' }}
+          >
             How it works
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-[-0.03em] text-foreground">
-            Zero friction from<br />
-            <span className="text-gradient">route to Strava.</span>
+          <h2
+            className="font-extrabold text-white"
+            style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+          >
+            Zero friction from{' '}
+            <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              route to Strava.
+            </span>
           </h2>
-          <p className="mt-4 max-w-lg mx-auto text-muted-foreground text-base sm:text-lg leading-relaxed">
-            Three steps. No account, no backend, no subscriptions.
+          <p className="mt-4 max-w-lg mx-auto text-base sm:text-lg leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+            Three steps. No account, no backend, no subscription.
           </p>
         </div>
 
-        {/* Steps — vertical on mobile, 3-col on md+ */}
         <div className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3">
-          {/* Connector line (desktop only) */}
+          {/* Connector line — desktop */}
           <div
             aria-hidden
-            className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30"
-          />
-          {/* Connector line (mobile — vertical) */}
-          <div
-            aria-hidden
-            className="md:hidden absolute left-9 top-20 bottom-20 w-px bg-gradient-to-b from-primary/30 via-accent/30 to-primary/30"
+            className="hidden md:block absolute top-10 h-px"
+            style={{
+              left: 'calc(16.67% + 2rem)',
+              right: 'calc(16.67% + 2rem)',
+              background: 'linear-gradient(90deg, hsl(195 92% 56% / 0.3), hsl(158 80% 42% / 0.3), hsl(38 90% 56% / 0.3))',
+            }}
           />
 
           {STEPS.map((step, i) => (
@@ -66,20 +83,40 @@ export function HowItWorks() {
               className="relative flex flex-col md:items-center md:text-center items-start text-left group animate-fadeUp"
               style={{ animationDelay: `${i * 100}ms` }}
             >
-              {/* Step number bubble */}
-              <div className="relative mb-4 sm:mb-6 inline-flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-card to-muted/50 border border-border/70 shadow-[0_8px_32px_-12px_hsl(var(--primary)/0.25)] group-hover:shadow-[0_16px_40px_-12px_hsl(var(--primary)/0.4)] group-hover:border-primary/30 transition-all duration-300 group-hover:-translate-y-1 shrink-0">
-                <span className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] font-black text-white shadow-[0_4px_12px_-4px_hsl(var(--primary)/0.6)]">
+              {/* Step bubble */}
+              <div
+                className="relative mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0"
+                style={{
+                  background: 'hsl(220 42% 7%)',
+                  border: `1px solid ${step.accent}30`,
+                  boxShadow: `0 8px 32px -12px ${step.accent}25`,
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.boxShadow = `0 16px 40px -12px ${step.accent}45`;
+                  el.style.borderColor = `${step.accent}50`;
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.boxShadow = `0 8px 32px -12px ${step.accent}25`;
+                  el.style.borderColor = `${step.accent}30`;
+                }}
+              >
+                <span
+                  className="absolute -top-3 -right-3 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg"
+                  style={{ background: step.accent, color: 'hsl(220 42% 4%)' }}
+                >
                   {i + 1}
                 </span>
-                <div className="text-primary group-hover:scale-110 transition-transform duration-300">
-                  {step.icon}
+                <div className="transition-colors duration-300" style={{ color: 'hsl(215 18% 45%)' }}>
+                  <div className="group-hover:scale-110 transition-transform duration-300" style={{ color: step.accent }}>
+                    {step.icon}
+                  </div>
                 </div>
               </div>
 
-              <div className="md:flex md:flex-col md:items-center">
-                <h3 className="text-base sm:text-lg font-bold text-foreground tracking-tight mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{step.description}</p>
-              </div>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-2">{step.title}</h3>
+              <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
             </div>
           ))}
         </div>
