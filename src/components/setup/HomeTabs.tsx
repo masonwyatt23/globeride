@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export type TabId = 'ride' | 'routes' | 'workouts' | 'history';
+export type TabId = 'ride' | 'routes' | 'workouts' | 'races' | 'history';
 
 interface Tab {
   id: TabId;
