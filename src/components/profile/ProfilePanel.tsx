@@ -8,22 +8,17 @@ import {
   Mountain,
   Zap,
   CheckCircle2,
-  Lock,
   ChevronRight,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Achievements } from '@/components/training/Achievements';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Section } from '@/components/ui/section-header';
 import { useProfileStore } from '@/stores/profileStore';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { xpProgressInLevel, xpForLevel } from '@/lib/progression';
-import { GEAR_CATALOG, type GearItem } from '@/lib/gear';
-import { AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
-import type { AvatarColors } from '@/lib/avatarConfig';
+import { Garage } from '@/components/profile/Garage';
 
 // ---------------------------------------------------------------------------
 // Panel
@@ -76,7 +71,7 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
               />
               <LevelSection xp={profile.xp} />
               <StatsSection profile={profile} />
-              <GarageSection xp={profile.xp} />
+              <Garage />
               <Achievements />
             </>
           )}
@@ -258,111 +253,6 @@ function StatCard({
       <div className="min-w-0">
         <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
         <div className="text-sm font-semibold text-foreground num truncate">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Gear Garage
-// ---------------------------------------------------------------------------
-
-function GarageSection({ xp }: { xp: number }) {
-  const { level } = xpProgressInLevel(xp);
-  const avatar = useSettingsStore((st) => st.avatar);
-  const setSettings = useSettingsStore((st) => st.setSettings);
-
-  /** Check if the given gear colors match the currently equipped avatar. */
-  function isEquipped(colors: AvatarColors): boolean {
-    return AVATAR_COLOR_ROLES.every((r) => colors[r.key] === avatar[r.key]);
-  }
-
-  return (
-    <Section icon={<Bike className="h-4 w-4" />} title="Gear Garage">
-      <div className="grid grid-cols-2 gap-2">
-        {GEAR_CATALOG.map((item) => (
-          <GearCard
-            key={item.id}
-            item={item}
-            unlocked={item.unlockLevel <= level}
-            equipped={isEquipped(item.colors)}
-            onEquip={() => setSettings({ avatar: item.colors })}
-          />
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function GearCard({
-  item,
-  unlocked,
-  equipped,
-  onEquip,
-}: {
-  item: GearItem;
-  unlocked: boolean;
-  equipped: boolean;
-  onEquip: () => void;
-}) {
-  // Build a mini color swatch from the gear's palette
-  const swatchColors = [item.colors.kit, item.colors.frame, item.colors.accent];
-
-  return (
-    <div
-      className={cn(
-        'relative flex flex-col gap-2 rounded-xl border p-3 transition-all duration-200',
-        unlocked
-          ? equipped
-            ? 'border-primary/60 bg-primary/8 ring-1 ring-primary/30'
-            : 'border-border bg-card/40 hover:border-border/80 hover:bg-card/60'
-          : 'border-border/40 bg-card/20 opacity-50',
-      )}
-    >
-      {/* Color swatch strip */}
-      <div className="flex h-2 w-full overflow-hidden rounded-full gap-px">
-        {swatchColors.map((color, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-full"
-            style={{ backgroundColor: color }}
-          />
-        ))}
-      </div>
-
-      {/* Name + kind */}
-      <div className="min-w-0">
-        <div className="text-xs font-semibold text-foreground truncate">{item.name}</div>
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-          {item.kind}
-        </div>
-      </div>
-
-      {/* Action row */}
-      <div className="flex items-center justify-between gap-1">
-        {unlocked ? (
-          equipped ? (
-            <Badge variant="success" className="gap-1 text-[10px] px-1.5 py-0.5">
-              <CheckCircle2 className="h-2.5 w-2.5" />
-              Equipped
-            </Badge>
-          ) : (
-            <button
-              onClick={onEquip}
-              className="text-[11px] font-medium text-primary hover:text-primary/80 underline underline-offset-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-            >
-              Equip
-            </button>
-          )
-        ) : (
-          <div
-            className="flex items-center gap-1 text-[11px] text-muted-foreground"
-            aria-label={`Unlocks at level ${item.unlockLevel}`}
-          >
-            <Lock className="h-3 w-3" aria-hidden="true" />
-            <span className="num">Lvl {item.unlockLevel}</span>
-          </div>
-        )}
       </div>
     </div>
   );
