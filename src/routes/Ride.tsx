@@ -28,7 +28,6 @@ import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
-import { cn } from '@/lib/utils';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
