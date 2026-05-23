@@ -505,10 +505,11 @@ function CreateRaceModal({ onClose, onCreate }: CreateRaceModalProps) {
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">Create a race</h2>
           </div>
           <button
+            aria-label="Close"
             className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-muted/50"
             onClick={onClose}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -718,10 +719,11 @@ function ImportRaceModal({ onClose, onImport }: ImportRaceModalProps) {
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-widest">Import a race</h2>
           </div>
           <button
+            aria-label="Close"
             className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-1 hover:bg-muted/50"
             onClick={onClose}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 

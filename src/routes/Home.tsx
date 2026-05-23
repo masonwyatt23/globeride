@@ -98,8 +98,7 @@ export function Home() {
     const url = new URL(window.location.href);
     url.searchParams.delete('race');
     window.history.replaceState({}, '', url.toString());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // intentional: runs once on mount to consume the ?race= deep-link
 
   /** Always-enabled CTA: auto-pairs a random iconic route and the daily easy
    *  workout if the user hasn't already picked them, then navigates to /ride. */

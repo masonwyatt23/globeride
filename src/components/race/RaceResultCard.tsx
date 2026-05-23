@@ -24,13 +24,17 @@ import { formatDuration, formatDistance } from '@/lib/utils';
 import type { RoutePoint } from '@/types';
 
 // ─── Stub types (reconciled by integrator once raceProtocol.ts lands) ────────
+// TODO(wave-25): replace these local stubs with direct imports from
+// `@/lib/race/raceProtocol` once the integrator wires RaceResultCard into
+// the race-finish flow.  The field names already match the real protocol
+// (utcWindow.startMs/endMs, rideHash, signature).
 
 /** Minimal race manifest fields needed for the card. */
 export interface RaceManifest {
   id: string;
   name: string;
   organiser?: string;
-  utcWindow?: { start: number; end: number };
+  utcWindow?: { startMs: number; endMs: number };
   routeRef?: string;
   /** Route points for the 2D map — may be absent before the route loads. */
   points?: RoutePoint[];

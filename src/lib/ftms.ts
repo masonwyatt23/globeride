@@ -854,7 +854,6 @@ export function parseIndoorBikeData(view: DataView): TrainerData {
   if (has(8)) off += 5; // expended energy (uint16 + uint16 + uint8)
   if (has(9)) {
     out.heartRate = view.getUint8(off);
-    // eslint-disable-next-line no-useless-assignment -- offset maintained for consistency with parser pattern
     off += 1;
   }
   // Remaining flag bits are not needed for basic riding.

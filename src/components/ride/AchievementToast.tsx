@@ -105,11 +105,11 @@ function ConfettiBurst() {
             transform: 'translateX(-50%) translateY(0) rotate(0deg)',
             opacity: 1,
             animation: `confettiFly 1.8s cubic-bezier(0.15,0.6,0.4,1) ${p.delay}ms forwards`,
-            // Pass travel distance + rotate as CSS vars via style
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ['--dist' as any]: `${p.dist}px`,
-            ['--rotate' as any]: `${p.rotate}deg`,
-          }}
+            // CSS custom properties used by the confettiFly keyframe animation.
+            // Cast needed: React.CSSProperties does not accept arbitrary CSS vars.
+            '--dist': `${p.dist}px`,
+            '--rotate': `${p.rotate}deg`,
+          } as React.CSSProperties & Record<string, string | number>}
         />
       ))}
     </div>
@@ -277,11 +277,14 @@ export function AchievementToast() {
 
   useEffect(() => {
     listeners.add(push);
+    // Capture the ref value at effect run time so the cleanup closure
+    // always references the same Set instance (satisfies react-hooks/exhaustive-deps).
+    const timers = timersRef.current;
     return () => {
       listeners.delete(push);
       // Cancel all pending timers to avoid setting state on an unmounted component.
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current.clear();
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
   }, [push]);
 
