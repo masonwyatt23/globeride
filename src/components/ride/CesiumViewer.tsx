@@ -199,12 +199,27 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       }
       ghostAvatarsRef.current = [];
       ghostRidesRef.current = [];
+      // Explicitly destroy tileset GPU resources after removal.
+      // Cesium's primitives.remove() does NOT free VRAM unless the scene was
+      // constructed with destroyPrimitives:true (we don't set that flag).
+      // Calling destroy() here is the only reliable way to prevent VRAM leaks
+      // on rapid route changes and mobile OOM situations.
       if (tilesetRef.current && !viewer.isDestroyed()) {
-        viewer.scene.primitives.remove(tilesetRef.current);
+        try {
+          viewer.scene.primitives.remove(tilesetRef.current);
+          if (!tilesetRef.current.isDestroyed()) tilesetRef.current.destroy();
+        } catch {
+          // Scene or tileset may already be in a torn-down state — ignore.
+        }
       }
       tilesetRef.current = null;
       if (osmTilesetRef.current && !viewer.isDestroyed()) {
-        viewer.scene.primitives.remove(osmTilesetRef.current);
+        try {
+          viewer.scene.primitives.remove(osmTilesetRef.current);
+          if (!osmTilesetRef.current.isDestroyed()) osmTilesetRef.current.destroy();
+        } catch {
+          // Scene or tileset may already be in a torn-down state — ignore.
+        }
       }
       osmTilesetRef.current = null;
       setActiveViewer(null);
@@ -378,7 +393,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     if (!viewer || !flyToTarget) return;
 
     if (searchPinRef.current) {
-      viewer.entities.remove(searchPinRef.current);
+      if (!viewer.isDestroyed()) viewer.entities.remove(searchPinRef.current);
       searchPinRef.current = null;
     }
 
@@ -419,7 +434,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const viewer = viewerRef.current;
     if (!viewer || !route) return;
     if (searchPinRef.current) {
-      viewer.entities.remove(searchPinRef.current);
+      if (!viewer.isDestroyed()) viewer.entities.remove(searchPinRef.current);
       searchPinRef.current = null;
     }
   }, [route]);
