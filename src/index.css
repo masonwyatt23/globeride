@@ -247,6 +247,14 @@
   60%  { transform: scale(1.04); }
   100% { opacity: 1; transform: scale(1); }
 }
+@keyframes stepForward {
+  0%   { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes stepBack {
+  0%   { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
 
 /* -------------------------------------------------------------------------
    Button press feedback — micro-interaction on all interactive elements.

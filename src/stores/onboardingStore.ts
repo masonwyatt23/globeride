@@ -20,9 +20,9 @@ export const useOnboardingStore = create<OnboardingStoreState>()(
       dismiss: () => set({ hasSeenOnboarding: true }),
     }),
     {
-      name: 'globeride.onboarding.v1',
+      name: 'globeride.onboarding.v2',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
     },
   ),
 );
