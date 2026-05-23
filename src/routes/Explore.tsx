@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 
-import { CesiumViewer } from '@/components/ride/CesiumViewer';
+import { ExploreGlobe } from '@/components/explore/ExploreGlobe';
 import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
 import { RouteSearch } from '@/components/setup/RouteSearch';
 import { RouteDrawer } from '@/components/routes/RouteDrawer';
@@ -12,9 +12,19 @@ import { useRideStore } from '@/stores/rideStore';
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
 /**
- * Explore mode — full-bleed globe with a floating Nominatim search +
- * route generator. Selecting a place flies the camera, then a route
- * can be built that plugs straight into the existing ride pipeline.
+ * Explore mode — full-bleed cinematic globe with a floating Nominatim search
+ * + route generator. Selecting a place flies the camera, then a route can be
+ * built that plugs straight into the existing ride pipeline.
+ *
+ * Globe rendering is handled by ExploreGlobe (not the ride CesiumViewer):
+ * - Bing Aerial imagery is always visible at any zoom.
+ * - Google Photorealistic 3D Tiles are hidden above 5 km to avoid the
+ *   polygon-void LOD artifacts at planet-scale zoom; they reveal on close zoom.
+ * - Atmosphere glow, star skybox, real solar angle, cinematic intro flyby,
+ *   and idle auto-rotation are all active.
+ *
+ * The parallel agent adding pulsing route-markers will mount its overlay
+ * component inside the MARKER_OVERLAY_SLOT comment below.
  */
 export function Explore() {
   const navigate     = useNavigate();
@@ -50,7 +60,10 @@ export function Explore() {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">
-      <CesiumViewer ionToken={token} />
+      {/* Cinematic globe — owns its own Cesium viewer, separate from the ride view */}
+      <ExploreGlobe ionToken={token} />
+
+      {/* MARKER_OVERLAY_SLOT — parallel agent mounts pulsing route markers here */}
 
       {/* Top overlay: back + search */}
       <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-4 pointer-events-none">
