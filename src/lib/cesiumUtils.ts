@@ -44,6 +44,47 @@ export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Base imagery
+// ---------------------------------------------------------------------------
+
+/**
+ * Add a Bing Maps Aerial imagery layer to the viewer as the permanent globe
+ * base.  Must be called once after the Viewer is constructed so terrain and
+ * OSM buildings always have imagery to render on — regardless of whether
+ * Google Photorealistic 3D Tiles has data for the current area.
+ *
+ * Idempotent: if an imagery layer has already been added by this function the
+ * call is a no-op (guarded by the _baseImageryAdded WeakSet).
+ *
+ * Auth is via the user's Cesium ion token (set via setIonToken before calling
+ * this), not via a separate Bing API key.
+ */
+const _baseImageryAdded = new WeakSet<object>();
+
+export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
+  if (viewer.isDestroyed()) return;
+  // Idempotency guard — the Viewer object is the key.
+  if (_baseImageryAdded.has(viewer)) return;
+  _baseImageryAdded.add(viewer);
+
+  // Try asset 2 (Bing Maps Aerial with Labels) first, then fall back to
+  // asset 3812 (Bing Aerial without labels) if the first isn't available.
+  const assetIds = [2, 3812];
+
+  for (const assetId of assetIds) {
+    try {
+      const provider = await Cesium.IonImageryProvider.fromAssetId(assetId);
+      if (viewer.isDestroyed()) return;
+      const layer = new Cesium.ImageryLayer(provider, {});
+      viewer.scene.imageryLayers.add(layer);
+      return; // success — don't try the fallback
+    } catch {
+      // This asset isn't accessible with the current token — try the next one.
+    }
+  }
+}
+
 /** Cesium ion asset ID for Google Photorealistic 3D Tiles. */
 const GOOGLE_PHOTOREAL_ASSET_ID = 2275207;
 

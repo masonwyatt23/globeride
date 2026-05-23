@@ -20,6 +20,7 @@ import {
   routeToCartesians,
   setIonToken,
   setActiveViewer,
+  setupBaseImagery,
 } from '@/lib/cesiumUtils';
 import {
   buildGradientPolylines,
@@ -65,6 +66,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const avatarRef = useRef<Avatar | null>(null);
   const cartesianRouteRef = useRef<Cesium.Cartesian3[] | null>(null);
   const tilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
+  // Separate ref for OSM buildings so it never overwrites tilesetRef (which
+  // applyGraphicsQuality uses to tune the photoreal tileset's SSE budget).
+  const osmTilesetRef = useRef<Cesium.Cesium3DTileset | null>(null);
   const photorealPromiseRef = useRef<Promise<Cesium.Cesium3DTileset> | null>(null);
   const removeTickRef = useRef<(() => void) | null>(null);
   // Ghost rider refs — parallel arrays, one entry per active ghost.
@@ -100,6 +104,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     });
     viewerRef.current = viewer;
     setActiveViewer(viewer);
+
+    // Add Bing Maps Aerial as the permanent globe base layer so terrain is
+    // always visible — even in rural areas where Google Photorealistic Tiles
+    // have no coverage.  This must come before the photoreal tileset is added
+    // so imagery is rendered under it whenever tiles are absent.
+    setupBaseImagery(viewer).catch(() => undefined);
 
     const scene = viewer.scene;
     scene.globe.depthTestAgainstTerrain = true;
@@ -138,10 +148,14 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
             return;
           }
           viewer.scene.primitives.add(tileset);
-          tilesetRef.current = tileset;
+          osmTilesetRef.current = tileset;
         })
         .catch(() => undefined);
     };
+
+    // Always add OSM buildings — they appear globally and give structural
+    // depth even in areas where Google Photorealistic Tiles have no data.
+    addOsmBuildings();
 
     if (usePhotoreal) {
       const photoreal = getPhotorealTileset();
@@ -152,22 +166,19 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
             tileset.destroy?.();
             return;
           }
+          // Add the photoreal tileset as an ADDITIVE overlay on top of the
+          // globe.  We intentionally keep globe.show = true so that rural
+          // areas (no Google data) still render terrain + Bing imagery.
+          // The tileset simply overrides the surface where it has coverage.
           viewer.scene.primitives.add(tileset);
-          // The photoreal mesh IS the world surface — hide the globe so the
-          // World-Terrain ellipsoid can't z-fight or poke through it.
-          viewer.scene.globe.show = false;
           tilesetRef.current = tileset;
         })
         .catch(() => {
-          // No ion access to the Google asset (or it errored) — fall back.
+          // Google Photorealistic Tiles are unavailable (token lacks access or
+          // network error).  OSM buildings were already added above, so the
+          // globe + terrain + OSM path is the active fallback — nothing to do.
           photorealPromiseRef.current = null;
-          if (!viewer.isDestroyed()) {
-            viewer.scene.globe.show = true;
-            addOsmBuildings();
-          }
         });
-    } else {
-      addOsmBuildings();
     }
 
     // Cesium normally listens for window resize, but when the container is
@@ -192,6 +203,10 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         viewer.scene.primitives.remove(tilesetRef.current);
       }
       tilesetRef.current = null;
+      if (osmTilesetRef.current && !viewer.isDestroyed()) {
+        viewer.scene.primitives.remove(osmTilesetRef.current);
+      }
+      osmTilesetRef.current = null;
       setActiveViewer(null);
       if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
