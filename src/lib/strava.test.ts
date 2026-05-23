@@ -220,6 +220,13 @@ describe('refreshAccessToken', () => {
       writable: true,
       configurable: true,
     });
+    // saveRefreshTokenOverride writes to sessionStorage post-Wave-16 migration;
+    // mock it here so the override-precedence test can write+read its token.
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      value: makeLocalStorageMock(),
+      writable: true,
+      configurable: true,
+    });
     clearCachedToken();
     clearRefreshTokenOverride();
   });
