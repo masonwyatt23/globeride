@@ -36,6 +36,7 @@ import { applyGraphicsQuality } from '@/lib/graphicsQuality';
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
 import type { AvatarColors } from '@/lib/avatarConfig';
+import { BOT_COLORWAYS } from '@/lib/paceBots';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -74,6 +75,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   // Ghost rider refs — parallel arrays, one entry per active ghost.
   const ghostAvatarsRef = useRef<Avatar[]>([]);
   const ghostRidesRef = useRef<GhostRide[]>([]);
+  // Pace bot avatar refs — one Avatar per active bot, parallel to rideStore.paceBots.
+  const botAvatarsRef = useRef<Avatar[]>([]);
 
   const route = useRideStore((s) => s.route);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
@@ -199,6 +202,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       }
       ghostAvatarsRef.current = [];
       ghostRidesRef.current = [];
+      // Dispose pace bot avatars.
+      for (const ba of botAvatarsRef.current) {
+        if (!viewer.isDestroyed()) ba.dispose();
+      }
+      botAvatarsRef.current = [];
       // Explicitly destroy tileset GPU resources after removal.
       // Cesium's primitives.remove() does NOT free VRAM unless the scene was
       // constructed with destroyPrimitives:true (we don't set that flag).
@@ -285,6 +293,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     ghostAvatarsRef.current = [];
     ghostRidesRef.current = [];
     useGhostStore.getState().setGhostCount(0);
+    // Tear down pace bot avatars from previous route.
+    for (const ba of botAvatarsRef.current) {
+      if (!viewer.isDestroyed()) ba.dispose();
+    }
+    botAvatarsRef.current = [];
     cartesianRouteRef.current = null;
     resetFollowCam();
 
@@ -336,6 +349,18 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const avatar = createAvatar(viewer);
     avatar.setColors(useSettingsStore.getState().avatar);
     avatarRef.current = avatar;
+
+    // ---- Pace bot avatars — one per bot in the current roster ----
+    // Read synchronously; if the user adds bots after route load the preRender
+    // handler will detect the count mismatch and skip (bots won't render until
+    // the next route load or a manual rebuild — acceptable for the first ship).
+    const initialBots = useRideStore.getState().paceBots;
+    const newBotAvatars: Avatar[] = initialBots.map((bot, i) => {
+      const ba = createAvatar(viewer);
+      ba.setColors(BOT_COLORWAYS[i % BOT_COLORWAYS.length]);
+      return ba;
+    });
+    botAvatarsRef.current = newBotAvatars;
 
     const start = route.points[0];
     avatar.update({
@@ -495,6 +520,28 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           { backMeters: 45, upMeters: 9, pitchDeg: -7 },
           dt,
         );
+      }
+
+      // ---- Pace bot avatar updates ----
+      const bots = useRideStore.getState().paceBots;
+      const botAvatars = botAvatarsRef.current;
+      // If bot count matches the avatar array, update each one.
+      // Count mismatch can occur if bots are added after route load — we skip
+      // silently rather than crash; the user would need to re-select the route.
+      if (bots.length === botAvatars.length && bots.length > 0 && r) {
+        for (let i = 0; i < bots.length; i++) {
+          const bs = bots[i].state;
+          botAvatars[i].update({
+            lon: bs.lon,
+            lat: bs.lat,
+            ele: bs.ele,
+            heading: bs.heading,
+            speed: bs.speed,
+            cadence: 0,  // let avatar estimate from speed
+            grade: 0,    // approximate — bots orient by heading, pitch negligible at this detail
+            dt,
+          });
+        }
       }
 
       // ---- Ghost avatar updates ----

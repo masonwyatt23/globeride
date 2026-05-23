@@ -12,6 +12,9 @@ import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 import type { TrainerControlMode } from '@/lib/ftms';
 import type { Workout } from '@/lib/workout';
+import type { PaceBot } from '@/lib/paceBots';
+import { tickPaceBot } from '@/lib/paceBots';
+import { gradientAt } from '@/lib/gradientCalculator';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -181,6 +184,17 @@ interface RideStoreState {
   /** Action: update the last resolved ERG target for the HUD. */
   setWorkoutTargetWatts: (watts: number | null) => void;
 
+  // ---- ADDITIVE: Pace Bots ----
+  /**
+   * Active pace bot instances. Each carries its own personality + live state.
+   * Default: empty — bots are injected by the PaceBotsPanel before the ride starts.
+   */
+  paceBots: PaceBot[];
+  /** Replace the entire bot roster (called by PaceBotsPanel on selection). */
+  setPaceBots: (bots: PaceBot[]) => void;
+  /** Remove all bots (called on route clear or explicit disable). */
+  clearPaceBots: () => void;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -203,6 +217,8 @@ interface RideStoreState {
 
   /** Called once per frame by useRideLoop. */
   tick: (input: TickInput) => void;
+  /** Called once per frame by useRideLoop to advance all bots. */
+  tickBots: (dt: number) => void;
 
   // ---- ADDITIVE: Sensor actions ----
   /** Update HR sensor connection status and optionally set device name. */
@@ -257,6 +273,8 @@ function genToastId(): string {
 export const useRideStore = create<RideStoreState>((set, get) => ({
   route: null,
   rideState: 'idle',
+  paceBots: [],
+
   mode: 'trainer',
   startedAt: null,
   elapsedMs: 0,
@@ -334,6 +352,27 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   setWorkoutTargetWatts: (watts) => set({ workoutTargetWatts: watts }),
 
+  // ---- ADDITIVE: Pace Bot actions ----
+  setPaceBots: (bots) => set({ paceBots: bots }),
+  clearPaceBots: () => set({ paceBots: [] }),
+
+  tickBots: (dt) =>
+    set((st) => {
+      if (st.rideState !== 'running' || !st.route || st.paceBots.length === 0) return st;
+      const route = st.route;
+      const riderDistance = st.distance;
+      // Build a new array (never mutate in place — Wave 8 immutability rule).
+      const nextBots = st.paceBots.map((bot) => {
+        // Compute gradient at the bot's current position (not the rider's)
+        // so each bot responds to its own terrain independently.
+        const grade = gradientAt(route, bot.state.distance);
+        const newState = tickPaceBot(bot, route, dt, riderDistance, grade);
+        // Return new bot object with updated state — no in-place mutation.
+        return { ...bot, state: newState };
+      });
+      return { paceBots: nextBots };
+    }),
+
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
   setDrawModeActive: (active) => set({ drawModeActive: active }),
@@ -395,6 +434,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       // Clear any active replay when a new route is loaded normally
       replayData: null,
       replayIndex: 0,
+      // Clear bots so they re-seat at the new route's start when re-selected.
+      paceBots: [],
     }),
 
   setMode: (mode) => set({ mode }),
