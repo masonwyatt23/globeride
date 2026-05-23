@@ -9,8 +9,8 @@
  *   2. User approves on Strava, gets redirected to the redirect_uri with ?code=…
  *   3. User copies the `code` value and pastes it into the in-app input.
  *   4. App calls exchangeCodeForRefreshToken(code) via the proxy.
- *   5. The returned refresh_token is saved to localStorage (STRAVA_RT_OVERRIDE_KEY).
- *   6. strava.ts prefers the localStorage override over the .env.local value.
+ *   5. The returned refresh_token is saved to sessionStorage (STRAVA_RT_OVERRIDE_KEY).
+ *   6. strava.ts prefers the sessionStorage override over the .env.local value.
  *
  * Scope requested: activity:write,activity:read_all  (covers upload + read).
  *
@@ -21,7 +21,7 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-/** localStorage key for the user-supplied refresh token override. */
+/** sessionStorage key for the user-supplied refresh token override. */
 export const STRAVA_RT_OVERRIDE_KEY = 'globeride.strava.refreshTokenOverride';
 
 /**
@@ -161,34 +161,43 @@ export async function exchangeCodeForRefreshToken(
 }
 
 // ---------------------------------------------------------------------------
-// localStorage override helpers
+// sessionStorage override helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Persist a user-supplied refresh token to localStorage.
+ * Persist a user-supplied refresh token to sessionStorage.
  * strava.ts calls getRefreshTokenOverride() in preference to the env var.
+ *
+ * Security note: sessionStorage is chosen over localStorage deliberately —
+ * the refresh token is a long-lived OAuth credential and storing it in
+ * localStorage exposes it to any XSS payload that runs in this origin
+ * (it persists indefinitely across tabs and browser restarts). sessionStorage
+ * is cleared when the browser tab/window closes, limiting the exfiltration
+ * window significantly. The trade-off is the user must reconnect Strava after
+ * closing the browser — this is intentional and preferred over the security
+ * risk of indefinite localStorage persistence.
  */
 export function saveRefreshTokenOverride(token: string): void {
   try {
-    localStorage.setItem(STRAVA_RT_OVERRIDE_KEY, token);
+    sessionStorage.setItem(STRAVA_RT_OVERRIDE_KEY, token);
   } catch {
     // storage blocked — ignore, env var will be used as fallback
   }
 }
 
-/** Return the localStorage-stored refresh token, or null if absent. */
+/** Return the sessionStorage-stored refresh token, or null if absent. */
 export function getRefreshTokenOverride(): string | null {
   try {
-    return localStorage.getItem(STRAVA_RT_OVERRIDE_KEY);
+    return sessionStorage.getItem(STRAVA_RT_OVERRIDE_KEY);
   } catch {
     return null;
   }
 }
 
-/** Remove the localStorage refresh token override (revert to env var). */
+/** Remove the sessionStorage refresh token override (revert to env var). */
 export function clearRefreshTokenOverride(): void {
   try {
-    localStorage.removeItem(STRAVA_RT_OVERRIDE_KEY);
+    sessionStorage.removeItem(STRAVA_RT_OVERRIDE_KEY);
   } catch {
     // ignore
   }
@@ -241,7 +250,7 @@ export function clearAthleteCache(): void {
 
 /**
  * Returns true when the app has both client credentials configured AND
- * a refresh token override in localStorage (i.e. the user has completed
+ * a refresh token override in sessionStorage (i.e. the user has completed
  * the OAuth flow at least once). Does NOT verify the token is still valid.
  */
 export function isStravaLinked(): boolean {

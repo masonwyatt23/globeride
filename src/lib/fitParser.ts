@@ -11,6 +11,7 @@
 
 import type { TelemetrySample, Route } from '@/types';
 import { buildRoute, sampleRouteAtDistance } from '@/lib/gpxParser';
+import { buildFit } from '@/lib/fitExporter';
 
 // ---------------------------------------------------------------------------
 // CRC — identical table / algorithm used by fitExporter.ts
@@ -444,7 +445,6 @@ export function parseFit(buffer: ArrayBuffer): ParsedFit {
  *   import('@/lib/fitParser').then(m => m._roundTripCheck().then(console.log))
  */
 export async function _roundTripCheck(): Promise<string> {
-  const { buildFit } = await import('@/lib/fitExporter');
   const now = Date.now();
 
   const testSamples: TelemetrySample[] = [

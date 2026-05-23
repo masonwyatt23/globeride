@@ -411,8 +411,8 @@ function StravaSection() {
           <div className="mt-2 space-y-2">
             <p className="text-[11px] text-muted-foreground leading-relaxed">
               If you already have a refresh token with <code>activity:write</code> scope, paste it
-              here. It will be stored in <code>localStorage</code> and override the env var without
-              requiring a server restart.
+              here. It will be stored in <code>sessionStorage</code> and override the env var without
+              requiring a server restart. You will need to reconnect after closing the browser.
             </p>
             <PasteRefreshTokenField onSave={(token) => {
               saveRefreshTokenOverride(token);

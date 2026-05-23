@@ -629,8 +629,10 @@ describe('exchangeCodeForRefreshToken', () => {
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     lsMock = makeLocalStorageMock();
-    // Install mock on global so stravaOauth.ts can use it
-    Object.defineProperty(globalThis, 'localStorage', {
+    // Install mock on global so stravaOauth.ts can use it.
+    // The refresh-token override is stored in sessionStorage (not localStorage)
+    // after the Task C security migration — mock sessionStorage here.
+    Object.defineProperty(globalThis, 'sessionStorage', {
       value: lsMock,
       writable: true,
       configurable: true,
@@ -645,7 +647,7 @@ describe('exchangeCodeForRefreshToken', () => {
     clearCachedToken();
   });
 
-  it('saves the refresh token to localStorage on success', async () => {
+  it('saves the refresh token to sessionStorage on success', async () => {
     globalThis.fetch = mockFetch([
       {
         ok: true,
@@ -703,14 +705,15 @@ describe('exchangeCodeForRefreshToken', () => {
   });
 });
 
-describe('localStorage refresh token override precedence', () => {
+describe('sessionStorage refresh token override precedence', () => {
   let originalFetch: typeof globalThis.fetch;
   let lsMock: ReturnType<typeof makeLocalStorageMock>;
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
     lsMock = makeLocalStorageMock();
-    Object.defineProperty(globalThis, 'localStorage', {
+    // Refresh-token override uses sessionStorage (security: limits XSS exfil window)
+    Object.defineProperty(globalThis, 'sessionStorage', {
       value: lsMock,
       writable: true,
       configurable: true,
@@ -725,7 +728,7 @@ describe('localStorage refresh token override precedence', () => {
     clearRefreshTokenOverride();
   });
 
-  it('saveRefreshTokenOverride persists to localStorage', () => {
+  it('saveRefreshTokenOverride persists to sessionStorage', () => {
     saveRefreshTokenOverride('my-override-rt');
     expect(lsMock.getItem(STRAVA_RT_OVERRIDE_KEY)).toBe('my-override-rt');
     expect(getRefreshTokenOverride()).toBe('my-override-rt');
@@ -754,8 +757,8 @@ describe('localStorage refresh token override precedence', () => {
     vi.stubEnv('VITE_STRAVA_REFRESH_TOKEN', 'test-refresh-token'); // restore
   });
 
-  it('refreshAccessToken uses localStorage override over env var', async () => {
-    saveRefreshTokenOverride('localStorage-override-rt');
+  it('refreshAccessToken uses sessionStorage override over env var', async () => {
+    saveRefreshTokenOverride('sessionStorage-override-rt');
     const futureExpiry = nowSec() + 3600;
 
     let capturedBody = '';
@@ -778,7 +781,7 @@ describe('localStorage refresh token override precedence', () => {
     const token = await refreshAccessToken();
     expect(token).toBe('tok-from-override');
     // The override token must appear in the POST body, not the env-var value
-    expect(capturedBody).toContain('localStorage-override-rt');
+    expect(capturedBody).toContain('sessionStorage-override-rt');
     expect(capturedBody).not.toContain('test-refresh-token');
   });
 });

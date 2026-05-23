@@ -519,6 +519,31 @@ export async function setGradient(gradePct: number): Promise<void> {
   await setSimulationParams({ gradePct });
 }
 
+/**
+ * Write `payload` to `cp` with up to `maxAttempts` retries and exponential
+ * backoff (100 ms, 200 ms). Older trainers (e.g. Wahoo KICKR firmware < 3.x)
+ * can silent-fail the first write attempt; retrying recovers transparently.
+ */
+async function writeWithRetry(
+  cp: BluetoothRemoteGATTCharacteristic,
+  payload: Uint8Array,
+  label: string,
+): Promise<void> {
+  const maxAttempts = 3;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      await cp.writeValueWithResponse(payload as unknown as BufferSource);
+      return;
+    } catch (err) {
+      if (i === maxAttempts - 1) {
+        console.warn(`[FTMS] ${label} write failed after ${maxAttempts} attempts`, err);
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, 100 * (i + 1)));
+    }
+  }
+}
+
 /** Internal: serialized write to the control point. */
 async function writeControl(payload: Uint8Array): Promise<void> {
   if (!controlPoint) throw new Error('FTMS control point not available');
@@ -526,7 +551,9 @@ async function writeControl(payload: Uint8Array): Promise<void> {
   // which is required for FTMS reliability on macOS / Linux BlueZ stacks.
   // The TS 5.7+ Uint8Array generic over ArrayBufferLike is too loose for
   // the DOM `BufferSource` signature; assert to a plain BufferSource.
-  await controlPoint.writeValueWithResponse(payload as unknown as BufferSource);
+  // Wrapped in writeWithRetry: older trainers can silent-fail the first
+  // attempt; up to 3 tries with 100 ms / 200 ms backoff recovers cleanly.
+  await writeWithRetry(controlPoint, payload, 'writeControl');
 }
 
 // --- Indication / notification handlers ---------------------------------
