@@ -124,6 +124,9 @@ export function useRideLoop(): void {
         powerNow: power,
         heartRateNow: hr,
       });
+
+      // Advance pace bots in the same frame (cheap — no allocations per bot).
+      if (s.paceBots.length > 0) s.tickBots(dt);
     };
 
     raf = requestAnimationFrame(frame);
