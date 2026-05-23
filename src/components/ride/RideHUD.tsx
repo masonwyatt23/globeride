@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Gauge, Zap, Heart, Activity, Mountain, TrendingUp, Timer, MapPin } from 'lucide-react';
+import { Gauge, Zap, Heart, Activity, Mountain, TrendingUp, Timer, MapPin, Wind } from 'lucide-react';
 
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -33,6 +33,7 @@ export function RideHUD() {
   const elapsedMs     = useRideStore((s) => s.elapsedMs);
   const route         = useRideStore((s) => s.route);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
+  const draft         = useRideStore((s) => s.draft);
   const ftpW          = useSettingsStore((s) => s.ftpW);
 
   const progress = route && route.totalDistance > 0
@@ -176,6 +177,9 @@ export function RideHUD() {
               {safeGrade >= 0 ? '+' : ''}{safeGrade.toFixed(1)}%
             </span>
           </div>
+
+          {/* Draft indicator — animates in/out when slipstream becomes active */}
+          <DraftChip draft={draft} />
         </div>
       </div>
 
@@ -259,6 +263,56 @@ export function RideHUD() {
               <div className="h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-background shadow-[0_0_10px_hsl(var(--accent)/0.8)]" />
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Draft chip — animates in when the rider is in a slipstream
+// ---------------------------------------------------------------------------
+
+import type { DraftState } from '@/lib/drafting';
+
+/**
+ * Compact pill shown when the rider is drafting another rider.
+ * Fades + slides in smoothly; disappears when the gap is lost.
+ */
+function DraftChip({ draft }: { draft: DraftState }) {
+  const savingRounded = Math.round(draft.savingPct * 100);
+
+  return (
+    <div
+      className={cn(
+        'mt-2 flex items-center gap-1.5 overflow-hidden transition-all duration-500 ease-out',
+        draft.active
+          ? 'max-h-12 opacity-100 translate-y-0'
+          : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
+      )}
+      aria-live="polite"
+    >
+      {draft.active && (
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider select-none"
+          style={{
+            background: 'rgba(56, 189, 248, 0.12)',   // sky-400 at low opacity
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            color: '#38bdf8',                           // sky-400
+            boxShadow: '0 0 10px rgba(56, 189, 248, 0.25)',
+          }}
+          aria-label={`Drafting -${savingRounded}%${draft.leaderId ? ` behind ${draft.leaderId}` : ''}`}
+        >
+          <Wind className="h-3 w-3 shrink-0" aria-hidden="true" />
+          <span>DRAFT −{savingRounded}%</span>
+          {draft.leaderId && (
+            <span
+              className="font-normal opacity-70 normal-case tracking-normal truncate max-w-[6rem]"
+              aria-hidden="true"
+            >
+              on {draft.leaderId}'s wheel
+            </span>
+          )}
         </div>
       )}
     </div>

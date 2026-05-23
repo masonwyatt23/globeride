@@ -12,6 +12,7 @@ import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 import type { TrainerControlMode } from '@/lib/ftms';
 import type { Workout } from '@/lib/workout';
+import { computeDraftState, type DraftState } from '@/lib/drafting';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -138,6 +139,14 @@ interface RideStoreState {
    */
   cadenceSensorValue: number | null;
 
+  // ---- ADDITIVE: Drafting state ----
+  /**
+   * Aerodynamic draft state — updated each tick when pace bots or ghosts are
+   * present and within the slipstream bubble (1.5–5 m ahead, same heading).
+   * Active is false during solo rides or when no one is close enough.
+   */
+  draft: DraftState;
+
   // ---- ADDITIVE: ERG/SIM trainer control state ----
   /**
    * Current trainer control mode.
@@ -246,6 +255,18 @@ export interface TickInput {
   powerNow: number | null;
   /** Heart rate, if known. */
   heartRateNow: number | null;
+  /**
+   * Other riders (pace bots, ghosts) whose positions are known this tick.
+   * Used to compute the aerodynamic draft state. Optional — omit or pass []
+   * for solo rides; existing call-sites need no changes.
+   */
+  otherRiders?: { id: string; distance: number; heading: number }[];
+  /**
+   * The rider's current heading along the route, radians.
+   * Required for heading-agreement draft checks. Defaults to 0 when omitted
+   * so existing callers don't break.
+   */
+  riderHeading?: number;
 }
 
 let toastCounter = 0;
@@ -299,6 +320,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   cadenceSensorStatus: 'disconnected',
   cadenceSensorDeviceName: null,
   cadenceSensorValue: null,
+
+  // ---- ADDITIVE: Drafting initial state ----
+  draft: { active: false, savingPct: 0, leaderId: null, gapMeters: 0 },
 
   // ---- ADDITIVE: ERG/SIM initial state ----
   trainerControlMode: 'sim',
@@ -590,6 +614,16 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
           ]
         : st.samples;
 
+      // ---- Aerodynamic draft state ----
+      // Compute each tick so the HUD indicator responds in real-time.
+      // Falls back to inactive state on solo rides where otherRiders is empty.
+      const newDraft = computeDraftState({
+        riderDistance: newDistance,
+        riderHeading: input.riderHeading ?? 0,
+        others: input.otherRiders ?? [],
+        routeTotalDistance: st.route.totalDistance,
+      });
+
       return {
         ...st,
         rideState: newState,
@@ -604,6 +638,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,
         samples: nextSamples,
+        draft: newDraft,
       };
     }),
 
