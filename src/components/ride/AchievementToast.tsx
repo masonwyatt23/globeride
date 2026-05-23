@@ -9,12 +9,20 @@
  *
  * The toast stack is driven by `pendingToasts` in achievementStore. It auto-
  * dismisses after TOAST_DURATION_MS. Multiple achievements stack sequentially.
+ *
+ * Enhancements (Wave 18.C):
+ *   - CSS-only confetti burst (~20 particles, SVG-free, 2s fade)
+ *   - Larger badge icon with animate-popIn entrance
+ *   - "ACHIEVEMENT UNLOCKED" overline in uppercase tracking-widest
+ *   - Gentle chime via playAchievementSound() (Web Audio, no asset files)
+ *   - Slide-in from right (animate-toastIn) on the card itself
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIER_LABEL_STYLES } from '@/components/ride/AchievementToast.styles';
+import { playAchievementSound } from '@/lib/rideAudio';
 import type { Achievement } from '@/lib/achievements';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +43,78 @@ export function enqueueAchievementToast(achievements: Achievement[]): void {
 // ---------------------------------------------------------------------------
 
 const TOAST_DURATION_MS = 5_000;
+
+// ---------------------------------------------------------------------------
+// Confetti — CSS-only particle burst
+// ---------------------------------------------------------------------------
+
+// 20 particles with varied colours, sizes, and trajectories.
+// Each is a tiny div absolutely positioned inside the card's overflow:hidden
+// container, animated via inline CSS custom properties.
+
+interface ConfettiParticle {
+  id: number;
+  /** X offset from center as %, −50..50 */
+  x: number;
+  /** Travel distance in px */
+  dist: number;
+  /** Initial scale 0.6–1.2 */
+  size: number;
+  /** Delay before particle fires, ms */
+  delay: number;
+  /** CSS hsl colour string */
+  color: string;
+  /** Rotation end angle, deg */
+  rotate: number;
+}
+
+const CONFETTI_COLORS = [
+  '#fbbf24', '#f87171', '#34d399', '#38bdf8', '#c084fc',
+  '#fb923c', '#a3e635', '#f472b6', '#60a5fa', '#facc15',
+];
+
+function makeParticles(): ConfettiParticle[] {
+  const rng = (min: number, max: number) => Math.random() * (max - min) + min;
+  return Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    x:      rng(-55, 55),
+    dist:   rng(40, 90),
+    size:   rng(4, 9),
+    delay:  rng(0, 180),
+    color:  CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    rotate: rng(-360, 360),
+  }));
+}
+
+function ConfettiBurst() {
+  const particles = useRef(makeParticles());
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
+      {particles.current.map((p) => (
+        <div
+          key={p.id}
+          className="absolute"
+          style={{
+            left: `calc(50% + ${p.x}%)`,
+            bottom: '60%',
+            width: p.size,
+            height: p.size,
+            borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+            backgroundColor: p.color,
+            transform: 'translateX(-50%) translateY(0) rotate(0deg)',
+            opacity: 1,
+            animation: `confettiFly 1.8s cubic-bezier(0.15,0.6,0.4,1) ${p.delay}ms forwards`,
+            // Pass travel distance + rotate as CSS vars via style
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ['--dist' as any]: `${p.dist}px`,
+            ['--rotate' as any]: `${p.rotate}deg`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Single toast card
@@ -76,6 +156,11 @@ function AchievementCard({
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Play achievement chime on mount
+  useEffect(() => {
+    playAchievementSound();
+  }, []);
+
   // Dismiss on Escape key when focused inside the card
   useEffect(() => {
     const card = cardRef.current;
@@ -98,36 +183,42 @@ function AchievementCard({
       aria-label={`Achievement unlocked: ${first.name}`}
       className={cn(
         'relative w-80 overflow-hidden rounded-2xl border bg-card/95 backdrop-blur-md shadow-2xl',
-        'animate-in slide-in-from-bottom-4 fade-in duration-300 ease-out',
+        'animate-toastIn',
         styles.border,
       )}
     >
+      {/* Confetti burst — fires once on mount */}
+      <ConfettiBurst />
+
       {/* Top accent stripe */}
       <div className={cn('h-0.5 w-full', styles.stripe)} aria-hidden="true" />
 
       {/* Body */}
       <div className="flex items-start gap-3 p-4">
-        {/* Icon */}
+        {/* Badge icon — larger, animated pop-in */}
         <div
           aria-hidden="true"
           className={cn(
-            'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl leading-none ring-1 ring-inset',
+            'flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl leading-none ring-1 ring-inset',
+            'animate-popIn',
             styles.iconBg,
             styles.iconRing,
           )}
+          style={{ fontSize: '2rem' }}
         >
           {first.icon}
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0 pt-0.5">
-          <div className="flex items-center gap-1.5 mb-0.5" aria-hidden="true">
+          {/* Overline */}
+          <div className="flex items-center gap-1.5 mb-1" aria-hidden="true">
             <Trophy className={cn('h-3 w-3 shrink-0', styles.trophyColor)} />
             <span className={cn('text-[10px] font-bold uppercase tracking-widest', styles.trophyColor)}>
-              Achievement Unlocked!
+              Achievement Unlocked
             </span>
           </div>
-          <div className="text-sm font-semibold text-foreground leading-tight">
+          <div className="text-sm font-bold text-foreground leading-tight">
             {first.name}
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">
