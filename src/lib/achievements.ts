@@ -238,6 +238,203 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 'platinum',
     predicate: (p) => levelForXp(p.xp) >= 50,
   },
+
+  // ── Wave 17-23: Racing ───────────────────────────────────────────────────
+  {
+    id: 'race_first_finish',
+    name: 'First Race Finished',
+    description: 'Complete any P2P race — cross the finish line against real-time opponents.',
+    icon: '🏁',
+    tier: 'bronze',
+    predicate: (p) => (p.totalRacesFinished ?? 0) >= 1,
+  },
+  {
+    id: 'race_podium',
+    name: 'Podium Finish',
+    description: 'Place 1st, 2nd, or 3rd in a P2P race.',
+    icon: '🥇',
+    tier: 'gold',
+    predicate: (_p, ride) =>
+      ride.raceFinished === true &&
+      typeof ride.racePosition === 'number' &&
+      ride.racePosition >= 1 &&
+      ride.racePosition <= 3,
+  },
+  {
+    id: 'race_organiser',
+    name: 'Race Organiser',
+    description: 'Create and share at least one race manifest.',
+    icon: '📋',
+    tier: 'silver',
+    predicate: (p) => (p.totalManifestsCreated ?? 0) >= 1,
+  },
+
+  // ── Wave 17-23: Drafting ─────────────────────────────────────────────────
+  {
+    id: 'draft_60s',
+    name: 'Drafted 60 Seconds',
+    description: 'Accumulate 60+ seconds in a draft cone during a single ride.',
+    icon: '💨',
+    tier: 'bronze',
+    predicate: (_p, ride) => (ride.draftSec ?? 0) >= 60,
+  },
+  {
+    id: 'draft_5min',
+    name: 'Sat on the Wheel',
+    description: 'Finish a ride with 5+ minutes of total drafting time.',
+    icon: '🚴‍♂️',
+    tier: 'silver',
+    predicate: (_p, ride) => (ride.draftSec ?? 0) >= 300,
+  },
+  {
+    id: 'bot_beater',
+    name: 'Bot Beater',
+    description: 'Finish a ride ahead of all loaded AI pace bots on the same route.',
+    icon: '🤖',
+    tier: 'silver',
+    predicate: (_p, ride) => ride.beatAllBots === true,
+  },
+
+  // ── Wave 17-23: Atmosphere / Moods ───────────────────────────────────────
+  {
+    id: 'golden_hour',
+    name: 'Golden Hour',
+    description: 'Complete a ride bathed in golden-hour light.',
+    icon: '🌅',
+    tier: 'bronze',
+    predicate: (_p, ride) => ride.mood === 'golden-hour',
+  },
+
+  // ── Wave 17-23: Globe exploration ────────────────────────────────────────
+  {
+    id: 'globe_explorer',
+    name: 'Globe Explorer',
+    description: 'Start rides in 3 or more different countries.',
+    icon: '🌐',
+    tier: 'gold',
+    predicate: (p) => (p.startCountries ?? []).length >= 3,
+  },
+  {
+    id: 'world_tour_veteran',
+    name: 'World Tour Veteran',
+    description: 'Ride any of the curated Grand Tour stages.',
+    icon: '🏆',
+    tier: 'silver',
+    predicate: (p) => (p.totalWorldTourStages ?? 0) >= 1,
+  },
+
+  // ── Wave 17-23: Companion ────────────────────────────────────────────────
+  {
+    id: 'companion_user',
+    name: 'Companion User',
+    description: 'Open the /companion phone screen at least once during a ride.',
+    icon: '📱',
+    tier: 'bronze',
+    predicate: (p) => (p.totalCompanionSessions ?? 0) >= 1,
+  },
+
+  // ── New achievements ─────────────────────────────────────────────────────
+  {
+    id: 'first-race',
+    name: 'First Race',
+    description: 'Complete any P2P race.',
+    icon: '🏁',
+    tier: 'bronze',
+    predicate: (p) => (p.totalRacesFinished ?? 0) >= 1,
+  },
+  {
+    id: 'race-podium',
+    name: 'Podium Finish',
+    description: 'Finish top 3 in a race.',
+    icon: '🥇',
+    tier: 'gold',
+    predicate: (_p, ride) =>
+      ride.raceFinished === true &&
+      typeof ride.racePosition === 'number' &&
+      ride.racePosition >= 1 &&
+      ride.racePosition <= 3,
+  },
+  {
+    id: 'race-organiser',
+    name: 'Race Organiser',
+    description: 'Create and share a race.',
+    icon: '📋',
+    tier: 'silver',
+    predicate: (p) => (p.totalManifestsCreated ?? 0) >= 1,
+  },
+  {
+    id: 'draft-60s',
+    name: 'Drafted 60s',
+    description: 'Spend 60 seconds in a draft cone.',
+    icon: '💨',
+    tier: 'bronze',
+    predicate: (_p, ride) => (ride.draftSec ?? 0) >= 60,
+  },
+  {
+    id: 'draft-5min',
+    name: 'On the Wheel',
+    description: 'Spend 5 minutes drafting in one ride.',
+    icon: '🚴‍♂️',
+    tier: 'silver',
+    predicate: (_p, ride) => (ride.draftSec ?? 0) >= 300,
+  },
+  {
+    id: 'bot-beater',
+    name: 'Bot Beater',
+    description: 'Finish ahead of all pace bots on a ride.',
+    icon: '🤖',
+    tier: 'gold',
+    predicate: (_p, ride) => ride.beatAllBots === true,
+  },
+  {
+    id: 'coached',
+    name: 'Coached',
+    description: 'Ride an AI-recommended workout.',
+    icon: '🧠',
+    tier: 'silver',
+    predicate: (_p, ride) => ride.followedCoachRecommendation === true,
+  },
+  {
+    id: 'stormrider',
+    name: 'Stormrider',
+    description: 'Complete a ride in fjord-rain or alpine-storm mood.',
+    icon: '⛈️',
+    tier: 'silver',
+    predicate: (_p, ride) =>
+      ride.mood === 'fjord-rain' || ride.mood === 'alpine-storm',
+  },
+  {
+    id: 'golden-hour',
+    name: 'Golden Hour',
+    description: 'Complete a ride in golden-hour mood.',
+    icon: '🌅',
+    tier: 'bronze',
+    predicate: (_p, ride) => ride.mood === 'golden-hour',
+  },
+  {
+    id: 'wts-veteran',
+    name: 'World Tour Veteran',
+    description: 'Complete a World Tour stage.',
+    icon: '🏆',
+    tier: 'gold',
+    predicate: (p) => (p.totalWorldTourStages ?? 0) >= 1,
+  },
+  {
+    id: 'globe-explorer',
+    name: 'Globe Explorer',
+    description: 'Ride starts in 3+ different countries.',
+    icon: '🌐',
+    tier: 'gold',
+    predicate: (p) => (p.startCountries ?? []).length >= 3,
+  },
+  {
+    id: 'companion-user',
+    name: 'Companion User',
+    description: 'Use the companion phone screen.',
+    icon: '📱',
+    tier: 'bronze',
+    predicate: (p) => (p.totalCompanionSessions ?? 0) >= 1,
+  },
 ];
 
 // ---------------------------------------------------------------------------
