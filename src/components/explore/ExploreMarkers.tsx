@@ -59,14 +59,18 @@ function iconicToMarker(info: IconicRouteInfo): MarkerDef {
   };
 }
 
-function stageToMarker(info: WorldTourStageInfo): MarkerDef {
-  const pt = info.route.points[0];
+function stageToMarker(stage: WorldTourStageInfo): MarkerDef {
+  const pt = stage.route.points[0];
+  const tourLabel =
+    stage.info.grandTour === 'tour' ? 'Tour de France' :
+    stage.info.grandTour === 'giro' ? 'Giro d’Italia' :
+    'Vuelta a España';
   return {
-    route: info.route,
+    route: stage.route,
     lat: pt.lat,
     lon: pt.lon,
-    label: `${info.race} — ${info.year}`,
-    subLabel: `${info.stageName} · ${fmtKm(info.route.totalDistance)} km`,
+    label: `${tourLabel} — ${stage.info.year}`,
+    subLabel: `${stage.info.name} · ${fmtKm(stage.route.totalDistance)} km`,
     category: 'worldtour',
   };
 }
