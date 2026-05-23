@@ -68,6 +68,7 @@ export function CesiumTokenPrompt({ onSubmit }: { onSubmit: (token: string) => v
           </label>
           <input
             id="cesium-token"
+            aria-label="Cesium ion access token"
             value={value}
             onChange={(e) => { setValue(e.target.value); setTouched(true); }}
             onBlur={() => setTouched(true)}

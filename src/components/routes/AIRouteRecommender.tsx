@@ -461,6 +461,7 @@ export function AIRouteRecommender({ onPicked }: AIRouteRecommenderProps) {
           <div className="relative">
             <textarea
               id="ai-route-prompt"
+              aria-label="Describe the route you want"
               ref={textareaRef}
               value={prompt}
               onChange={(e) => {

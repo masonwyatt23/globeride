@@ -826,6 +826,7 @@ function NumberField({
             const v = Number(e.target.value);
             if (Number.isFinite(v)) onChange(v);
           }}
+          aria-label={label}
           className="num bg-transparent w-full text-sm text-foreground outline-none"
         />
         <span className="text-xs text-muted-foreground">{unit}</span>

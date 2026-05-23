@@ -64,6 +64,7 @@ export function FITUploader() {
           ref={inputRef}
           type="file"
           accept=".fit,application/vnd.ant.fit"
+          aria-label="Upload FIT file"
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];

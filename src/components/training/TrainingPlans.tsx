@@ -440,10 +440,11 @@ function ActivePlanDashboard({
             </button>
             <button
               type="button"
+              aria-label="Cancel"
               onClick={() => setConfirmAbandon(false)}
               className="text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         )}

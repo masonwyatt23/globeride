@@ -86,6 +86,7 @@ export function GPXUploader() {
           ref={inputRef}
           type="file"
           accept=".gpx,application/gpx+xml,text/xml"
+          aria-label="Upload GPX route file"
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];

@@ -137,8 +137,8 @@ function IdentitySection({
               aria-label="Display name"
               spellCheck={false}
             />
-            <Button size="sm" variant="accent" onMouseDown={(e) => { e.preventDefault(); commit(); }}>
-              <CheckCircle2 className="h-3.5 w-3.5" />
+            <Button size="sm" variant="accent" aria-label="Save display name" onMouseDown={(e) => { e.preventDefault(); commit(); }}>
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           </div>
         ) : (
