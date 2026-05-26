@@ -1,7 +1,7 @@
 import { ArrowRight, Github, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { HeroGlobe } from './HeroGlobe';
+import { HeroVisual } from './HeroVisual';
 
 function StatBadge({ value, label, delay = 0 }: { value: string; label: string; delay?: number }) {
   return (
@@ -142,7 +142,7 @@ export function HeroSection() {
           className="relative flex-1 flex items-center justify-center w-full max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms]"
           style={{ minHeight: '320px' }}
         >
-          <HeroGlobe />
+          <HeroVisual />
         </div>
       </div>
 
