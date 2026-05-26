@@ -193,6 +193,49 @@
     background-color: hsl(var(--primary) / 0.06) !important;
     box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18) !important;
   }
+
+  /* -----------------------------------------------------------------------
+     Low-light HUD — Wave 29.B
+     Applied as `hud-low-light` on the RideHUD container when the user
+     setting resolves to on (manually or auto between 18:00–06:00).
+
+     Strategy: boost contrast on the glass cards, make text heavier, lift
+     accent colors toward pure-white. Does NOT override zone colors since
+     those are already vivid. Works in both light and dark themes — mostly
+     relevant for dark environments where the default HUD opacity is low.
+  ----------------------------------------------------------------------- */
+  .hud-low-light .glass,
+  .hud-low-light .glass-strong {
+    background: linear-gradient(
+      155deg,
+      rgba(0, 0, 0, 0.82),
+      rgba(5, 10, 22, 0.78)
+    ) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+  }
+
+  .hud-low-light .glass-hairline {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 20px 52px -22px rgba(0, 0, 0, 0.90),
+      0 4px 16px -6px rgba(0, 0, 0, 0.50) !important;
+  }
+
+  /* Lift muted text to near-white for readability in low light */
+  .hud-low-light .text-muted-foreground,
+  .hud-low-light [class*="text-muted"] {
+    color: rgba(255, 255, 255, 0.70) !important;
+  }
+
+  /* Foreground text → pure white */
+  .hud-low-light .text-foreground {
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  /* Bolder font weight on all num readouts */
+  .hud-low-light .num {
+    font-weight: 800;
+  }
 }
 
 /* -------------------------------------------------------------------------

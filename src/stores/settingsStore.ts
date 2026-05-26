@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { BikeType, RiderPosition } from '@/lib/physics';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
+import type { LowLightSetting } from '@/lib/lowLightMode';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -47,6 +48,16 @@ export interface RiderSettings {
   commentaryRate: number;
   /** Minimum seconds between commentary lines, 30-90. */
   commentaryThrottleSec: number;
+  // ---- Display & Gestures (Wave 29.B) ----
+  /**
+   * Low-light HUD mode.
+   *   'auto' — enable automatically between 18:00–06:00 local time.
+   *   'on'   — always on.
+   *   'off'  — always off.
+   */
+  lowLightHud: LowLightSetting;
+  /** Whether handlebar gesture controls are active during a ride. */
+  gestureControlsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -70,6 +81,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   commentaryVolume: 70,
   commentaryRate: 100,
   commentaryThrottleSec: 45,
+  lowLightHud: 'auto',
+  gestureControlsEnabled: true,
 };
 
 type CommentaryPatch = Partial<
@@ -86,6 +99,10 @@ interface SettingsStoreState extends RiderSettings {
   setSettings: (patch: Partial<RiderSettings>) => void;
   /** Dedicated setter for commentary fields -- convenience for CommentarySettings UI. */
   setCommentarySettings: (patch: CommentaryPatch) => void;
+  /** Set the low-light HUD mode. */
+  setLowLightHud: (mode: LowLightSetting) => void;
+  /** Toggle handlebar gesture controls on/off. */
+  setGestureControlsEnabled: (enabled: boolean) => void;
   reset: () => void;
 }
 
@@ -95,6 +112,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
       ...DEFAULT_SETTINGS,
       setSettings: (patch) => set((s) => ({ ...s, ...patch })),
       setCommentarySettings: (patch) => set((s) => ({ ...s, ...patch })),
+      setLowLightHud: (mode) => set({ lowLightHud: mode }),
+      setGestureControlsEnabled: (enabled) => set({ gestureControlsEnabled: enabled }),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -118,6 +137,13 @@ export const useSettingsStore = create<SettingsStoreState>()(
         commentaryThrottleSec:
           (persisted as Partial<RiderSettings>).commentaryThrottleSec ??
           DEFAULT_SETTINGS.commentaryThrottleSec,
+        // Ensure Wave-29.B fields default when upgrading from pre-Wave-29.B saves.
+        lowLightHud:
+          (persisted as Partial<RiderSettings>).lowLightHud ??
+          DEFAULT_SETTINGS.lowLightHud,
+        gestureControlsEnabled:
+          (persisted as Partial<RiderSettings>).gestureControlsEnabled ??
+          DEFAULT_SETTINGS.gestureControlsEnabled,
       }),
       partialize: (s) =>
         ({
@@ -141,6 +167,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           commentaryVolume: s.commentaryVolume,
           commentaryRate: s.commentaryRate,
           commentaryThrottleSec: s.commentaryThrottleSec,
+          lowLightHud: s.lowLightHud,
+          gestureControlsEnabled: s.gestureControlsEnabled,
         }) satisfies RiderSettings,
     },
   ),
