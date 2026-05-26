@@ -58,6 +58,11 @@ export interface RiderSettings {
   lowLightHud: LowLightSetting;
   /** Whether handlebar gesture controls are active during a ride. */
   gestureControlsEnabled: boolean;
+  // ---- Voice cues (Wave 29.C) ----
+  /** Whether spoken workout segment transition cues are enabled. */
+  workoutVoiceCuesEnabled: boolean;
+  /** Whether spoken climb detection announcements are enabled. */
+  climbAnnouncementsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -83,6 +88,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   commentaryThrottleSec: 45,
   lowLightHud: 'auto',
   gestureControlsEnabled: true,
+  workoutVoiceCuesEnabled: true,
+  climbAnnouncementsEnabled: true,
 };
 
 type CommentaryPatch = Partial<
@@ -144,6 +151,13 @@ export const useSettingsStore = create<SettingsStoreState>()(
         gestureControlsEnabled:
           (persisted as Partial<RiderSettings>).gestureControlsEnabled ??
           DEFAULT_SETTINGS.gestureControlsEnabled,
+        // Graceful migration for Wave 29.C fields.
+        workoutVoiceCuesEnabled:
+          (persisted as Partial<RiderSettings>).workoutVoiceCuesEnabled ??
+          DEFAULT_SETTINGS.workoutVoiceCuesEnabled,
+        climbAnnouncementsEnabled:
+          (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
+          DEFAULT_SETTINGS.climbAnnouncementsEnabled,
       }),
       partialize: (s) =>
         ({
@@ -169,6 +183,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           commentaryThrottleSec: s.commentaryThrottleSec,
           lowLightHud: s.lowLightHud,
           gestureControlsEnabled: s.gestureControlsEnabled,
+          workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
+          climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
         }) satisfies RiderSettings,
     },
   ),

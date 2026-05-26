@@ -21,6 +21,11 @@ import {
 } from '@/lib/ai/commentator';
 import { speakLine, cancelSpeech, pickPreferredVoice } from '@/lib/speechSynthesis';
 import { useMultiriderStore } from '@/stores/multiriderStore';
+import {
+  updateClimbDetection,
+  createClimbDetectorState,
+  type ClimbDetectorState,
+} from '@/lib/climbDetection';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -42,6 +47,9 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const commentatorStateRef = useRef<CommentatorState>(createCommentatorState());
   /** True while a pickAndGenerate() call is in-flight (prevents double-firing). */
   const commentatorBusyRef = useRef(false);
+
+  // ---- Climb detector state (persists across frames) ----
+  const climbDetectorStateRef = useRef<ClimbDetectorState>(createClimbDetectorState());
 
   useEffect(() => {
     let raf = 0;
@@ -220,12 +228,48 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Skip for outdoor mode — pace bots are an indoor-only feature.
       if (s.rideMode !== 'outdoor' && s.paceBots.length > 0) s.tickBots(dt);
 
+      // ---- Climb auto-segmentation ----------------------------------------
+      // Run every frame so the state machine accumulates consecutive samples.
+      // Announcements only fire when climbAnnouncementsEnabled and volume > 0.
+      // We skip this if there is no grade data (outdoor mode without a route).
+      let climbFiredThisFrame = false;
+      {
+        const climbResult = updateClimbDetection(
+          grade,
+          distanceNow,
+          now,
+          climbDetectorStateRef.current,
+        );
+
+        if (climbResult.event === 'started' && climbResult.climb) {
+          if (
+            settings.climbAnnouncementsEnabled &&
+            settings.commentaryVolume > 0 &&
+            !commentatorBusyRef.current
+          ) {
+            const avgPct = Math.round(climbResult.climb.avgGrade ?? 0);
+            speakLine(
+              `Entering climb. ${avgPct} percent average grade.`,
+              {
+                volume: settings.commentaryVolume,
+                rate: settings.commentaryRate,
+                voice: pickPreferredVoice(),
+              },
+            );
+            climbFiredThisFrame = true;
+          }
+        }
+      }
+
       // ---- Live commentary ------------------------------------------------
-      // Guard: skip if disabled, muted, or already firing.
+      // Skip the commentator this frame if a climb announcement just fired
+      // to avoid two TTS calls in the same frame competing for the queue.
+      // Guard: skip if disabled, muted, already firing, or climb announced this frame.
       if (
         settings.liveCommentaryEnabled &&
         settings.commentaryVolume > 0 &&
-        !commentatorBusyRef.current
+        !commentatorBusyRef.current &&
+        !climbFiredThisFrame
       ) {
         const csRef = commentatorStateRef.current;
         const throttleMs = settings.commentaryThrottleSec * 1000;
@@ -282,6 +326,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
     cancelSpeech();
     commentatorStateRef.current = createCommentatorState();
     commentatorBusyRef.current = false;
+    climbDetectorStateRef.current = createClimbDetectorState();
 
     raf = requestAnimationFrame(frame);
     return () => {
