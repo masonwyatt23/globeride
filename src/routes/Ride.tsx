@@ -5,6 +5,8 @@ import { ChevronLeft, Users } from 'lucide-react';
 import { CesiumViewer } from '@/components/ride/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
 import { RideHUD } from '@/components/ride/RideHUD';
+import { EnterVRButton } from '@/components/ride/EnterVRButton';
+import { VRHud } from '@/components/ride/VRHud';
 import { RideControls } from '@/components/ride/RideControls';
 import { Minimap } from '@/components/ride/Minimap';
 import { ElevationProfile } from '@/components/ride/ElevationProfile';
@@ -38,6 +40,10 @@ import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
 import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
+import { SegmentHUD } from '@/components/ride/SegmentHUD';
+import { fetchSegmentsNearRoute } from '@/lib/strava/segments';
+import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
+import { refreshAccessToken, stravaCredsPresent } from '@/lib/strava';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -70,6 +76,10 @@ export function Ride() {
 
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
+
+  // Wave 33.A: viewer ref populated by CesiumViewer.onViewerReady — passed to
+  // EnterVRButton so it can call enterVR(viewer) without prop-drilling Cesium.
+  const [cesiumViewer, setCesiumViewer] = useState<import('cesium').Viewer | null>(null);
 
   // ---- Outdoor GPS watcher ----
   // Always called (Rules of Hooks). Only does work when rideMode === 'outdoor'.
@@ -112,6 +122,32 @@ export function Ride() {
   useEffect(() => {
     if (!route && rideMode !== 'outdoor') navigate('/');
   }, [route, rideMode, navigate]);
+
+  // ---- Strava segment fetch (Wave 33.B) ----
+  // Fire once per route load, in the background. Ride continues on failure.
+  useEffect(() => {
+    if (!route || !stravaCredsPresent()) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const token = await refreshAccessToken();
+        if (cancelled) return;
+
+        const stravaSegs = await fetchSegmentsNearRoute(route, token);
+        if (cancelled || stravaSegs.length === 0) return;
+
+        const routeSegments = mapSegmentsToRoute(stravaSegs, route);
+        if (cancelled) return;
+
+        useRideStore.getState().setLoadedSegments(routeSegments);
+      } catch {
+        // Strava unavailable — segment overlay is optional; ride continues.
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [route]);
 
   // Surface GPS errors as toasts in outdoor mode.
   useEffect(() => {
@@ -174,7 +210,7 @@ export function Ride() {
       ref={rideCanvasRef}
       className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
-      <CesiumViewer ionToken={token} />
+      <CesiumViewer ionToken={token} onViewerReady={setCesiumViewer} />
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (
@@ -236,6 +272,8 @@ export function Ride() {
         >
           <RideHUD />
           {activeWorkout && <WorkoutHUD />}
+          {/* Strava Live Segments HUD (Wave 33.B) */}
+          <SegmentHUD />
         </div>
       </div>
 
@@ -254,6 +292,10 @@ export function Ride() {
             <WorkoutHUD />
           </div>
         )}
+        {/* Strava Live Segments HUD — mobile (Wave 33.B) */}
+        <div className="mt-2">
+          <SegmentHUD />
+        </div>
       </div>
 
       {/* -- Elevation profile -- bottom-left -------------------------------- */}
@@ -301,6 +343,21 @@ export function Ride() {
       >
         <CameraSwitcher />
       </div>
+
+      {/* -- Enter VR button (Wave 33.A) — top-right, below camera switcher -- */}
+      {/* Invisible on non-XR browsers (EnterVRButton returns null). */}
+      <div
+        className="absolute pointer-events-auto z-[4]"
+        style={{
+          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 6.5rem)',
+          right: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <EnterVRButton viewer={cesiumViewer} />
+      </div>
+
+      {/* -- VR HUD overlay (Wave 33.A) — visible only during XR session ------ */}
+      <VRHud />
 
       {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}

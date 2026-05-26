@@ -78,6 +78,11 @@ import {
   easedCameraTransition,
   type CameraPose,
 } from '@/lib/cesiumCameras';
+import {
+  createSegmentPortals,
+  type SegmentPortalHandle,
+} from '@/lib/strava/segmentPortals';
+import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -142,7 +147,17 @@ const CAM_TRANSITION_MS = 1200;
  * distance and heading. The camera follows the avatar when riding, and frames
  * the entire route when idle so the user can preview before clicking Start.
  */
-export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
+export function CesiumViewer({
+  ionToken,
+  onViewerReady,
+}: {
+  ionToken: string | null;
+  /**
+   * Wave 33.A: called once the Cesium.Viewer is fully constructed.
+   * Ride.tsx uses this to pass the viewer to EnterVRButton / VRHud.
+   */
+  onViewerReady?: (viewer: Cesium.Viewer) => void;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   // The old single-colour polyline is replaced by gradient segments + markers.
@@ -177,6 +192,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const wetMaterialRef = useRef<import('cesium').Material | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
+  // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
+  const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
   const [viewerReady, setViewerReady] = useState(false);
 
@@ -193,6 +210,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const rideMode = useRideStore((s) => s.rideMode);
   const livePolyline = useRideStore((s) => s.livePolyline);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
+  const loadedSegments = useRideStore((s) => s.loadedSegments);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
   const avatarColors = useSettingsStore((s) => s.avatar);
@@ -217,10 +235,17 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       selectionIndicator: false,
       navigationHelpButton: false,
       navigationInstructionsInitiallyVisible: false,
+      // Wave 33.A: mark the WebGL context as XR-compatible so that
+      // navigator.xr.requestSession('immersive-vr') can use this canvas.
+      // xrCompatible is a valid WebGL context attribute (WebXR spec) but is
+      // not yet typed in Cesium 1.131's WebGLOptions — cast to satisfy tsc.
+      contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
     });
     viewerRef.current = viewer;
     setActiveViewer(viewer);
     setViewerReady(true);
+    // Wave 33.A: notify parent so EnterVRButton can receive the viewer ref.
+    onViewerReady?.(viewer);
 
     // Add Bing Maps Aerial as the permanent globe base layer so terrain is
     // always visible — even in rural areas where Google Photorealistic Tiles
@@ -364,6 +389,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       spectatorCollectionRef.current = null;
       spectatorDistancesRef.current = [];
       wetMaterialRef.current = null;
+      segmentPortalHandleRef.current?.destroy();
+      segmentPortalHandleRef.current = null;
       setActiveViewer(null);
       if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
@@ -466,6 +493,10 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     spectatorCollectionRef.current = null;
     spectatorDistancesRef.current = [];
     wetMaterialRef.current = null;
+
+    // Tear down previous segment portals.
+    segmentPortalHandleRef.current?.destroy();
+    segmentPortalHandleRef.current = null;
 
     if (!route) return;
 
@@ -934,6 +965,29 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       removeTickRef.current = null;
     };
   }, []);
+
+  // ---- Strava segment portals — rebuild when loadedSegments changes ----
+  // Triggered by the background fetch completing after route load.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed() || !route) return;
+
+    // Tear down previous portals before building new ones.
+    segmentPortalHandleRef.current?.destroy();
+    segmentPortalHandleRef.current = null;
+
+    if (loadedSegments.length === 0) return;
+
+    // Map the Strava segments onto the route (already done in the store, but
+    // we do a lightweight re-map here so the Cesium effect owns a clean copy).
+    const routeSegments = mapSegmentsToRoute(
+      loadedSegments.map((rs) => rs.segment),
+      route,
+    );
+    if (routeSegments.length === 0) return;
+
+    segmentPortalHandleRef.current = createSegmentPortals(viewer, routeSegments, route);
+  }, [loadedSegments, route]);
 
   // ---- Outdoor GPS live polyline ----
   // Update the live track entity each time the GPS polyline array grows.

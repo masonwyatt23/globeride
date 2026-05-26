@@ -26,6 +26,10 @@ import {
   createClimbDetectorState,
   type ClimbDetectorState,
 } from '@/lib/climbDetection';
+import {
+  detectSegmentEntry,
+  detectSegmentExit,
+} from '@/lib/segmentOverlay';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -42,6 +46,8 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const lastSentT = useRef<number>(0);
   const lastSampleT = useRef<number>(0);
   const smoother = useRef(new EmaSmoother(0.18));
+  // Track previous frame's distance for segment crossing detection.
+  const lastDistanceRef = useRef<number>(0);
 
   // ---- Commentator state (persists across frames) ----
   const commentatorStateRef = useRef<CommentatorState>(createCommentatorState());
@@ -224,6 +230,33 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         riderHeading: s.route ? headingAt(s.route, distanceNow) : 0,
       });
 
+      // ---- Strava Live Segment crossing detection (Wave 33.B) ----
+      // Zero-allocation: only arithmetic, no object creation.
+      {
+        const lastDist = lastDistanceRef.current;
+        lastDistanceRef.current = distanceNow;
+
+        const freshState = store.getState();
+        const segments = freshState.loadedSegments;
+
+        if (segments.length > 0) {
+          const activeId = freshState.activeSegment?.segment.id ?? null;
+
+          // Check for exit first (segment might complete before a new one starts).
+          const exited = detectSegmentExit(distanceNow, segments, activeId, lastDist);
+          if (exited) {
+            store.getState().exitSegment();
+          }
+
+          // Check for entry only when no segment is active.
+          const nextActiveId = store.getState().activeSegment?.segment.id ?? null;
+          const entered = detectSegmentEntry(distanceNow, segments, lastDist, nextActiveId);
+          if (entered) {
+            store.getState().enterSegment(entered, distanceNow);
+          }
+        }
+      }
+
       // Advance pace bots in the same frame (cheap — no allocations per bot).
       // Skip for outdoor mode — pace bots are an indoor-only feature.
       if (s.rideMode !== 'outdoor' && s.paceBots.length > 0) s.tickBots(dt);
@@ -327,6 +360,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
     commentatorStateRef.current = createCommentatorState();
     commentatorBusyRef.current = false;
     climbDetectorStateRef.current = createClimbDetectorState();
+    lastDistanceRef.current = 0;
 
     raf = requestAnimationFrame(frame);
     return () => {

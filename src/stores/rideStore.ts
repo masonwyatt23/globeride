@@ -17,6 +17,7 @@ import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
 import { tickPaceBot } from '@/lib/paceBots';
 import { gradientAt } from '@/lib/gradientCalculator';
+import type { RouteSegment } from '@/lib/segmentOverlay';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -234,6 +235,35 @@ interface RideStoreState {
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
 
+  // ---- ADDITIVE: Strava Live Segments (Wave 33.B) ----
+  /**
+   * RouteSegment objects mapped onto the loaded route. Populated after
+   * fetchSegmentsNearRoute resolves when Strava is connected.
+   * Empty array when Strava is not connected or no segments are near the route.
+   */
+  loadedSegments: RouteSegment[];
+  /**
+   * The segment the rider is currently traversing, or null when between segments.
+   * Set by useRideLoop when detectSegmentEntry fires.
+   */
+  activeSegment: RouteSegment | null;
+  /**
+   * The rider's route-distance when they entered the active segment.
+   * Used to compute distanceCovered = distance - segmentDistanceStarted.
+   */
+  segmentDistanceStarted: number;
+  /**
+   * Elapsed seconds since the rider entered the active segment.
+   * Accumulated each frame by useRideLoop while activeSegment is non-null.
+   */
+  segmentElapsedSec: number;
+  /** Set the full list of mapped route segments (called after fetch). */
+  setLoadedSegments: (segments: RouteSegment[]) => void;
+  /** Called when the rider enters a segment. */
+  enterSegment: (rs: RouteSegment, distanceNow: number) => void;
+  /** Called when the rider exits the active segment. */
+  exitSegment: () => void;
+
   // ---- Actions ----
   setRoute: (route: Route | null) => void;
   bumpLibrary: () => void;
@@ -387,6 +417,12 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   workoutElapsedSec: 0,
   workoutTargetWatts: null,
 
+  // ---- ADDITIVE: Strava Live Segments initial state (Wave 33.B) ----
+  loadedSegments: [],
+  activeSegment: null,
+  segmentDistanceStarted: 0,
+  segmentElapsedSec: 0,
+
   // ---- ADDITIVE: Workout actions ----
   loadWorkout: (workout) =>
     set({
@@ -417,6 +453,23 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: Pace Bot actions ----
   setPaceBots: (bots) => set({ paceBots: bots }),
   clearPaceBots: () => set({ paceBots: [] }),
+
+  // ---- ADDITIVE: Strava Live Segment actions (Wave 33.B) ----
+  setLoadedSegments: (segments) => set({ loadedSegments: segments }),
+
+  enterSegment: (rs, distanceNow) =>
+    set({
+      activeSegment: rs,
+      segmentDistanceStarted: distanceNow,
+      segmentElapsedSec: 0,
+    }),
+
+  exitSegment: () =>
+    set({
+      activeSegment: null,
+      segmentDistanceStarted: 0,
+      segmentElapsedSec: 0,
+    }),
 
   tickBots: (dt) =>
     set((st) => {
@@ -506,6 +559,11 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       replayIndex: 0,
       // Clear bots so they re-seat at the new route's start when re-selected.
       paceBots: [],
+      // Clear segment overlays — they are route-specific.
+      loadedSegments: [],
+      activeSegment: null,
+      segmentDistanceStarted: 0,
+      segmentElapsedSec: 0,
     }),
 
   setMode: (mode) => set({ mode }),
@@ -658,6 +716,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       workoutRunning: false,
       workoutElapsedSec: 0,
       workoutTargetWatts: null,
+      // Reset active segment state (segments list persists for re-rides).
+      activeSegment: null,
+      segmentDistanceStarted: 0,
+      segmentElapsedSec: 0,
     }),
 
   tick: (input) =>
@@ -713,6 +775,11 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         routeTotalDistance: st.route.totalDistance,
       });
 
+      // Accumulate segment elapsed time while a segment is active.
+      const segmentElapsedSec = st.activeSegment !== null
+        ? st.segmentElapsedSec + input.dt
+        : st.segmentElapsedSec;
+
       return {
         ...st,
         rideState: newState,
@@ -728,6 +795,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         heartRate: input.heartRateNow ?? st.heartRate,
         samples: nextSamples,
         draft: newDraft,
+        segmentElapsedSec,
       };
     }),
 
