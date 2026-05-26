@@ -1,5 +1,9 @@
 import * as Cesium from 'cesium';
 import type { Route } from '@/types';
+import type { SkyConfig } from '@/lib/skyAndClouds';
+
+// Re-export SkyConfig so consumers can import it from this canonical module.
+export type { SkyConfig };
 
 /**
  * Centralized Cesium helpers. Keeps Cesium-specific knowledge out of the
@@ -341,6 +345,8 @@ interface MoodParams {
   groundHueShift: number;
   groundSaturationShift: number;
   groundBrightnessShift: number;
+  // ---- Wave 30.C: Sky + clouds descriptor ----
+  sky: SkyConfig;
 }
 
 export const MOODS: Record<SceneMood, MoodParams> = {
@@ -360,6 +366,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: 0.0,
     groundSaturationShift: 0.06,
     groundBrightnessShift: 0.03,
+    sky: {
+      useRealSun: true,
+      cloudCount: 6,          // sparse fair-weather cumulus
+      cloudAltitudeM: 2800,
+      starsVisible: false,
+    },
   },
   // ------------------------------------------------------------------
   // clear-afternoon — warm ~16:00 light (legacy mood, kept for compat)
@@ -377,6 +389,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: 0.0,
     groundSaturationShift: 0.05,
     groundBrightnessShift: 0.0,
+    sky: {
+      useRealSun: true,
+      cloudCount: 8,          // afternoon convective cumulus
+      cloudAltitudeM: 3000,
+      starsVisible: false,
+    },
   },
   'golden-hour': {
     sunHourFromNoon: 6.5, // ~18:30 local — low sun, golden haze
@@ -391,6 +409,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: 0.03,              // warm cast on ground haze
     groundSaturationShift: 0.12,
     groundBrightnessShift: -0.05,
+    sky: {
+      useRealSun: true,
+      cloudCount: 10,         // dramatic sunset clouds
+      cloudAltitudeM: 2500,
+      starsVisible: false,
+    },
   },
   'overcast': {
     sunHourFromNoon: 2,  // sun near zenith but diffuse through clouds
@@ -405,6 +429,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: 0.0,
     groundSaturationShift: -0.15,
     groundBrightnessShift: 0.05,
+    sky: {
+      useRealSun: false,      // pinned clock — overcast has flat diffuse light
+      cloudCount: 28,         // heavy cloud deck
+      cloudAltitudeM: 1800,   // low ceiling
+      starsVisible: false,
+    },
   },
   // ------------------------------------------------------------------
   // fjord-rain — cool blue, heavy cloud, dense desaturated fog.
@@ -423,6 +453,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: -0.03,             // cool blue ground haze
     groundSaturationShift: -0.25,
     groundBrightnessShift: 0.08,
+    sky: {
+      useRealSun: false,      // pinned — rain scenes look better with fixed flat light
+      cloudCount: 32,         // near-solid cloud deck
+      cloudAltitudeM: 1200,   // very low ceiling — fjord scale
+      starsVisible: false,
+    },
   },
   // ------------------------------------------------------------------
   // alpine-storm — dramatic dark clouds, cold blue-purple, partial rays.
@@ -441,6 +477,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: -0.05,             // cold purple-grey ground cast
     groundSaturationShift: -0.12,
     groundBrightnessShift: -0.06,
+    sky: {
+      useRealSun: false,      // storm — dramatic fixed light sculpts the clouds better
+      cloudCount: 35,         // aggressive storm deck, many overlapping layers
+      cloudAltitudeM: 2200,
+      starsVisible: false,
+    },
   },
   // ------------------------------------------------------------------
   // mediterranean-mist — warm hazy yellow sun, light sea-salt fog.
@@ -459,6 +501,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: 0.02,              // warm ochre/sea-salt ground tint
     groundSaturationShift: 0.04,
     groundBrightnessShift: 0.04,
+    sky: {
+      useRealSun: true,
+      cloudCount: 4,          // almost cloudless Mediterranean sky
+      cloudAltitudeM: 3500,   // high cirrus-like layer
+      starsVisible: false,
+    },
   },
   // ------------------------------------------------------------------
   // dusk-cool — purple/pink horizon, low blue twilight.
@@ -477,6 +525,12 @@ export const MOODS: Record<SceneMood, MoodParams> = {
     groundHueShift: -0.06,             // cool blue-violet ground haze
     groundSaturationShift: 0.08,
     groundBrightnessShift: -0.08,
+    sky: {
+      useRealSun: false,      // twilight — fixed time captures the blue-hour look
+      cloudCount: 5,          // a few silhouetted clouds on the horizon
+      cloudAltitudeM: 2000,
+      starsVisible: true,     // Milky Way visible at dusk
+    },
   },
 };
 

@@ -47,6 +47,18 @@ import {
   type WeatherSystem,
   type WeatherKind,
 } from '@/lib/weatherParticles';
+import {
+  configureSky,
+  spawnCumulusClouds,
+  updateCloudParallax,
+  sunAzimuthAndAltitude,
+  scaledCloudCount,
+} from '@/lib/skyAndClouds';
+import {
+  createShadowEntity,
+  updateShadowEntity,
+  type ShadowHandle,
+} from '@/lib/dynamicShadow';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 // ---- Camera (Wave 30.A) ----
 import {
@@ -142,6 +154,10 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const botAvatarsRef = useRef<Avatar[]>([]);
   // Weather particle system — recreated on route change and quality change.
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
+  // Wave 30.C: cloud collection + shadow entity — created on route load.
+  const cloudCollectionRef = useRef<Cesium.CloudCollection | null>(null);
+  const shadowHandleRef = useRef<ShadowHandle | null>(null);
+  const skyCleanupRef = useRef<(() => void) | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
@@ -199,6 +215,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     scene.globe.depthTestAgainstTerrain = true;
     if (scene.skyAtmosphere) scene.skyAtmosphere.show = true;
     scene.globe.enableLighting = true;
+
+    // ---- Scene setup + atmosphere (Wave 30.C) ----
+    // Shadow entity is created once per viewer lifetime; position is updated
+    // per-frame in the preRender handler.
+    shadowHandleRef.current = createShadowEntity(viewer);
+    // ------------------------------------------------
 
     // Apply the persisted graphics quality tier (AA, shadows, fog).
     // Fog is always enabled; density is controlled per-tier.
@@ -280,6 +302,15 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       // Dispose weather system before destroying the viewer.
       weatherSystemRef.current?.dispose();
       weatherSystemRef.current = null;
+      // ---- Scene setup + atmosphere (Wave 30.C) ---- cleanup
+      skyCleanupRef.current?.();
+      skyCleanupRef.current = null;
+      shadowHandleRef.current?.destroy();
+      shadowHandleRef.current = null;
+      if (cloudCollectionRef.current && !viewer.isDestroyed()) {
+        try { viewer.scene.primitives.remove(cloudCollectionRef.current); } catch { /* torn down */ }
+      }
+      cloudCollectionRef.current = null;
       // Dispose ghost avatars — viewer.entities.remove needs isDestroyed guard.
       for (const ga of ghostAvatarsRef.current) {
         if (!viewer.isDestroyed()) ga.dispose();
@@ -404,6 +435,14 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // Dispose the previous weather system before building a new one.
     weatherSystemRef.current?.dispose();
     weatherSystemRef.current = null;
+    // ---- Wave 30.C: Tear down previous clouds + sky animation ----
+    skyCleanupRef.current?.();
+    skyCleanupRef.current = null;
+    if (cloudCollectionRef.current && !viewer.isDestroyed()) {
+      try { viewer.scene.primitives.remove(cloudCollectionRef.current); } catch { /* torn down */ }
+      cloudCollectionRef.current = null;
+    }
+    // ------------------------------------------------
 
     if (!route) return;
 
@@ -432,6 +471,24 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     const weatherKind = resolveWeatherKind(resolvedMood);
     const currentQuality = useSettingsStore.getState().graphicsQuality;
     weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
+
+    // ---- Scene setup + atmosphere (Wave 30.C) ----
+    // Apply sky config for this mood (clock, lighting, skyBox).
+    // moodParams is already declared above from MOODS[resolvedMood].
+    // Teardown of previous clouds/sky animation already happened above.
+    const midLat = route.points[Math.floor(route.points.length / 2)].lat;
+    const skyCleanup = configureSky(viewer, moodParams.sky, midLon);
+    skyCleanupRef.current = skyCleanup;
+    // Spawn clouds — quality-gated: low=0, medium=half, high=full count.
+    const cloudCount = scaledCloudCount(moodParams.sky.cloudCount, currentQuality);
+    cloudCollectionRef.current = spawnCumulusClouds(
+      viewer,
+      midLat,
+      midLon,
+      cloudCount,
+      moodParams.sky.cloudAltitudeM,
+    );
+    // ------------------------------------------------
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
@@ -728,6 +785,24 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         ele: sampled.ele,
         heading,
       });
+
+      // ---- Wave 30.C: Cloud parallax + dynamic shadow update ----
+      // Cloud parallax — drift clouds with a light 5 m/s westerly wind.
+      // The constant wind values keep this zero-allocation: no objects created.
+      if (cloudCollectionRef.current) {
+        updateCloudParallax(cloudCollectionRef.current, 5, 270, dt * 1000);
+      }
+      // Dynamic ground shadow — sized and rotated by real sun angle.
+      if (shadowHandleRef.current) {
+        const sunPos = sunAzimuthAndAltitude(new Date(), sampled.lat, sampled.lon);
+        updateShadowEntity(
+          shadowHandleRef.current,
+          { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
+          sunPos.azimuth,
+          sunPos.altitude,
+        );
+      }
+      // ------------------------------------------------
 
       // ---- Pace bot avatar updates ----
       const bots = useRideStore.getState().paceBots;
