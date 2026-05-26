@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Users } from 'lucide-react';
 
 import { CesiumViewer } from '@/components/ride/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
@@ -32,6 +32,8 @@ import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
 import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
+import { useMultiriderSync } from '@/hooks/useMultiriderSync';
+import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -68,12 +70,14 @@ export function Ride() {
   useWorkoutEngine();
   useRideHistoryRecorder();
   useRaceRecorder();
+  useMultiriderSync();
   useRideAudio();
   useCompanionReceiver();  // phone companion -- ingests phone HR/cadence + handles remote control
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
   const [helpOpen, setHelpOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   useRideKeyboardShortcuts({ onToggleHelp: () => setHelpOpen((o) => !o) });
 
   const [token, setToken] = useState<string | null>(() => {
@@ -180,6 +184,15 @@ export function Ride() {
             <ThemeToggle />
             <SoundToggle />
             <GhostToggle />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Invite a friend to ride with you"
+              className="rounded-full glass glass-hairline border-transparent"
+              onClick={() => setInviteOpen((o) => !o)}
+            >
+              <Users className="h-4 w-4" aria-hidden="true" />
+            </Button>
             <SettingsButton
               variant="outline"
               size="icon"
@@ -248,6 +261,9 @@ export function Ride() {
 
       {/* -- Keyboard shortcuts overlay ------------------------------------- */}
       <RideShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* -- Multi-rider invite overlay ---------------------------------------- */}
+      {inviteOpen && <MultiRiderInvite onClose={() => setInviteOpen(false)} />}
     </div>
   );
 }

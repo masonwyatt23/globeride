@@ -210,6 +210,14 @@ export interface FitExportInput {
   /** Sport-wide start time (unix ms). */
   startTime: number;
   samples: TelemetrySample[];
+  /**
+   * Optional peer ID of the connected multi-rider partner.
+   * The FIT v2 protocol does not provide a standard notes or name field in the
+   * session/activity messages supported by this minimal writer, so this field
+   * is currently not embedded in the binary output. It is reserved here for
+   * when a WorkoutName (field 254) or developer data extension is added.
+   */
+  multiriderId?: string;
 }
 
 /** Build a complete .FIT file as a Blob ready for download. */
