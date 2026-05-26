@@ -33,6 +33,11 @@ export interface Route {
   maxElevation: number;
   /** When the route was loaded into the app. */
   loadedAt: number;
+  /**
+   * When true this route is being drawn live from GPS — it has no fixed
+   * totalDistance and points accumulate in real time during an outdoor ride.
+   */
+  isLive?: boolean;
 }
 
 /** A Route persisted to the on-device library (IndexedDB). */
@@ -90,7 +95,15 @@ export type ConnectionState =
   | 'connected'
   | 'reconnecting'
   | 'error';
-export type RideMode = 'trainer' | 'demo';
+export type RideMode = 'trainer' | 'demo' | 'outdoor';
+
+/** A single live-recorded GPS point accumulated during an outdoor ride. */
+export interface LivePoint {
+  lat: number;
+  lon: number;
+  /** Elevation in metres above ellipsoid, or 0 when unavailable. */
+  ele: number;
+}
 
 /** One transient notification shown by the Toaster. */
 export interface Toast {

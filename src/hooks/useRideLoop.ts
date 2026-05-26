@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
@@ -9,6 +9,9 @@ import {
   setTargetPower,
   getTrainerControlMode,
 } from '@/lib/ftms';
+import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
+import { estimatePowerFromGps } from '@/lib/outdoorPower';
+import type { GpsSample } from '@/lib/outdoorGps';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -19,7 +22,7 @@ import {
  * aero + drivetrain + wind) so the simulated speed responds realistically to
  * the user's bike/position/wind/weight settings.
  */
-export function useRideLoop(): void {
+export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const store = useRideStore;
   const lastT = useRef<number>(0);
   const lastSentT = useRef<number>(0);
@@ -35,7 +38,13 @@ export function useRideLoop(): void {
       const s = store.getState();
       // Replay loop handles frames when replayData is present — bail out here.
       // Workout engine handles frames when a workout is running — bail out here too.
-      if (s.replayData || s.workoutRunning || s.rideState !== 'running' || !s.route) {
+      // Outdoor rides don't require a pre-loaded route — route is built live.
+      // Replay and workout engines take over when their conditions are met.
+      if (s.replayData || s.workoutRunning || s.rideState !== 'running') {
+        lastT.current = tHigh;
+        return;
+      }
+      if (!s.route && s.rideMode !== 'outdoor') {
         lastT.current = tHigh;
         return;
       }
@@ -45,9 +54,11 @@ export function useRideLoop(): void {
       if (dt <= 0) return;
 
       const distanceNow = s.distance;
-      const sampled = sampleRouteAtDistance(s.route, distanceNow);
-
-      const rawGrade = gradientAt(s.route, distanceNow);
+      // For outdoor rides the route may not exist yet — use safe defaults.
+      const sampled = s.route
+        ? sampleRouteAtDistance(s.route, distanceNow)
+        : { lat: 0, lon: 0, ele: 0 };
+      const rawGrade = s.route ? gradientAt(s.route, distanceNow) : 0;
       const grade = smoother.current.push(rawGrade);
 
       const settings = useSettingsStore.getState();
@@ -65,10 +76,61 @@ export function useRideLoop(): void {
       // ---- Determine speed source ----
       let speed: number;
       let power: number | null;
+      let positionOverride: { lat: number; lon: number } | null = null;
+      let elevationOverride: number | null = null;
       const cadence: number | null = s.mode === 'trainer' ? s.cadence || null : 78;
       const hr: number | null = s.heartRate;
 
-      if (s.mode === 'trainer' && s.speed > 0) {
+      if (s.rideMode === 'outdoor') {
+        // Outdoor GPS mode: speed and position come from GPS, power is estimated.
+        const gpsSamples = outdoorSamplesRef?.current ?? [];
+
+        // Auto-pause: if the rider appears stationary, bail without advancing.
+        if (shouldAutoPause(gpsSamples)) {
+          lastT.current = tHigh;
+          return;
+        }
+
+        const latestGps = gpsSamples[gpsSamples.length - 1] ?? null;
+        const prevGps = gpsSamples.length >= 2 ? gpsSamples[gpsSamples.length - 2] : null;
+
+        if (latestGps) {
+          speed = latestGps.speedMs ?? 0;
+          if (prevGps) {
+            // Compute grade from consecutive GPS samples.
+            const rawGpsGrade = gpsToGradePct(prevGps, latestGps);
+            // Smooth the GPS grade through the same EMA smoother.
+            smoother.current.push(rawGpsGrade);
+          }
+          positionOverride = { lat: latestGps.lat, lon: latestGps.lon };
+          elevationOverride = latestGps.ele ?? null;
+          // Append GPS point to the live polyline.
+          s.appendLivePoint({
+            lat: latestGps.lat,
+            lon: latestGps.lon,
+            ele: latestGps.ele ?? 0,
+          });
+        } else {
+          speed = 0;
+        }
+
+        // Estimate power from GPS speed + current grade.
+        power = speed > 0
+          ? estimatePowerFromGps(speed, grade, {
+              ...rider,
+              headingDeg: undefined,
+            })
+          : 0;
+
+        // Compute cumulative distance from haversine between GPS samples.
+        if (prevGps && latestGps) {
+          const stepDist = distanceMeters(prevGps, latestGps);
+          // We advance distance manually via appendLivePoint tracking.
+          // useRideLoop's tick() will still advance distance by speed*dt,
+          // which is our best continuous estimate between GPS fixes.
+          void stepDist; // informational; tick() handles distance advance
+        }
+      } else if (s.mode === 'trainer' && s.speed > 0) {
         speed = s.speed;
         power = s.power || null;
       } else {
@@ -79,8 +141,9 @@ export function useRideLoop(): void {
       // ---- Throttle trainer updates (~1.2 Hz max) ----
       // ERG mode: send opcode 0x05 Set Target Power.
       // SIM mode: send opcode 0x11 Set Indoor Bike Simulation Parameters.
+      // Skip in outdoor mode — no trainer is connected.
       const now = Date.now();
-      if (s.mode === 'trainer' && s.connection === 'connected') {
+      if (s.rideMode !== 'outdoor' && s.mode === 'trainer' && s.connection === 'connected') {
         const controlMode = getTrainerControlMode();
         if (controlMode === 'erg') {
           // ERG: only push if we have a target power configured in the store.
@@ -116,9 +179,9 @@ export function useRideLoop(): void {
         now,
         dt,
         gradeNow: grade,
-        elevationNow: elevationAt(s.route, distanceNow),
+        elevationNow: elevationOverride ?? (s.route ? elevationAt(s.route, distanceNow) : 0),
         speedNow: speed,
-        positionNow: { lat: sampled.lat, lon: sampled.lon },
+        positionNow: positionOverride ?? { lat: sampled.lat, lon: sampled.lon },
         recordSample,
         cadenceNow: cadence,
         powerNow: power,
@@ -126,7 +189,8 @@ export function useRideLoop(): void {
       });
 
       // Advance pace bots in the same frame (cheap — no allocations per bot).
-      if (s.paceBots.length > 0) s.tickBots(dt);
+      // Skip for outdoor mode — pace bots are an indoor-only feature.
+      if (s.rideMode !== 'outdoor' && s.paceBots.length > 0) s.tickBots(dt);
     };
 
     raf = requestAnimationFrame(frame);

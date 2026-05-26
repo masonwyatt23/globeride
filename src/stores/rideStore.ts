@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   ConnectionState,
+  LivePoint,
   RideMode,
   RideState,
   Route,
@@ -80,6 +81,26 @@ interface RideStoreState {
   drawModeActive: boolean;
   /** Actions to toggle draw mode from any component. */
   setDrawModeActive: (active: boolean) => void;
+
+  // ---- ADDITIVE: Outdoor GPS Mode ----
+  /**
+   * The current ride mode — determines how position, speed, and power are sourced.
+   *  'trainer' — FTMS smart trainer (default).
+   *  'demo'    — Physics simulation.
+   *  'outdoor' — Real GPS ride recording.
+   */
+  rideMode: RideMode;
+  /**
+   * Live track accumulated during an outdoor ride. Grows each GPS tick.
+   * Empty during indoor/demo rides. Cleared on startRide.
+   */
+  livePolyline: LivePoint[];
+  /** Set the active ride mode. */
+  setRideMode: (mode: RideMode) => void;
+  /** Append a GPS-sourced point to the live polyline. */
+  appendLivePoint: (p: LivePoint) => void;
+  /** Clear the live polyline (called on start of a new outdoor ride). */
+  clearLivePolyline: () => void;
 
   // ---- Replay (ADDITIVE) ----
   /**
@@ -327,6 +348,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   drawModeActive: false,
 
+  // ---- ADDITIVE: Outdoor GPS Mode initial state ----
+  rideMode: 'trainer',
+  livePolyline: [],
+
   // Replay initial state (ADDITIVE)
   replayData: null,
   replayIndex: 0,
@@ -400,6 +425,14 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
 
   setDrawModeActive: (active) => set({ drawModeActive: active }),
+
+  // ---- ADDITIVE: Outdoor GPS Mode actions ----
+  setRideMode: (mode) => set({ rideMode: mode }),
+
+  appendLivePoint: (p) =>
+    set((st) => ({ livePolyline: [...st.livePolyline, p] })),
+
+  clearLivePolyline: () => set({ livePolyline: [] }),
 
   // ---- Replay actions (ADDITIVE) ----
   loadReplay: (fit) =>
@@ -576,7 +609,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   start: () => {
     if (!get().route) return;
-    set({ rideState: 'running', startedAt: Date.now() });
+    const patch: Partial<RideStoreState> = { rideState: 'running', startedAt: Date.now() };
+    if (get().rideMode === 'outdoor') patch.livePolyline = [];
+    set(patch);
   },
 
   pause: () => {
@@ -674,7 +709,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         elevation: input.elevationNow,
         // Demo Mode and replay drive speed from the loop's computed/recorded
         // value; live trainer mode keeps the speed already set by ingest.
-        speed: st.mode === 'demo' || st.replayData || st.workoutRunning ? input.speedNow : st.speed,
+        speed: st.mode === 'demo' || st.rideMode === 'outdoor' || st.replayData || st.workoutRunning ? input.speedNow : st.speed,
         power: input.powerNow ?? st.power,
         cadence: input.cadenceNow ?? st.cadence,
         heartRate: input.heartRateNow ?? st.heartRate,
