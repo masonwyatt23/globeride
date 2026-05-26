@@ -48,6 +48,12 @@ import {
   type WeatherKind,
 } from '@/lib/weatherParticles';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
+// ---- Camera (Wave 30.A) ----
+import {
+  computeCameraPose,
+  easedCameraTransition,
+  type CameraPose,
+} from '@/lib/cesiumCameras';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -103,6 +109,10 @@ function resolveWeatherKind(mood: unknown): WeatherKind {
   return 'none';
 }
 
+// ---- Camera (Wave 30.A) ----
+// Camera transition duration in milliseconds.
+const CAM_TRANSITION_MS = 1200;
+
 /**
  * The 3D world viewport: Cesium globe + terrain + OSM buildings + the route
  * polyline + a multi-part bike avatar that tracks the rider's current
@@ -136,6 +146,15 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
   const [viewerReady, setViewerReady] = useState(false);
+
+  // ---- Camera (Wave 30.A): transition state held across frames ----
+  const camTransitionRef = useRef<{
+    fromPose: CameraPose;
+    startMs: number;
+  } | null>(null);
+  const lastCamPoseRef = useRef<CameraPose | null>(null);
+  // Track which mode was active last frame so we can detect mode changes.
+  const lastCamModeRef = useRef<string>('chase');
 
   const route = useRideStore((s) => s.route);
   const rideMode = useRideStore((s) => s.rideMode);
@@ -377,6 +396,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     cartesianRouteRef.current = null;
     resetFollowCam();
 
+    // ---- Camera (Wave 30.A): reset transition state on route change ----
+    camTransitionRef.current = null;
+    lastCamPoseRef.current = null;
+    lastCamModeRef.current = useSettingsStore.getState().cameraMode;
+
     // Dispose the previous weather system before building a new one.
     weatherSystemRef.current?.dispose();
     weatherSystemRef.current = null;
@@ -607,15 +631,88 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         dt,
       });
 
+      // ---- Camera (Wave 30.A) ----
       if (state.rideState === 'running' || state.rideState === 'paused') {
-        applyFollowCam(
-          viewer,
-          { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
-          ahead,
-          { backMeters: 45, upMeters: 9, pitchDeg: -7 },
-          dt,
-        );
+        const currentMode = useSettingsStore.getState().cameraMode;
+        const riderPose = {
+          lat: sampled.lat,
+          lon: sampled.lon,
+          ele: sampled.ele,
+          heading,
+          cadence: state.cadence,
+          speed: state.speed,
+        };
+
+        // Detect mode change — start a transition from the last known pose.
+        if (currentMode !== lastCamModeRef.current) {
+          if (lastCamPoseRef.current) {
+            camTransitionRef.current = {
+              fromPose: lastCamPoseRef.current,
+              startMs: nowMs,
+            };
+          }
+          lastCamModeRef.current = currentMode;
+        }
+
+        // Compute the live target pose for the current mode.
+        const targetPose = computeCameraPose(currentMode, riderPose, nowMs);
+
+        // Determine the effective pose (transitioning or live).
+        let effectivePose: CameraPose;
+        const transition = camTransitionRef.current;
+        if (transition) {
+          const elapsed = nowMs - transition.startMs;
+          const t = Math.min(elapsed / CAM_TRANSITION_MS, 1);
+          effectivePose = easedCameraTransition(transition.fromPose, targetPose, t);
+          if (t >= 1) {
+            camTransitionRef.current = null;
+          }
+        } else {
+          effectivePose = targetPose;
+        }
+
+        // Store for next frame's transition start.
+        lastCamPoseRef.current = effectivePose;
+
+        if (currentMode === 'chase') {
+          // Delegate to the legacy eased follow-cam so it retains its own
+          // internal lerp state (keeps the chase cam silky smooth).
+          applyFollowCam(
+            viewer,
+            { lat: sampled.lat, lon: sampled.lon, ele: sampled.ele },
+            ahead,
+            { backMeters: 45, upMeters: 9, pitchDeg: -7 },
+            dt,
+          );
+        } else {
+          // Convert ENU offset to world Cartesian3 and apply.
+          const riderCartesian = Cesium.Cartesian3.fromDegrees(
+            sampled.lon,
+            sampled.lat,
+            sampled.ele,
+          );
+          const enuFrame = Cesium.Transforms.eastNorthUpToFixedFrame(riderCartesian);
+          const offsetLocal = new Cesium.Cartesian3(
+            effectivePose.offsetENU.x,
+            effectivePose.offsetENU.y,
+            effectivePose.offsetENU.z,
+          );
+          const camPos = Cesium.Matrix4.multiplyByPoint(
+            enuFrame,
+            offsetLocal,
+            new Cesium.Cartesian3(),
+          );
+          viewer.camera.setView({
+            destination: camPos,
+            orientation: {
+              heading: effectivePose.heading,
+              pitch: effectivePose.pitch,
+              roll: effectivePose.roll,
+            },
+          });
+        }
       }
+      // ---- End Camera (Wave 30.A) ----
 
       // ---- Weather particle system update ----
       // Reposition spawn volume above the rider each frame. Zero allocations.

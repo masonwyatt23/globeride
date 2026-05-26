@@ -4,6 +4,7 @@ import type { BikeType, RiderPosition } from '@/lib/physics';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
+import type { CameraMode } from '@/lib/cesiumCameras';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -63,6 +64,9 @@ export interface RiderSettings {
   workoutVoiceCuesEnabled: boolean;
   /** Whether spoken climb detection announcements are enabled. */
   climbAnnouncementsEnabled: boolean;
+  // ---- Camera mode (Wave 30.A) ----
+  /** Active cinematic camera mode — persisted between rides. */
+  cameraMode: CameraMode;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -90,6 +94,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   gestureControlsEnabled: true,
   workoutVoiceCuesEnabled: true,
   climbAnnouncementsEnabled: true,
+  cameraMode: 'chase',
 };
 
 type CommentaryPatch = Partial<
@@ -110,6 +115,8 @@ interface SettingsStoreState extends RiderSettings {
   setLowLightHud: (mode: LowLightSetting) => void;
   /** Toggle handlebar gesture controls on/off. */
   setGestureControlsEnabled: (enabled: boolean) => void;
+  /** Set the active camera mode (Wave 30.A). */
+  setCameraMode: (mode: CameraMode) => void;
   reset: () => void;
 }
 
@@ -121,6 +128,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setCommentarySettings: (patch) => set((s) => ({ ...s, ...patch })),
       setLowLightHud: (mode) => set({ lowLightHud: mode }),
       setGestureControlsEnabled: (enabled) => set({ gestureControlsEnabled: enabled }),
+      setCameraMode: (mode) => set({ cameraMode: mode }),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -158,6 +166,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
         climbAnnouncementsEnabled:
           (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
           DEFAULT_SETTINGS.climbAnnouncementsEnabled,
+        // Graceful migration for Wave 30.A camera mode.
+        cameraMode:
+          (persisted as Partial<RiderSettings>).cameraMode ??
+          DEFAULT_SETTINGS.cameraMode,
       }),
       partialize: (s) =>
         ({
@@ -185,6 +197,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           gestureControlsEnabled: s.gestureControlsEnabled,
           workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
+          cameraMode: s.cameraMode,
         }) satisfies RiderSettings,
     },
   ),
