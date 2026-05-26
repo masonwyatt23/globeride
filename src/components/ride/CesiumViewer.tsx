@@ -482,6 +482,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     botAvatarsRef.current = newBotAvatars;
 
     const start = route.points[0];
+    // ---- Avatar render (Wave 30.B) ----
     avatar.update({
       lon: start.lon,
       lat: start.lat,
@@ -491,7 +492,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       cadence: 0,
       grade: 0,
       dt: 0,
+      riderPosition: useSettingsStore.getState().riderPosition,
     });
+    // ---- End avatar render (Wave 30.B) ----
 
     // Load ghost riders for this route asynchronously so it never blocks rendering.
     const capturedRoute = route;
@@ -620,6 +623,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       );
       const heading = headingAt(r, state.distance);
 
+      // ---- Avatar render (Wave 30.B) ----
       avatarRef.current.update({
         lon: sampled.lon,
         lat: sampled.lat,
@@ -629,7 +633,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         cadence: state.cadence,
         grade: state.grade,
         dt,
+        riderPosition: useSettingsStore.getState().riderPosition,
       });
+      // ---- End avatar render (Wave 30.B) ----
 
       // ---- Camera (Wave 30.A) ----
       if (state.rideState === 'running' || state.rideState === 'paused') {
@@ -732,16 +738,20 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       if (bots.length === botAvatars.length && bots.length > 0 && r) {
         for (let i = 0; i < bots.length; i++) {
           const bs = bots[i].state;
+          // ---- Avatar render (Wave 30.B) ----
           botAvatars[i].update({
             lon: bs.lon,
             lat: bs.lat,
             ele: bs.ele,
             heading: bs.heading,
             speed: bs.speed,
-            cadence: 0,  // let avatar estimate from speed
-            grade: 0,    // approximate — bots orient by heading, pitch negligible at this detail
+            // cadence: 0 → avatar estimates from speed (cadence ≈ speed / 0.12 rev/s * 60 rpm)
+            cadence: 0,
+            grade: 0,
             dt,
+            riderPosition: 'hoods', // bots always ride hoods position
           });
+          // ---- End avatar render (Wave 30.B) ----
         }
       }
 
@@ -766,16 +776,19 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           const prevDist = ghostRides[i].distanceAt(Math.max(0, elapsedSec - dt));
           const ghostSpeed = prevDist !== null ? Math.abs(clampedDist - prevDist) / (dt || 1 / 60) : 0;
           for (const ent of ghostAvatars[i].entities) ent.show = true;
+          // ---- Avatar render (Wave 30.B) ----
           ghostAvatars[i].update({
             lon: gPos.lon,
             lat: gPos.lat,
             ele: gPos.ele,
             heading: gHeading,
             speed: ghostSpeed,
-            cadence: 0, // let avatar estimate cadence from speed
-            grade: state.grade, // approximate — ghosts share terrain slope
+            cadence: 0, // avatar estimates from speed
+            grade: state.grade,
             dt,
+            riderPosition: 'hoods',
           });
+          // ---- End avatar render (Wave 30.B) ----
         }
       }
     };
