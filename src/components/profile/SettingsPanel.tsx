@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { CommentarySettings } from '@/components/profile/CommentarySettings';
-import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette, Monitor } from 'lucide-react';
+import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette, Monitor, Smartphone } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import {
   MS_PER_KMH,
   MS_PER_MPH,
 } from '@/stores/settingsStore';
+import type { LowLightSetting } from '@/lib/lowLightMode';
 import { type GraphicsQuality, QUALITY_LABELS } from '@/lib/graphicsQuality';
 import { CDA_BY_POSITION, CRR_BY_BIKE, type BikeType, type RiderPosition } from '@/lib/physics';
 import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
@@ -143,6 +144,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
           {/* Avatar garage */}
           <GarageSection />
 
+          {/* Display & Gestures (Wave 29.B) */}
+          <DisplayGesturesSection />
+
           {/* Live commentary */}
           <CommentarySettings />
 
@@ -160,6 +164,68 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Display & Gestures section (Wave 29.B)
+// ---------------------------------------------------------------------------
+
+const LOW_LIGHT_OPTIONS: { value: LowLightSetting; label: string; sub: string }[] = [
+  { value: 'auto', label: 'Auto',    sub: '18:00–06:00' },
+  { value: 'on',   label: 'Always',  sub: 'always on'   },
+  { value: 'off',  label: 'Off',     sub: 'always off'  },
+];
+
+function DisplayGesturesSection() {
+  const lowLightHud           = useSettingsStore((s) => s.lowLightHud);
+  const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
+  const setLowLightHud         = useSettingsStore((s) => s.setLowLightHud);
+  const setGestureControlsEnabled = useSettingsStore((s) => s.setGestureControlsEnabled);
+
+  return (
+    <Section icon={<Smartphone className="h-4 w-4" />} title="Display &amp; Gestures">
+      <div className="space-y-4">
+        {/* Low-light HUD */}
+        <div>
+          <p className="text-xs font-medium text-foreground mb-1.5">Low-light HUD</p>
+          <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+            Boosts contrast (darker background, heavier text, higher opacity) for evening or
+            dim indoor rides. <span className="font-semibold text-foreground">Auto</span> switches
+            on between 18:00 and 06:00 local time.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {LOW_LIGHT_OPTIONS.map((opt) => (
+              <PickerButton
+                key={opt.value}
+                selected={lowLightHud === opt.value}
+                onClick={() => setLowLightHud(opt.value)}
+                label={opt.label}
+                sub={opt.sub}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Gesture controls toggle */}
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2 cursor-pointer select-none">
+          <div>
+            <p className="text-xs font-medium text-foreground">Handlebar gestures</p>
+            <p className="text-[11px] text-muted-foreground">
+              Double-tap to pause · long-press for quick actions · 2-finger swipe for ERG power
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Enable handlebar gesture controls"
+            checked={gestureControlsEnabled}
+            onChange={(e) => setGestureControlsEnabled(e.target.checked)}
+            className="h-4 w-4 accent-primary cursor-pointer shrink-0"
+          />
+        </label>
+      </div>
+    </Section>
   );
 }
 

@@ -15,8 +15,10 @@ import { ConnectionStatus } from '@/components/ride/ConnectionStatus';
 import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
+import { GestureLegend } from '@/components/ride/GestureLegend';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideLoop } from '@/hooks/useRideLoop';
 import { useReplayLoop } from '@/hooks/useReplayLoop';
 import { useWorkoutEngine } from '@/hooks/useWorkoutEngine';
@@ -25,6 +27,7 @@ import { useRideAudio } from '@/hooks/useRideAudio';
 import { useRideHistoryRecorder } from '@/hooks/useRideHistoryRecorder';
 import { useFtpTestSuggestion } from '@/hooks/useFtpTestSuggestion';
 import { useRideKeyboardShortcuts } from '@/hooks/useRideKeyboardShortcuts';
+import { useHandlebarGestures } from '@/hooks/useHandlebarGestures';
 import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
@@ -42,6 +45,12 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  *
  * A global click handler cancels any in-progress commentary speech so the
  * user can dismiss the commentator by tapping anywhere.
+ *
+ * Wave 29.B additions:
+ *   - Handlebar gesture detection on the main ride container (double-tap,
+ *     long-press, two-finger swipe) — gated by settings.gestureControlsEnabled.
+ *   - GestureLegend overlay (the "?" chip in the top-right corner of the
+ *     ride canvas).
  */
 export function Ride() {
   const navigate      = useNavigate();
@@ -50,6 +59,11 @@ export function Ride() {
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
   const rideMode      = useRideStore((s) => s.rideMode);
+
+  const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
+
+  // Ref for the main ride canvas container — used by gesture detection.
+  const rideCanvasRef = useRef<HTMLDivElement>(null);
 
   // ---- Outdoor GPS watcher ----
   // Always called (Rules of Hooks). Only does work when rideMode === 'outdoor'.
@@ -72,6 +86,10 @@ export function Ride() {
   useCompanionReceiver();  // phone companion -- ingests phone HR/cadence + handles remote control
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
+
+  // ---- Handlebar gestures (Wave 29.B) ----
+  // Always called — the hook is a no-op when gestureControlsEnabled=false.
+  useHandlebarGestures(rideCanvasRef, { enabled: gestureControlsEnabled });
 
   const [helpOpen, setHelpOpen] = useState(false);
   useRideKeyboardShortcuts({ onToggleHelp: () => setHelpOpen((o) => !o) });
@@ -144,7 +162,10 @@ export function Ride() {
   if (!route) return null;
 
   return (
-    <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
+    <div
+      ref={rideCanvasRef}
+      className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
+    >
       <CesiumViewer ionToken={token} />
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
@@ -242,6 +263,16 @@ export function Ride() {
       >
         <RideControls />
       </div>
+
+      {/* -- Gesture legend "?" chip + overlay (Wave 29.B) ------------------- */}
+      {gestureControlsEnabled && (
+        <div className="absolute inset-0 pointer-events-none z-[4]">
+          {/* GestureLegend positions itself absolutely within this container */}
+          <div className="relative w-full h-full pointer-events-auto">
+            <GestureLegend />
+          </div>
+        </div>
+      )}
 
       {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}

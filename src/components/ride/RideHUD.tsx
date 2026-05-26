@@ -8,6 +8,7 @@ import { formatDistance, formatDuration, msToKmh } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { findClimbs } from '@/lib/climbDetection';
 import { playClimbEntrySound } from '@/lib/rideAudio';
+import { resolveLowLightMode } from '@/lib/lowLightMode';
 
 /**
  * Elite ride HUD — the screen a cyclist stares at for an hour.
@@ -24,6 +25,9 @@ import { playClimbEntrySound } from '@/lib/rideAudio';
  *
  * When no workout is active, speed becomes the hero metric.
  * Power zone is derived from FTP (settingsStore.ftpW).
+ *
+ * When lowLightHud resolves to true, the container gets `hud-low-light`
+ * (defined in index.css) for higher contrast.
  */
 export function RideHUD() {
   const speed         = useRideStore((s) => s.speed);
@@ -38,6 +42,7 @@ export function RideHUD() {
   const activeWorkout = useRideStore((s) => s.activeWorkout);
   const draft         = useRideStore((s) => s.draft);
   const ftpW          = useSettingsStore((s) => s.ftpW);
+  const lowLightHud   = useSettingsStore((s) => s.lowLightHud);
 
   const progress = route && route.totalDistance > 0
     ? Math.min(1, distance / route.totalDistance)
@@ -65,9 +70,17 @@ export function RideHUD() {
   // Hero metric: power when riding (>0 watts) or workout active, else speed
   const showPowerHero = safePower > 0 || !!activeWorkout;
 
+  // Low-light HUD — resolve once per render; re-evaluates on setting changes.
+  // We don't set up a clock subscription because the hour boundary transition
+  // is so infrequent that the next settings-store render will pick it up.
+  const lowLight = resolveLowLightMode(lowLightHud);
+
   return (
     <div
-      className="pointer-events-none flex flex-col gap-2 sm:gap-2.5"
+      className={cn(
+        'pointer-events-none flex flex-col gap-2 sm:gap-2.5',
+        lowLight && 'hud-low-light',
+      )}
       role="region"
       aria-label="Ride metrics"
     >
