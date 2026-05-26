@@ -9,6 +9,17 @@ import {
   exchangeBaseline,
   decodeBaseline,
   getOpcode,
+  // v2 additions
+  encodePeerStateV2,
+  decodePeerStateV2,
+  exchangeBaselineV2,
+  decodeBaselineV2,
+  encodeRoomAnnounce,
+  decodeRoomAnnounce,
+  isV2Frame,
+  MSG_TYPE_BASELINE,
+  MSG_TYPE_STATE,
+  MSG_TYPE_ROOM_ANNOUNCE,
   type PeerStateMsg,
 } from './multiriderCodec';
 
@@ -215,5 +226,170 @@ describe('getOpcode', () => {
   it('returns the first byte', () => {
     const buf = new Uint8Array([0x01, 0x02, 0x03]);
     expect(getOpcode(buf)).toBe(0x01);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v2 MESSAGE_TYPE opcode constants
+// ---------------------------------------------------------------------------
+
+describe('MSG_TYPE constants', () => {
+  it('MSG_TYPE_BASELINE is 0x01', () => {
+    expect(MSG_TYPE_BASELINE).toBe(0x01);
+  });
+
+  it('MSG_TYPE_STATE is 0x02', () => {
+    expect(MSG_TYPE_STATE).toBe(0x02);
+  });
+
+  it('MSG_TYPE_ROOM_ANNOUNCE is 0x03', () => {
+    expect(MSG_TYPE_ROOM_ANNOUNCE).toBe(0x03);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v2 STATE frame (encodePeerStateV2 / decodePeerStateV2)
+// ---------------------------------------------------------------------------
+
+describe('encodePeerStateV2 / decodePeerStateV2', () => {
+  const PEER_ID = 'abcd1234efgh5678';
+  const BASE_LAT = 51.5;
+  const BASE_LON = -0.1;
+
+  function makeStateV2(overrides: Partial<PeerStateMsg> = {}): PeerStateMsg {
+    return {
+      distance: 500,
+      lat: BASE_LAT,
+      lon: BASE_LON,
+      heading: Math.PI,
+      power: 300,
+      cadence: 90,
+      speed: 8.5,
+      timestamp: 1_700_000_000_000,
+      ...overrides,
+    };
+  }
+
+  it('produces a 34-byte buffer', () => {
+    const buf = encodePeerStateV2(makeStateV2(), BASE_LAT, BASE_LON, PEER_ID);
+    expect(buf.byteLength).toBe(34);
+  });
+
+  it('first byte is MSG_TYPE_STATE (0x02)', () => {
+    const buf = encodePeerStateV2(makeStateV2(), BASE_LAT, BASE_LON, PEER_ID);
+    expect(buf[0]).toBe(MSG_TYPE_STATE);
+  });
+
+  it('roundtrips telemetry fields with senderPeerId', () => {
+    const state = makeStateV2();
+    const buf = encodePeerStateV2(state, BASE_LAT, BASE_LON, PEER_ID);
+    const decoded = decodePeerStateV2(buf, BASE_LAT, BASE_LON);
+
+    expect(decoded.distance).toBe(500);
+    expect(decoded.power).toBe(300);
+    expect(decoded.cadence).toBe(90);
+    expect(decoded.speed).toBeCloseTo(8.5, 1);
+    expect(decoded.senderPeerId.trim()).toBe(PEER_ID);
+  });
+
+  it('isV2Frame returns true for 34-byte STATE buffer', () => {
+    const buf = encodePeerStateV2(makeStateV2(), BASE_LAT, BASE_LON, PEER_ID);
+    expect(isV2Frame(buf)).toBe(true);
+  });
+
+  it('isV2Frame returns false for v1 18-byte STATE buffer', () => {
+    const buf = encodePeerState(makeStateV2(), BASE_LAT, BASE_LON);
+    expect(isV2Frame(buf)).toBe(false);
+  });
+
+  it('throws on buffer too short', () => {
+    const short = new Uint8Array(20);
+    short[0] = MSG_TYPE_STATE;
+    expect(() => decodePeerStateV2(short, BASE_LAT, BASE_LON)).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v2 BASELINE (exchangeBaselineV2 / decodeBaselineV2)
+// ---------------------------------------------------------------------------
+
+describe('exchangeBaselineV2 / decodeBaselineV2', () => {
+  it('produces a 26-byte buffer', () => {
+    const buf = exchangeBaselineV2(47.5, 8.2, 'peer-abc');
+    expect(buf.byteLength).toBe(26);
+  });
+
+  it('first byte is MSG_TYPE_BASELINE (0x01)', () => {
+    const buf = exchangeBaselineV2(47.5, 8.2, 'peer-abc');
+    expect(buf[0]).toBe(MSG_TYPE_BASELINE);
+  });
+
+  it('roundtrips lat/lon and senderPeerId', () => {
+    const buf = exchangeBaselineV2(47.123, -122.456, 'mypeerid');
+    const decoded = decodeBaselineV2(buf);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.lat).toBeCloseTo(47.123, 4);
+    expect(decoded!.lon).toBeCloseTo(-122.456, 4);
+    expect(decoded!.senderPeerId.trim()).toBe('mypeerid');
+  });
+
+  it('returns null for buffer too short', () => {
+    expect(decodeBaselineV2(new Uint8Array(10))).toBeNull();
+  });
+
+  it('isV2Frame returns true for 26-byte BASELINE buffer', () => {
+    const buf = exchangeBaselineV2(47.5, 8.2, 'peer-x');
+    expect(isV2Frame(buf)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ROOM_ANNOUNCE (encodeRoomAnnounce / decodeRoomAnnounce)
+// ---------------------------------------------------------------------------
+
+describe('encodeRoomAnnounce / decodeRoomAnnounce', () => {
+  it('produces a 34-byte buffer', () => {
+    const buf = encodeRoomAnnounce('hostpeer1234abcd', 'newpeer1234abcde', 3);
+    expect(buf.byteLength).toBe(34);
+  });
+
+  it('first byte is MSG_TYPE_ROOM_ANNOUNCE (0x03)', () => {
+    const buf = encodeRoomAnnounce('hostpeer1234abcd', 'newpeer1234abcde', 3);
+    expect(buf[0]).toBe(MSG_TYPE_ROOM_ANNOUNCE);
+  });
+
+  it('roundtrips senderPeerId, newPeerId, totalPeers', () => {
+    const buf = encodeRoomAnnounce('hostpeer1234abcd', 'newpeer1234abcde', 3);
+    const decoded = decodeRoomAnnounce(buf);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.senderPeerId.trim()).toBe('hostpeer1234abcd');
+    expect(decoded!.newPeerId.trim()).toBe('newpeer1234abcde');
+    expect(decoded!.totalPeers).toBe(3);
+  });
+
+  it('returns null for buffer too short', () => {
+    expect(decodeRoomAnnounce(new Uint8Array(20))).toBeNull();
+  });
+
+  it('returns null for wrong opcode', () => {
+    const buf = encodeRoomAnnounce('host', 'new', 2);
+    buf[0] = 0x02; // wrong opcode
+    expect(decodeRoomAnnounce(buf)).toBeNull();
+  });
+
+  it('getOpcode returns 0x03 for ROOM_ANNOUNCE buffer', () => {
+    const buf = encodeRoomAnnounce('host', 'new', 2);
+    expect(getOpcode(buf)).toBe(MSG_TYPE_ROOM_ANNOUNCE);
+  });
+
+  it('isV2Frame returns true for ROOM_ANNOUNCE buffer', () => {
+    const buf = encodeRoomAnnounce('host', 'new', 2);
+    expect(isV2Frame(buf)).toBe(true);
+  });
+
+  it('clamps totalPeers at 255', () => {
+    const buf = encodeRoomAnnounce('h', 'n', 999);
+    const decoded = decodeRoomAnnounce(buf);
+    expect(decoded!.totalPeers).toBe(255);
   });
 });

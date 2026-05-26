@@ -1,5 +1,5 @@
 /**
- * EnterVRButton — Wave 33.A
+ * EnterVRButton — Wave 33.A / Wave 35.C (Phase 3: dom-overlay HUD)
  *
  * Floating button that appears only when the browser supports immersive-vr.
  * On non-XR browsers (Safari, Firefox, etc.) renders nothing — invisible and
@@ -7,6 +7,11 @@
  *
  * Positioned by the parent (Ride.tsx) in the top-right cluster, below the
  * CameraSwitcher.
+ *
+ * Phase 3: passes `document.getElementById('vr-hud-root')` (the VRHudOverlay
+ * root element rendered by VRHud.tsx) as the `domOverlayRoot` argument to
+ * enterVR(). The XR compositor renders that DOM subtree in-headset when the
+ * browser grants the 'dom-overlay' optional feature.
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -20,9 +25,15 @@ import { enterVR, exitVR, isInVR, type XRHandle } from '@/lib/webxr/xrSession';
 interface Props {
   /** The active Cesium.Viewer instance — passed from CesiumViewer via Ride.tsx. */
   viewer: CesiumType.Viewer | null;
+  /**
+   * Optional ref to the DOM element that should be rendered as the in-headset
+   * HUD via WebXR DOM overlay. Defaults to `document.getElementById('vr-hud-root')`.
+   * Pass null to disable dom-overlay for this session.
+   */
+  hudRootElement?: HTMLElement | null;
 }
 
-export function EnterVRButton({ viewer }: Props) {
+export function EnterVRButton({ viewer, hudRootElement }: Props) {
   const [vrSupported, setVrSupported] = useState(false);
   const [inVR, setInVR] = useState(false);
   const [pending, setPending] = useState(false);
@@ -40,8 +51,14 @@ export function EnterVRButton({ viewer }: Props) {
   const handleEnter = useCallback(async () => {
     if (!viewer || pending) return;
     setPending(true);
+    // Phase 3: resolve the HUD root — use the passed ref, fall back to the
+    // well-known id that VRHudOverlay renders into, or null (disables overlay).
+    const domOverlayRoot =
+      hudRootElement !== undefined
+        ? hudRootElement
+        : document.getElementById('vr-hud-root');
     try {
-      const h = await enterVR(viewer);
+      const h = await enterVR(viewer, domOverlayRoot);
       if (h) {
         setHandle(h);
         setInVR(true);
@@ -55,7 +72,7 @@ export function EnterVRButton({ viewer }: Props) {
     } finally {
       setPending(false);
     }
-  }, [viewer, pending]);
+  }, [viewer, pending, hudRootElement]);
 
   const handleExit = useCallback(async () => {
     if (!handle) return;

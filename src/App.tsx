@@ -12,6 +12,7 @@ import { useRaceResultCardAutoToast } from '@/hooks/useRaceResultCardAutoToast';
 const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ride })));
 const Explore = React.lazy(() => import('@/routes/Explore').then(m => ({ default: m.Explore })));
 const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
+const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
 
 function LoadingFallback() {
   return (
@@ -44,6 +45,8 @@ export default function App() {
           <Route path="/ride" element={<Ride />} />
           {/* Phone companion screen — same-origin BroadcastChannel peer */}
           <Route path="/companion" element={<Companion />} />
+          {/* Cinematic replay — Wave 35.A */}
+          <Route path="/replay/:rideId" element={<Replay />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

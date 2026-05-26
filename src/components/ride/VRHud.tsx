@@ -1,79 +1,83 @@
 /**
- * VRHud — Wave 33.A
+ * VRHud — Wave 33.A / Wave 35.C (Phase 3: DOM overlay HUD)
  *
- * In-VR HUD overlay. Rendered as a Cesium screen-space fixed overlay when a
- * WebXR session is active. Because DOM HTML elements do not render inside XR
- * sessions, this uses a fixed-position fullscreen div that is composited on
- * the flat screen (visible on the external mirror view). In a full Phase 2
- * integration the labels would be rendered as Cesium LabelCollection entities
- * positioned ~1.5 m in front of the headset's gaze direction.
+ * Exports two components:
  *
- * Phase 1 implementation notes:
- *   - This overlay renders as a standard DOM overlay on the flat 2D canvas.
- *   - On headsets, this appears on the "social screen" / mirror output.
- *   - True in-headset HTML overlay requires WebXR DOM Overlays feature
- *     (`dom-overlay` in optionalFeatures) — not yet requested in xrSession.ts.
- *   - Phase 2: add `dom-overlay` to optionalFeatures, set
- *     `domOverlay: { root: containerRef.current }` in requestSession options,
- *     and mark this element with position:fixed so it composites in-headset.
+ * 1. VRHud — original screen-space HUD (Phase 1 fallback). Renders as a
+ *    fixed-position div visible on the flat mirror output. Active when in VR
+ *    but dom-overlay was NOT granted (Vision Pro Safari, Firefox Reality, etc.).
  *
- * Renders nothing when not in a VR session.
+ * 2. VRHudOverlay — Phase 3 interactive DOM HUD. Always mounted at
+ *    `#vr-hud-root` with position:fixed so EnterVRButton can pass the element
+ *    to enterVR() before the session starts. Visibility is controlled via
+ *    display style (not conditional rendering) so the ref is stable. When
+ *    dom-overlay IS granted the compositor renders this subtree in-headset and
+ *    it is fully interactive via controller rays / hand-tracking pinch.
+ *
+ * Fallback hierarchy:
+ *   dom-overlay granted     → VRHudOverlay visible, VRHud hidden
+ *   dom-overlay NOT granted → VRHud visible (mirror output), VRHudOverlay hidden
+ *   Not in VR               → both hidden / null
  */
 
 import { useEffect, useState } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { msToKmh } from '@/lib/utils';
+import { getDomOverlayType } from '@/lib/webxr/xrDomOverlay';
 
-/**
- * Polls isInVR() at 500 ms intervals — lightweight, no RAF overhead.
- * Returns to null render immediately when the session ends.
- */
-function useInVRState(): boolean {
-  const [inVR, setInVR] = useState(false);
+// ---------------------------------------------------------------------------
+// Shared hook — polls XR session state every 500 ms
+// ---------------------------------------------------------------------------
+
+interface VRPollState {
+  inVR: boolean;
+  overlayType: 'screen' | 'floating' | 'head-locked' | null;
+}
+
+function useVRState(): VRPollState {
+  const [state, setState] = useState<VRPollState>({ inVR: false, overlayType: null });
 
   useEffect(() => {
-    // Poll the module-level flag — avoids wiring XRSession events through
-    // the component tree just for a boolean.
     const id = setInterval(() => {
-      // Dynamic import to avoid circular dep; resolved at runtime.
-      import('@/lib/webxr/xrSession').then(({ isInVR }) => {
-        setInVR(isInVR());
+      import('@/lib/webxr/xrSession').then(({ isInVR, getActiveSession }) => {
+        const inVR = isInVR();
+        if (!inVR) {
+          setState({ inVR: false, overlayType: null });
+          return;
+        }
+        const session = getActiveSession?.();
+        const overlayType = session ? getDomOverlayType(session) : null;
+        setState({ inVR: true, overlayType });
       }).catch(() => undefined);
     }, 500);
     return () => clearInterval(id);
   }, []);
 
-  return inVR;
+  return state;
 }
 
+// ---------------------------------------------------------------------------
+// VRHud — Phase 1 fallback (mirror / screen output, non-interactive)
+// ---------------------------------------------------------------------------
+
 export function VRHud() {
-  const inVR    = useInVRState();
+  const { inVR, overlayType } = useVRState();
   const speed   = useRideStore((s) => s.speed);
   const power   = useRideStore((s) => s.power);
   const cadence = useRideStore((s) => s.cadence);
   const hr      = useRideStore((s) => s.heartRate);
 
-  if (!inVR) return null;
+  // Hide when: not in VR, OR dom-overlay is active (VRHudOverlay takes over).
+  if (!inVR || overlayType !== null) return null;
 
   const kmh = msToKmh(speed ?? 0).toFixed(1);
 
   return (
-    /*
-     * Phase 1: fixed-position overlay visible on the flat mirror output.
-     *
-     * Phase 2 checklist for true in-headset rendering:
-     *   1. Add 'dom-overlay' to optionalFeatures in xrSession.ts requestSession
-     *   2. Pass domOverlay: { root: document.getElementById('vr-hud-root') }
-     *   3. Mark this element position:fixed (already done)
-     *   4. Headset will composite DOM subtree into the XR frame buffer
-     */
     <div
-      id="vr-hud-root"
-      aria-label="VR HUD overlay"
+      aria-label="VR HUD overlay (mirror)"
       className="fixed inset-0 pointer-events-none z-[100] flex items-end justify-center"
       style={{ paddingBottom: '6vh' }}
     >
-      {/* Curved panel simulation — wide pill centred at the bottom */}
       <div
         className="flex items-center gap-8 px-10 py-5 rounded-[2rem]"
         style={{
@@ -84,10 +88,71 @@ export function VRHud() {
           maxWidth: '90vw',
         }}
       >
-        <VRMetric label="SPEED" value={kmh} unit="km/h" />
-        <VRMetric label="POWER" value={String(power ?? 0)} unit="W" />
-        <VRMetric label="CADENCE" value={String(cadence ?? 0)} unit="rpm" />
-        <VRMetric label="HR" value={hr != null ? String(hr) : '—'} unit="bpm" />
+        <VRMetric label="SPEED"   value={kmh}                           unit="km/h" />
+        <VRMetric label="POWER"   value={String(power   ?? 0)}          unit="W"    />
+        <VRMetric label="CADENCE" value={String(cadence ?? 0)}          unit="rpm"  />
+        <VRMetric label="HR"      value={hr != null ? String(hr) : '—'} unit="bpm" />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// VRHudOverlay — Phase 3 interactive DOM overlay (in-headset)
+// ---------------------------------------------------------------------------
+
+/**
+ * Always mounted; visibility toggled via display:none rather than conditional
+ * rendering so document.getElementById('vr-hud-root') is always available for
+ * EnterVRButton to pass into enterVR() at any point during the ride.
+ */
+export function VRHudOverlay() {
+  const { inVR, overlayType } = useVRState();
+  const speed   = useRideStore((s) => s.speed);
+  const power   = useRideStore((s) => s.power);
+  const cadence = useRideStore((s) => s.cadence);
+  const hr      = useRideStore((s) => s.heartRate);
+
+  const visible = inVR && overlayType !== null;
+  const kmh = msToKmh(speed ?? 0).toFixed(1);
+
+  return (
+    <div
+      id="vr-hud-root"
+      aria-label="VR HUD overlay (in-headset)"
+      aria-hidden={!visible}
+      style={{
+        // position:fixed required by the dom-overlay spec — the compositor
+        // composites relative to the display, not the page scroll position.
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        display: visible ? 'flex' : 'none',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingBottom: '6vh',
+        // Allow pointer events so controller rays can interact.
+        pointerEvents: 'auto',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '2rem',
+          padding: '1.25rem 2.5rem',
+          borderRadius: '2rem',
+          background: 'rgba(0,0,0,0.78)',
+          backdropFilter: 'blur(14px)',
+          border: '1.5px solid rgba(255,255,255,0.14)',
+          minWidth: '36rem',
+          maxWidth: '90vw',
+        }}
+      >
+        <VRMetric label="SPEED"   value={kmh}                           unit="km/h" />
+        <VRMetric label="POWER"   value={String(power   ?? 0)}          unit="W"    />
+        <VRMetric label="CADENCE" value={String(cadence ?? 0)}          unit="rpm"  />
+        <VRMetric label="HR"      value={hr != null ? String(hr) : '—'} unit="bpm" />
       </div>
     </div>
   );
@@ -105,8 +170,15 @@ interface VRMetricProps {
 
 function VRMetric({ label, value, unit }: VRMetricProps) {
   return (
-    <div className="flex flex-col items-center gap-1 min-w-[5rem]">
-      {/* Label — small caps, muted */}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '0.25rem',
+        minWidth: '5rem',
+      }}
+    >
       <span
         style={{
           color: 'rgba(255,255,255,0.55)',
@@ -118,7 +190,6 @@ function VRMetric({ label, value, unit }: VRMetricProps) {
       >
         {label}
       </span>
-      {/* Value — large, high contrast for legibility at 1.5 m virtual distance */}
       <span
         style={{
           color: '#ffffff',
@@ -130,7 +201,6 @@ function VRMetric({ label, value, unit }: VRMetricProps) {
       >
         {value}
       </span>
-      {/* Unit */}
       <span
         style={{
           color: 'rgba(255,255,255,0.45)',

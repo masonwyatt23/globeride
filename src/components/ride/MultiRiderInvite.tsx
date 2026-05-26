@@ -14,9 +14,11 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { X, Copy, Check, Users, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { X, Copy, Check, Users, Wifi, WifiOff, Loader2, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMultiriderStore } from '@/stores/multiriderStore';
+import { PelotonRoom } from './PelotonRoom';
+import type { MeshState } from '@/lib/webrtc/meshTopology';
 import {
   createPeerConnection,
   createOffer,
@@ -32,13 +34,16 @@ import {
 } from '@/lib/webrtc/multiriderSignaling';
 import { useRideStore } from '@/stores/rideStore';
 
-type Tab = 'create' | 'join';
+type Tab = 'create' | 'join' | 'peloton';
 
 interface Props {
   onClose: () => void;
+  /** Optional callbacks for mesh peloton mode. */
+  onMeshReady?: (mesh: MeshState) => void;
+  onMeshClosed?: () => void;
 }
 
-export function MultiRiderInvite({ onClose }: Props) {
+export function MultiRiderInvite({ onClose, onMeshReady, onMeshClosed }: Props) {
   const [tab, setTab] = useState<Tab>('create');
   const [offerBlob, setOfferBlob] = useState<string>('');
   const [answerInput, setAnswerInput] = useState<string>('');
@@ -228,6 +233,17 @@ export function MultiRiderInvite({ onClose }: Props) {
   const isConnected = connectionState === 'connected';
   const isBusy = connectionState === 'inviting' || connectionState === 'joining' || isCreating || isJoining;
 
+  // ---- Peloton (N-rider mesh) mode ----
+  if (tab === 'peloton') {
+    return (
+      <PelotonRoom
+        onClose={onClose}
+        onMeshReady={onMeshReady ?? (() => undefined)}
+        onMeshClosed={onMeshClosed ?? (() => undefined)}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[50] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
       <div className="glass glass-hairline rounded-2xl w-full max-w-md shadow-2xl">
@@ -290,6 +306,19 @@ export function MultiRiderInvite({ onClose }: Props) {
               disabled={isBusy}
             >
               Join existing
+            </button>
+            <button
+              className={`flex-1 text-xs py-1.5 px-3 rounded-lg transition-colors flex items-center justify-center gap-1 ${
+                (tab as string) === 'peloton'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-white/5 hover:bg-white/10 text-muted-foreground'
+              }`}
+              onClick={() => setTab('peloton')}
+              disabled={isBusy}
+              title="Create or join an N-rider mesh peloton (up to 4 riders)"
+            >
+              <UsersRound className="h-3 w-3" aria-hidden="true" />
+              Peloton
             </button>
           </div>
         )}

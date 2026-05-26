@@ -29,6 +29,7 @@ import {
   Gauge,
   Calendar,
   BarChart2,
+  Film,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -536,16 +537,28 @@ export function RideHistory({ className }: RideHistoryProps) {
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0">
                   {r.samples.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 gap-1 text-xs"
-                      onClick={() => handleReplay(r)}
-                      title="Replay this ride on the globe"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      Replay
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 gap-1 text-xs"
+                        onClick={() => handleReplay(r)}
+                        title="Replay this ride on the globe"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Replay
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 gap-1 text-xs"
+                        onClick={() => navigate(`/replay/${r.id}`)}
+                        title="Cinematic replay with camera controls and highlight reel"
+                      >
+                        <Film className="h-3 w-3" />
+                        Cinematic
+                      </Button>
+                    </>
                   )}
                   <button
                     type="button"

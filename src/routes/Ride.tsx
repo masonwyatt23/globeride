@@ -6,6 +6,7 @@ import { CesiumViewer } from '@/components/ride/CesiumViewer';
 import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
 import { RideHUD } from '@/components/ride/RideHUD';
 import { EnterVRButton } from '@/components/ride/EnterVRButton';
+import { EnterARButton } from '@/components/ride/EnterARButton';
 import { VRHud } from '@/components/ride/VRHud';
 import { RideControls } from '@/components/ride/RideControls';
 import { Minimap } from '@/components/ride/Minimap';
@@ -362,12 +363,24 @@ export function Ride() {
         <EnterVRButton viewer={cesiumViewer} />
       </div>
 
-      {/* -- Voice control button (Wave 34.D) — top-right, below VR button -- */}
-      {/* Invisible on Firefox / unsupported browsers (returns null). */}
+      {/* -- Enter AR button (Wave 35.D) — top-right, below VR button -------- */}
+      {/* Invisible on non-AR browsers (EnterARButton returns null). */}
       <div
         className="absolute pointer-events-auto z-[4]"
         style={{
           top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 10rem)',
+          right: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <EnterARButton viewer={cesiumViewer} />
+      </div>
+
+      {/* -- Voice control button (Wave 34.D) — top-right, below AR button -- */}
+      {/* Invisible on Firefox / unsupported browsers (returns null). */}
+      <div
+        className="absolute pointer-events-auto z-[4]"
+        style={{
+          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 13.5rem)',
           right: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >

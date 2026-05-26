@@ -47,6 +47,18 @@ interface MultiRiderStoreState {
   /** Map of peerId → PeerEntry. Stored as Record for Zustand reactivity. */
   peers: Record<string, PeerEntry>;
 
+  // ---- Mesh peloton (Wave 35.B) ----
+  /** True if this client created the room (acts as SDP relay for joiners). */
+  meshHost: boolean;
+  /** 6-char room code shared with friends. Null when not in a peloton. */
+  roomCode: string | null;
+  /**
+   * Host-only queue of join requests awaiting an answer.
+   * Each entry is a peerId + their SDP offer; host generates an answer
+   * and returns it to the joiner out-of-band.
+   */
+  pendingJoinRequests: { peerId: string; sdp: string }[];
+
   // ---- Actions ----
   /** Set the RTCPeerConnection (called when connection is created). */
   setConnection: (pc: RTCPeerConnection | null) => void;
@@ -65,6 +77,16 @@ interface MultiRiderStoreState {
   setPeerState: (peerId: string, state: PeerStateMsg, baselineLat: number, baselineLon: number) => void;
   /** Remove a peer (on disconnect). */
   removePeer: (peerId: string) => void;
+
+  // ---- Mesh actions ----
+  /** Mark this client as the room host and store the room code. */
+  setMeshHost: (isHost: boolean) => void;
+  /** Set the current room code. */
+  setRoomCode: (code: string | null) => void;
+  /** Host only: enqueue a join request to display in the UI. */
+  addPendingJoinRequest: (peerId: string, sdp: string) => void;
+  /** Host only: remove a join request after it has been answered. */
+  acceptPendingJoinRequest: (peerId: string) => void;
 
   /**
    * Initiate as the offer-creating side.
@@ -95,6 +117,9 @@ export const useMultiriderStore = create<MultiRiderStoreState>((set, get) => ({
   sessionId: null,
   error: null,
   peers: {},
+  meshHost: false,
+  roomCode: null,
+  pendingJoinRequests: [],
 
   // ---- Low-level setters ----
 
@@ -133,6 +158,25 @@ export const useMultiriderStore = create<MultiRiderStoreState>((set, get) => ({
       return { peers: next };
     }),
 
+  // ---- Mesh actions ----
+
+  setMeshHost: (isHost) => set({ meshHost: isHost }),
+
+  setRoomCode: (code) => set({ roomCode: code }),
+
+  addPendingJoinRequest: (peerId, sdp) =>
+    set((st) => ({
+      pendingJoinRequests: [
+        ...st.pendingJoinRequests.filter((r) => r.peerId !== peerId),
+        { peerId, sdp },
+      ],
+    })),
+
+  acceptPendingJoinRequest: (peerId) =>
+    set((st) => ({
+      pendingJoinRequests: st.pendingJoinRequests.filter((r) => r.peerId !== peerId),
+    })),
+
   // ---- Session lifecycle ----
 
   startAsInitiator: (sessionId) =>
@@ -169,6 +213,9 @@ export const useMultiriderStore = create<MultiRiderStoreState>((set, get) => ({
       sessionId: null,
       error: null,
       peers: {},
+      meshHost: false,
+      roomCode: null,
+      pendingJoinRequests: [],
     });
   },
 }));

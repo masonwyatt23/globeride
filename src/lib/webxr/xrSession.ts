@@ -1,7 +1,7 @@
 /**
- * xrSession.ts — Wave 34.B WebXR Phase 2: full stereo rendering.
+ * xrSession.ts — Wave 34.B / Wave 35.C WebXR Phase 2 + Phase 3.
  *
- * Integration status: PHASE 2 — stereo projection wired to Cesium.
+ * Integration status: PHASE 3 — 6DOF room-scale + DOM overlay HUD.
  *
  * What Phase 2 adds on top of Phase 1:
  *   - XRWebGLLayer created from Cesium's WebGL2 context and bound to the
@@ -14,19 +14,39 @@
  *     budget recommended by the Cesium VR/AR performance guide.
  *   - On exit the scale and frustum are restored; the default render loop resumes.
  *
+ * What Phase 3 adds (Wave 35.C):
+ *   - 'dom-overlay' optional feature: pass domOverlayRoot to enterVR() to
+ *     enable in-headset DOM HUD rendering (Quest 3 / Chrome).
+ *   - 6DOF room-scale: a RoomScaleAnchor is captured at session start; each
+ *     frame the headset's orientation quaternion is composed with the
+ *     chase-cam's heading/pitch so riders can look around freely.
+ *   - runXRFrameLoop accepts an optional RoomScaleState — when provided it
+ *     calls applyXRRotationToCesium before each eye render.
+ *
  * Private Cesium API accesses are centralised in getCesiumWebGLContext() with
  * a single @ts-expect-error annotation — one place to update if Cesium adds a
  * public equivalent.
  *
- * Phase 2 gap — still out of scope (Phase 3+):
- *   1. 'dom-overlay' for in-headset HUD (Ride.tsx HUD not yet adapted).
- *   2. Hand-tracking / controller input (XRInputSource).
- *   3. Passthrough / immersive-ar (Quest 3 mixed-reality).
- *   4. Foveated rendering (XRProjectionLayer, not available via XRWebGLLayer).
+ * Wave 35.D additions:
+ *   - getCesiumWebGLContext, createXRWebGLLayer, requestXRReferenceSpace, and
+ *     runXRFrameLoop are now exported so xrAR.ts can reuse the same rendering
+ *     infrastructure without copy-paste.
+ *
+ * Remaining out of scope (Phase 4+):
+ *   1. Hand-tracking / controller input (XRInputSource event loop).
+ *   2. Foveated rendering (XRProjectionLayer, not available via XRWebGLLayer).
+ *   3. Positional 6DOF (room-scale walking mapped to ECEF translation).
  */
 
 import * as Cesium from 'cesium';
 import type * as CesiumType from 'cesium';
+
+import {
+  createRoomScaleAnchor,
+  applyXRRotationToCesium,
+  type RoomScaleState,
+} from './xrRoomScale';
+import { getDomOverlayInit } from './xrDomOverlay';
 
 // ---------------------------------------------------------------------------
 // Private Cesium API accessor — single call-site so a future public API only
@@ -44,10 +64,146 @@ import type * as CesiumType from 'cesium';
  *   `(viewer.scene.context as unknown as { _gl: WebGL2RenderingContext })._gl`
  * with:
  *   `(viewer.scene.context as { gl: WebGL2RenderingContext }).gl`
+ *
+ * Exported for reuse by xrAR.ts (Wave 35.D).
  */
-function getCesiumWebGLContext(viewer: CesiumType.Viewer): WebGL2RenderingContext {
+export function getCesiumWebGLContext(viewer: CesiumType.Viewer): WebGL2RenderingContext {
   // @ts-expect-error accessing private Cesium Scene.Context._gl
   return (viewer.scene.context as unknown as { _gl: WebGL2RenderingContext })._gl;
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers — exported for xrAR.ts (Wave 35.D)
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an XRWebGLLayer from a WebGL2 context and bind alpha transparency.
+ *
+ * Returns null in environments where XRWebGLLayer is not defined (jsdom,
+ * non-XR desktop browsers). The `alpha` option enables alpha-blending for AR
+ * passthrough — ignored in opaque VR mode (the compositor discards alpha).
+ *
+ * @param session  The active XRSession.
+ * @param gl       Cesium's WebGL2 context (must be XR-compatible).
+ * @param init     Optional XRWebGLLayerInit overrides (e.g. { alpha: true }).
+ * @returns        A new XRWebGLLayer, or null when XRWebGLLayer is undefined.
+ */
+export function createXRWebGLLayer(
+  session: XRSession,
+  gl: WebGL2RenderingContext,
+  init?: XRWebGLLayerInit,
+): XRWebGLLayer | null {
+  if (typeof XRWebGLLayer === 'undefined') return null;
+  return new XRWebGLLayer(session, gl, init);
+}
+
+/**
+ * Request a reference space from the XR session, trying 'local-floor' first
+ * and falling back to 'local' if the floor variant is unsupported.
+ *
+ * Returns null if both attempts fail (e.g. tracking unavailable).
+ *
+ * Exported for reuse by xrAR.ts (Wave 35.D).
+ */
+export async function requestXRReferenceSpace(
+  session: XRSession,
+): Promise<XRReferenceSpace | null> {
+  try {
+    return await session.requestReferenceSpace('local-floor');
+  } catch {
+    try {
+      return await session.requestReferenceSpace('local');
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** Handle returned by runXRFrameLoop — call stop() to cancel the RAF loop. */
+export interface XRFrameLoopHandle {
+  stop: () => void;
+}
+
+/**
+ * Start the per-frame XR render loop: for each animation frame, retrieve the
+ * viewer pose and render one Cesium frame per eye into the XR compositor's
+ * framebuffer.
+ *
+ * This is the same loop used by enterVR, extracted so xrAR.ts can reuse it
+ * without copy-pasting the per-eye rendering logic.
+ *
+ * @param session    Active XRSession (vr or ar).
+ * @param layer      The XRWebGLLayer bound to the session.
+ * @param refSpace   The reference space acquired for this session.
+ * @param viewer     The active Cesium.Viewer.
+ * @param roomScale  Optional Phase 3 room-scale anchor. When provided,
+ *                   applyXRRotationToCesium() is called per-eye so the
+ *                   headset's orientation is reflected in the Cesium camera.
+ *                   When absent the loop behaves identically to Phase 2
+ *                   (IPD-only offset, no head-rotation tracking).
+ * @returns          A handle with a stop() method to cancel the loop.
+ */
+export function runXRFrameLoop(
+  session: XRSession,
+  layer: XRWebGLLayer,
+  refSpace: XRReferenceSpace,
+  viewer: CesiumType.Viewer,
+  roomScale?: RoomScaleState,
+): XRFrameLoopHandle {
+  const gl = getCesiumWebGLContext(viewer);
+  let rafId = 0;
+
+  function xrFrame(_time: number, frame: XRFrame) {
+    rafId = session.requestAnimationFrame(xrFrame);
+
+    const pose = frame.getViewerPose(refSpace);
+    if (!pose) return; // tracking lost — keep loop alive
+
+    if (viewer.isDestroyed()) return;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+
+    const sharedPosition  = Cesium.Cartesian3.clone(viewer.camera.position);
+    const sharedFrustum   = viewer.camera.frustum.clone();
+    // Phase 3: also snapshot direction/up so room-scale rotation can be
+    // restored cleanly between eyes (orientation is shared, but we must
+    // reset it after each eye just like position).
+    const sharedDirection = roomScale
+      ? Cesium.Cartesian3.clone(viewer.camera.direction)
+      : undefined;
+    const sharedUp = roomScale
+      ? Cesium.Cartesian3.clone(viewer.camera.up)
+      : undefined;
+
+    for (const view of pose.views) {
+      const xrViewport = layer.getViewport(view);
+      gl.viewport(xrViewport.x, xrViewport.y, xrViewport.width, xrViewport.height);
+
+      try {
+        applyXRProjectionToCesium(viewer.camera, view.projectionMatrix);
+        // Phase 3: apply headset orientation BEFORE the IPD eye offset so
+        // the rotation is in the correct world frame. The eye offset is then
+        // applied on top of the rotated camera position.
+        if (roomScale) {
+          applyXRRotationToCesium(viewer, pose, roomScale, view);
+        }
+        applyXREyeOffsetToCesium(viewer.camera, view.transform);
+        try {
+          viewer.scene.render();
+        } catch {
+          // WebGL context loss — keep loop alive; browser fires webglcontextrestored.
+        }
+      } finally {
+        viewer.camera.position = sharedPosition;
+        viewer.camera.frustum  = sharedFrustum;
+        if (sharedDirection) viewer.camera.direction = sharedDirection;
+        if (sharedUp)        viewer.camera.up        = sharedUp;
+      }
+    }
+  }
+
+  rafId = session.requestAnimationFrame(xrFrame);
+  return { stop: () => session.cancelAnimationFrame(rafId) };
 }
 
 // ---------------------------------------------------------------------------
@@ -176,19 +332,42 @@ function applyXREyeOffsetToCesium(
  *
  * Safe to call on non-XR browsers — returns null without throwing.
  *
- * @param viewer  The active Cesium.Viewer instance.
- * @returns       An XRHandle on success; null if XR is unavailable or denied.
+ * Phase 3 additions:
+ *   - domOverlayRoot: when provided, 'dom-overlay' is added to optionalFeatures
+ *     and the element is passed as domOverlay.root. On Quest/Chrome the headset
+ *     compositor renders the DOM subtree in-headset (head-locked or floating).
+ *     Falls back silently if the browser doesn't grant the feature.
+ *   - room-scale: a RoomScaleAnchor is computed from the viewer's current camera
+ *     state once the session is established. The anchor is threaded into
+ *     runXRFrameLoop so every frame applies headset orientation to the camera.
+ *     Falls back to Phase 2 IPD-only if anchor creation throws.
+ *
+ * @param viewer          The active Cesium.Viewer instance.
+ * @param domOverlayRoot  Optional HTMLElement root for in-headset DOM HUD.
+ * @returns               An XRHandle on success; null if XR is unavailable or denied.
  */
-export async function enterVR(viewer: CesiumType.Viewer): Promise<XRHandle | null> {
+export async function enterVR(
+  viewer: CesiumType.Viewer,
+  domOverlayRoot?: HTMLElement | null,
+): Promise<XRHandle | null> {
   if (_activeHandle) return _activeHandle; // already in VR
 
   if (typeof navigator === 'undefined' || !navigator.xr) return null;
+
+  // Phase 3: build dom-overlay init fragment (empty object when unsupported).
+  const domOverlayFragment = getDomOverlayInit(domOverlayRoot ?? null);
+  const hasDomOverlay = 'domOverlay' in domOverlayFragment;
 
   let session: XRSession;
   try {
     session = await navigator.xr.requestSession('immersive-vr', {
       requiredFeatures: ['local-floor'],
-      optionalFeatures: ['bounded-floor', 'hand-tracking'],
+      optionalFeatures: [
+        'bounded-floor',
+        'hand-tracking',
+        ...(hasDomOverlay ? ['dom-overlay'] : []),
+      ],
+      ...domOverlayFragment,
     });
   } catch {
     // User denied, hardware unavailable, etc.
@@ -212,28 +391,21 @@ export async function enterVR(viewer: CesiumType.Viewer): Promise<XRHandle | nul
   await (gl as WebGL2RenderingContext & { makeXRCompatible?: () => Promise<void> })
     .makeXRCompatible?.();
 
-  // Guard: XRWebGLLayer only exists in a real XR browser; it is undefined in
-  // jsdom / vitest test environments.
-  if (typeof XRWebGLLayer === 'undefined') {
+  // Use shared helper — returns null when XRWebGLLayer is undefined (jsdom).
+  const layer = createXRWebGLLayer(session, gl);
+  if (!layer) {
     await session.end().catch(() => undefined);
     return null;
   }
 
-  const layer = new XRWebGLLayer(session, gl);
   await session.updateRenderState({ baseLayer: layer });
 
-  // ---- Reference space ----------------------------------------------------
+  // ---- Reference space — shared helper tries local-floor then local -------
 
-  let refSpace: XRReferenceSpace | null = null;
-  try {
-    refSpace = await session.requestReferenceSpace('local-floor');
-  } catch {
-    try {
-      refSpace = await session.requestReferenceSpace('local');
-    } catch {
-      await session.end().catch(() => undefined);
-      return null;
-    }
+  const refSpace = await requestXRReferenceSpace(session);
+  if (!refSpace) {
+    await session.end().catch(() => undefined);
+    return null;
   }
 
   // ---- Performance: reduce resolution for 72-90 fps headroom --------------
@@ -244,64 +416,33 @@ export async function enterVR(viewer: CesiumType.Viewer): Promise<XRHandle | nul
   // Pause Cesium's own render loop — XR RAF drives rendering from here.
   viewer.useDefaultRenderLoop = false;
 
-  // ---- Per-frame stereo callback ------------------------------------------
-
-  let rafId = 0;
-
-  function xrFrame(_time: number, frame: XRFrame) {
-    rafId = session.requestAnimationFrame(xrFrame);
-
-    if (!refSpace) return;
-
-    const pose = frame.getViewerPose(refSpace);
-    if (!pose) {
-      // Tracking lost — skip this frame, keep the loop alive.
-      return;
-    }
-
-    if (viewer.isDestroyed()) return;
-
-    // Bind the XR compositor's framebuffer so all subsequent draws land there.
-    // The XR compositor owns this framebuffer and composites it into the lens.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
-
-    // Capture the shared follow-cam state once; each eye rendering shifts the
-    // camera by its IPD offset and then restores it for the next eye.
-    const sharedPosition = Cesium.Cartesian3.clone(viewer.camera.position);
-    const sharedFrustum  = viewer.camera.frustum.clone();
-
-    for (const view of pose.views) {
-      const xrViewport = layer.getViewport(view);
-
-      // Restrict WebGL drawing to this eye's sub-rect of the XR framebuffer.
-      gl.viewport(xrViewport.x, xrViewport.y, xrViewport.width, xrViewport.height);
-
-      // Apply per-eye projection and IPD offset, render, then restore so the
-      // next eye starts from the same follow-cam anchor.
-      try {
-        applyXRProjectionToCesium(viewer.camera, view.projectionMatrix);
-        applyXREyeOffsetToCesium(viewer.camera, view.transform);
-
-        try {
-          viewer.scene.render();
-        } catch {
-          // WebGL context loss during XR — keep the loop alive; the browser
-          // will fire a 'webglcontextrestored' event if it recovers.
-        }
-      } finally {
-        // Always restore, even if render threw, so the next eye is not skewed.
-        viewer.camera.position = sharedPosition;
-        viewer.camera.frustum  = sharedFrustum;
-      }
-    }
+  // ---- Phase 3: room-scale anchor — captured once at session start --------
+  // We derive the rider's position from the current Cesium camera position
+  // via cartographic conversion. This is the anchor for all subsequent
+  // head-rotation compositing.
+  let roomScale: RoomScaleState | undefined;
+  try {
+    const camPos      = viewer.camera.position;
+    const cartographic = Cesium.Cartographic.fromCartesian(camPos);
+    roomScale = createRoomScaleAnchor(viewer, {
+      lat: Cesium.Math.toDegrees(cartographic.latitude),
+      lon: Cesium.Math.toDegrees(cartographic.longitude),
+      ele: cartographic.height,
+    });
+  } catch {
+    // Anchor creation failed (e.g. viewer position not yet set) — fall back
+    // to Phase 2 IPD-only rendering without head rotation.
+    roomScale = undefined;
   }
 
-  rafId = session.requestAnimationFrame(xrFrame);
+  // ---- Per-frame stereo callback — shared runXRFrameLoop helper -----------
+
+  const frameLoop = runXRFrameLoop(session, layer, refSpace, viewer, roomScale);
 
   // ---- Cleanup on session end (headset button or exitVR()) ----------------
 
   function restoreLoop() {
-    session.cancelAnimationFrame(rafId);
+    frameLoop.stop();
     if (!viewer.isDestroyed()) {
       viewer.resolutionScale = previousResolutionScale;
       viewer.useDefaultRenderLoop = true;
@@ -362,4 +503,14 @@ export function isInVR(): boolean {
  */
 export function _resetActiveHandle(): void {
   _activeHandle = null;
+}
+
+/**
+ * Return the live XRSession from the active handle, or null.
+ *
+ * Used by VRHud / VRHudOverlay to query session.domOverlayState without
+ * storing the session in React state (avoids a re-render on every frame).
+ */
+export function getActiveSession(): XRSession | null {
+  return _activeHandle?.session ?? null;
 }
