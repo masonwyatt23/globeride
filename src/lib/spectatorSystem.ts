@@ -10,7 +10,6 @@
  *   low     → ×0.5
  *   medium  → ×0.75
  *   high    → ×1.0
- *   ultra   → ×1.0   (same cap as high; extra density is imperceptible)
  */
 
 import * as Cesium from 'cesium';
@@ -136,14 +135,13 @@ export function getSpriteDUrl(sprite: SpectatorSprite): string {
 // Density multiplier per quality tier
 // ---------------------------------------------------------------------------
 
-const QUALITY_DENSITY_SCALE: Record<string, number> = {
+const QUALITY_DENSITY_SCALE: Record<GraphicsQuality, number> = {
   low:    0.5,
   medium: 0.75,
   high:   1.0,
-  ultra:  1.0,
 };
 
-function qualityScale(quality: GraphicsQuality | string): number {
+function qualityScale(quality: GraphicsQuality): number {
   return QUALITY_DENSITY_SCALE[quality] ?? 1.0;
 }
 
@@ -237,7 +235,7 @@ function perpendicularOffset(
 export function generateSpectatorPositions(
   route: Route,
   zones: SpectatorZone[],
-  quality: GraphicsQuality | string = 'high',
+  quality: GraphicsQuality = 'high',
 ): SpectatorPosition[] {
   if (zones.length === 0) return [];
 
@@ -360,6 +358,10 @@ export function createSpectatorBillboards(
  * @param fadeRangeM          Distance over which billboards fade in, meters (200 default).
  * @param visibleRangeM       Only render spectators within this range (1000 m default).
  */
+// Single scratch Color reused across all billboard alpha updates — avoids
+// allocating ~N * 60 Cesium.Color objects per second on big crowd scenes.
+const _scratchColor = new Cesium.Color(1, 1, 1, 0);
+
 export function updateSpectatorVisibility(
   spectator: SpectatorCollection,
   riderDistance: number,
@@ -376,17 +378,17 @@ export function updateSpectatorVisibility(
     const spectDist = spectatorDistances[i];
     const delta = Math.abs(spectDist - riderDistance);
 
+    let alpha: number;
     if (delta > visibleRangeM) {
-      billboard.color = new Cesium.Color(1, 1, 1, 0);
+      alpha = 0;
+    } else if (delta <= fadeRangeM) {
+      alpha = 1;
     } else {
-      // Full alpha from visibleRangeM down to fadeRangeM; linear fade-in for
-      // the final fadeRangeM as the rider closes in.
-      const alpha =
-        delta <= fadeRangeM
-          ? 1.0
-          : 1.0 - (delta - fadeRangeM) / (visibleRangeM - fadeRangeM);
-      billboard.color = new Cesium.Color(1, 1, 1, Math.max(0, Math.min(1, alpha)));
+      alpha = 1 - (delta - fadeRangeM) / (visibleRangeM - fadeRangeM);
     }
+
+    _scratchColor.alpha = Math.max(0, Math.min(1, alpha));
+    billboard.color = _scratchColor;
   }
 }
 
@@ -404,7 +406,7 @@ export function buildSpectatorDistanceIndex(
   zones: SpectatorZone[],
   positions: SpectatorPosition[],
   route: Route,
-  quality: GraphicsQuality | string = 'high',
+  quality: GraphicsQuality = 'high',
 ): number[] {
   // Regenerate positions with the same seed to get distances — we mirror the
   // generation logic but only track the `dist` used per spectator.
@@ -428,9 +430,9 @@ export function buildSpectatorDistanceIndex(
         Math.min(zone.endDistance - 1, zone.startDistance + i * spacing + jitter),
       );
       distances.push(dist);
-      // Consume the two rng() calls made in generateSpectatorPositions for
-      // heading-sample and offsetM so the streams stay in sync.
-      rng(); // perpendicular offset
+      // Mirror the second rng() call from generateSpectatorPositions (offsetM)
+      // so the seeded stream stays aligned between the two passes.
+      rng();
     }
   }
 

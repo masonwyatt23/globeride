@@ -183,7 +183,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   // Multi-rider peers: state to trigger re-render when viewer is ready.
   const [viewerReady, setViewerReady] = useState(false);
 
-  // ---- Camera (Wave 30.A): transition state held across frames ----
+  // Camera transition state held across frames.
   const camTransitionRef = useRef<{
     fromPose: CameraPose;
     startMs: number;
@@ -236,11 +236,9 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     if (scene.skyAtmosphere) scene.skyAtmosphere.show = true;
     scene.globe.enableLighting = true;
 
-    // ---- Scene setup + atmosphere (Wave 30.C) ----
     // Shadow entity is created once per viewer lifetime; position is updated
     // per-frame in the preRender handler.
     shadowHandleRef.current = createShadowEntity(viewer);
-    // ------------------------------------------------
 
     // Apply the persisted graphics quality tier (AA, shadows, fog).
     // Fog is always enabled; density is controlled per-tier.
@@ -322,7 +320,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       // Dispose weather system before destroying the viewer.
       weatherSystemRef.current?.dispose();
       weatherSystemRef.current = null;
-      // ---- Scene setup + atmosphere (Wave 30.C) ---- cleanup
       skyCleanupRef.current?.();
       skyCleanupRef.current = null;
       shadowHandleRef.current?.destroy();
@@ -452,7 +449,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     cartesianRouteRef.current = null;
     resetFollowCam();
 
-    // ---- Camera (Wave 30.A): reset transition state on route change ----
+    // Reset camera transition state so new routes start cleanly.
     camTransitionRef.current = null;
     lastCamPoseRef.current = null;
     lastCamModeRef.current = useSettingsStore.getState().cameraMode;
@@ -460,16 +457,14 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // Dispose the previous weather system before building a new one.
     weatherSystemRef.current?.dispose();
     weatherSystemRef.current = null;
-    // ---- Wave 30.C: Tear down previous clouds + sky animation ----
+    // Tear down previous clouds + sky animation.
     skyCleanupRef.current?.();
     skyCleanupRef.current = null;
     if (cloudCollectionRef.current && !viewer.isDestroyed()) {
       try { viewer.scene.primitives.remove(cloudCollectionRef.current); } catch { /* torn down */ }
       cloudCollectionRef.current = null;
     }
-    // ------------------------------------------------
 
-    // ---- Spectator crowds (Wave 30.D) ----
     spectatorCollectionRef.current?.destroy();
     spectatorCollectionRef.current = null;
     spectatorDistancesRef.current = [];
@@ -496,17 +491,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     viewer.clock.shouldAnimate = false;
     applySceneMood(viewer, resolvedMood);
 
-    // ---- Spawn weather particles for this route's mood ----
     // resolveWeatherKind handles both the current string SceneMood and the
     // extended object form that Wave 20.A adds (weather?: WeatherKind field).
     const weatherKind = resolveWeatherKind(resolvedMood);
     const currentQuality = useSettingsStore.getState().graphicsQuality;
     weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
 
-    // ---- Scene setup + atmosphere (Wave 30.C) ----
     // Apply sky config for this mood (clock, lighting, skyBox).
-    // moodParams is already declared above from MOODS[resolvedMood].
-    // Teardown of previous clouds/sky animation already happened above.
     const midLat = route.points[Math.floor(route.points.length / 2)].lat;
     const skyCleanup = configureSky(viewer, moodParams.sky, midLon);
     skyCleanupRef.current = skyCleanup;
@@ -519,7 +510,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       cloudCount,
       moodParams.sky.cloudAltitudeM,
     );
-    // ------------------------------------------------
 
     const positions = routeToCartesians(route);
     cartesianRouteRef.current = positions;
@@ -602,7 +592,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     botAvatarsRef.current = newBotAvatars;
 
     const start = route.points[0];
-    // ---- Avatar render (Wave 30.B) ----
     avatar.update({
       lon: start.lon,
       lat: start.lat,
@@ -614,7 +603,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       dt: 0,
       riderPosition: useSettingsStore.getState().riderPosition,
     });
-    // ---- End avatar render (Wave 30.B) ----
 
     // Load ghost riders for this route asynchronously so it never blocks rendering.
     const capturedRoute = route;
@@ -743,7 +731,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       );
       const heading = headingAt(r, state.distance);
 
-      // ---- Avatar render (Wave 30.B) ----
       avatarRef.current.update({
         lon: sampled.lon,
         lat: sampled.lat,
@@ -755,7 +742,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         dt,
         riderPosition: useSettingsStore.getState().riderPosition,
       });
-      // ---- End avatar render (Wave 30.B) ----
 
       // ---- Camera (Wave 30.A) ----
       if (state.rideState === 'running' || state.rideState === 'paused') {
@@ -838,7 +824,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           });
         }
       }
-      // ---- End Camera (Wave 30.A) ----
 
       // ---- Route material (Wave 30.D) — advance wet-road streak animation ----
       // Use performance.now() as a proxy frame counter — monotonically increasing
@@ -870,7 +855,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         heading,
       });
 
-      // ---- Wave 30.C: Cloud parallax + dynamic shadow update ----
       // Cloud parallax — drift clouds with a light 5 m/s westerly wind.
       // The constant wind values keep this zero-allocation: no objects created.
       if (cloudCollectionRef.current) {
@@ -886,7 +870,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           sunPos.altitude,
         );
       }
-      // ------------------------------------------------
 
       // ---- Pace bot avatar updates ----
       const bots = useRideStore.getState().paceBots;
@@ -897,7 +880,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       if (bots.length === botAvatars.length && bots.length > 0 && r) {
         for (let i = 0; i < bots.length; i++) {
           const bs = bots[i].state;
-          // ---- Avatar render (Wave 30.B) ----
           botAvatars[i].update({
             lon: bs.lon,
             lat: bs.lat,
@@ -910,7 +892,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
             dt,
             riderPosition: 'hoods', // bots always ride hoods position
           });
-          // ---- End avatar render (Wave 30.B) ----
         }
       }
 
@@ -935,7 +916,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
           const prevDist = ghostRides[i].distanceAt(Math.max(0, elapsedSec - dt));
           const ghostSpeed = prevDist !== null ? Math.abs(clampedDist - prevDist) / (dt || 1 / 60) : 0;
           for (const ent of ghostAvatars[i].entities) ent.show = true;
-          // ---- Avatar render (Wave 30.B) ----
           ghostAvatars[i].update({
             lon: gPos.lon,
             lat: gPos.lat,
@@ -947,7 +927,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
             dt,
             riderPosition: 'hoods',
           });
-          // ---- End avatar render (Wave 30.B) ----
         }
       }
     };

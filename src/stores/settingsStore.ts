@@ -4,7 +4,7 @@ import type { BikeType, RiderPosition } from '@/lib/physics';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
-import type { CameraMode } from '@/lib/cesiumCameras';
+import { type CameraMode, isCameraMode } from '@/lib/cesiumCameras';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -166,10 +166,12 @@ export const useSettingsStore = create<SettingsStoreState>()(
         climbAnnouncementsEnabled:
           (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
           DEFAULT_SETTINGS.climbAnnouncementsEnabled,
-        // Graceful migration for Wave 30.A camera mode.
-        cameraMode:
-          (persisted as Partial<RiderSettings>).cameraMode ??
-          DEFAULT_SETTINGS.cameraMode,
+        // Graceful migration for Wave 30.A camera mode. Validate against the
+        // CameraMode union so a corrupted localStorage value can't slip through
+        // and cause computeCameraPose() to return undefined.
+        cameraMode: isCameraMode((persisted as Partial<RiderSettings>).cameraMode)
+          ? (persisted as Partial<RiderSettings>).cameraMode!
+          : DEFAULT_SETTINGS.cameraMode,
       }),
       partialize: (s) =>
         ({

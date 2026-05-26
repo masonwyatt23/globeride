@@ -11,6 +11,8 @@ import {
   easedCameraTransition,
   easeOutCubic,
   shouldRotateForCinematicOrbit,
+  isCameraMode,
+  CAMERA_MODES,
   CHASE_BACK_M,
   CHASE_UP_M,
   FIRST_PERSON_EYE_HEIGHT_M,
@@ -217,5 +219,36 @@ describe('computeCameraPose numeric validity', () => {
       expect(Number.isFinite(p.pitch)).toBe(true);
       expect(Number.isFinite(p.roll)).toBe(true);
     }
+  });
+
+  it('returns a finite fallback when riderPose has NaN inputs (polish guard)', () => {
+    const nanRider: RiderPose = { lat: 0, lon: 0, ele: 0, heading: NaN, cadence: NaN, speed: NaN };
+    for (const mode of modes) {
+      const p = computeCameraPose(mode, nanRider, 0);
+      expect(Number.isFinite(p.offsetENU.x)).toBe(true);
+      expect(Number.isFinite(p.heading)).toBe(true);
+      expect(Number.isFinite(p.pitch)).toBe(true);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isCameraMode — runtime validator for persisted localStorage values
+// ---------------------------------------------------------------------------
+
+describe('isCameraMode', () => {
+  it('accepts every member of CAMERA_MODES', () => {
+    for (const m of CAMERA_MODES) {
+      expect(isCameraMode(m)).toBe(true);
+    }
+  });
+
+  it('rejects unknown strings, null, undefined, and non-strings', () => {
+    expect(isCameraMode('hacked')).toBe(false);
+    expect(isCameraMode('')).toBe(false);
+    expect(isCameraMode(null)).toBe(false);
+    expect(isCameraMode(undefined)).toBe(false);
+    expect(isCameraMode(42)).toBe(false);
+    expect(isCameraMode({})).toBe(false);
   });
 });

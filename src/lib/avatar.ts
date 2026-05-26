@@ -15,7 +15,7 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  * globe via a heading/pitch/roll transform so the bike leans into corners,
  * pitches with the gradient, and points along the route.
  *
- * Animation (Wave 30.B):
+ * Animation:
  *   1. Pedaling legs alternate around the bottom bracket at cadence frequency.
  *   2. Wheels spin with ground speed (radius 0.34 m).
  *   3. Body leans into corners proportional to centripetal acceleration, smoothed.
@@ -91,9 +91,6 @@ function quatRotZ(angle: number): Cesium.Quaternion {
   return Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, angle, new Cesium.Quaternion());
 }
 
-// Suppress unused warning — quatRotZ is used by headPart and exported for tests.
-void quatRotZ;
-
 // ---- Part model -----------------------------------------------------------
 
 type GeomKind = 'box' | 'cylinder' | 'ellipsoid';
@@ -151,7 +148,7 @@ const DROP_RIGHT = v3( 0.21, 0.46, 0.86);
 const HOOD_LEFT  = v3(-0.21, 0.44, 0.82);
 const HOOD_RIGHT = v3( 0.21, 0.44, 0.82);
 
-// ---- Hand positions per posture (Wave 30.B feature 4) ---------------------
+// ---- Hand positions per posture -------------------------------------------
 
 /** Body-local hand positions for each rider posture. */
 const HAND_POS: Record<RiderPosition, { left: V3; right: V3 }> = {
@@ -301,10 +298,7 @@ function pedalPart(name: string, side: -1 | 1): PartSpec {
   };
 }
 
-/**
- * Hand — position follows rider posture.
- * Wave 30.B feature 4: hoods / drops / tops move the hands.
- */
+/** Hand — position follows rider posture (hoods / drops / tops). */
 function handPart(name: string, side: 'left' | 'right'): PartSpec {
   return {
     name,
@@ -315,10 +309,7 @@ function handPart(name: string, side: 'left' | 'right'): PartSpec {
   };
 }
 
-/**
- * Forearm — wrist follows posture, elbow is fixed.
- * Wave 30.B feature 4.
- */
+/** Forearm — wrist follows posture, elbow is fixed. */
 function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
   const elbow = side === 'left' ? ELBOW_LEFT : ELBOW_RIGHT;
   return {
@@ -333,10 +324,7 @@ function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
   };
 }
 
-/**
- * Head — yaws ±5° toward turn direction.
- * Wave 30.B feature 5.
- */
+/** Head — yaws ±5° toward turn direction. */
 function headPart(): PartSpec {
   return {
     name: 'head',
@@ -378,10 +366,7 @@ function helmetVisorPart(): PartSpec {
   };
 }
 
-/**
- * Hips — sway laterally during climb-mode.
- * Wave 30.B feature 6: out-of-saddle dance on steep grades.
- */
+/** Hips — sway laterally out of the saddle on steep grades (>8 %). */
 function hipsPart(): PartSpec {
   return {
     name: 'hips',
@@ -518,17 +503,17 @@ const PARTS: PartSpec[] = [
 
 // ---- Animation constants --------------------------------------------------
 
-/** Maximum head yaw in radians (~5°). Wave 30.B feature 5. */
+/** Maximum head yaw in radians (~5°). */
 const HEAD_YAW_MAX = (5 * Math.PI) / 180;
 
-/** Additional forward pitch when climbing out of saddle (~5°). Wave 30.B feature 6. */
+/** Additional forward pitch when climbing out of saddle (~5°). */
 const CLIMB_FORWARD_TILT_RAD = (5 * Math.PI) / 180;
 
-/** Maximum hip sway during climb-mode (~8°). Wave 30.B feature 6. */
+/** Maximum hip sway during climb-mode (~8°). */
 const CLIMB_SWAY_MAX_RAD = (8 * Math.PI) / 180;
 
 // ===========================================================================
-// Pure-numeric animation helpers — exported for unit tests (Wave 30.B)
+// Pure-numeric animation helpers — exported for unit tests
 // ===========================================================================
 
 /**
@@ -699,7 +684,6 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     }
   }
 
-  // ---- Avatar render (Wave 30.B) ------------------------------------------
   function update(u: AvatarUpdate): void {
     const dt = Math.min(0.1, Math.max(0, u.dt));
     elapsedMs += dt * 1000;
@@ -710,7 +694,7 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
 
-    // Feature 3: corner lean — centripetal tilt, smoothed.
+    // Corner lean — centripetal tilt, smoothed.
     const headingDelta = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading);
     lastHeading = u.heading;
     const targetLean = cornerLeanAngle(headingDelta, u.speed, dt || 1 / 60);
@@ -720,25 +704,23 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     const targetPitch = Math.atan(u.grade / 100);
     pitch += (targetPitch - pitch) * (1 - Math.exp(-4 * dt));
 
-    // Feature 2: wheel rotation.
     dyn.wheelAngle = wheelRotationFromSpeed(u.speed, WHEEL_R, dyn.wheelAngle, dt * 1000);
 
-    // Feature 1: pedaling — crank phase from cadence.
+    // Crank phase from cadence (estimated if no sensor reports it).
     const rpm = u.cadence > 0 ? u.cadence : estimateCadence(u.speed);
     dyn.crankAngle = pedalPhaseFromCadence(rpm, elapsedMs);
 
-    // Feature 5: head yaw toward turn, capped at ±5°, smoothed.
+    // Head yaw toward turn, capped at ±5°, smoothed.
     const turnRate = headingDelta / (dt || 1 / 60);
     const targetHeadYaw = Math.max(-HEAD_YAW_MAX, Math.min(HEAD_YAW_MAX, turnRate * 0.12));
     smoothedHeadYaw += (targetHeadYaw - smoothedHeadYaw) * (1 - Math.exp(-8 * dt));
     dyn.headYaw = smoothedHeadYaw;
 
-    // Feature 6: climb-mode out-of-saddle.
+    // Climb-mode: out-of-saddle sway + extra forward tilt above 8 % grade.
     const climbing = u.grade > 8;
     dyn.climbing = climbing;
     dyn.climbSway = climbing ? climbingSwayAngle(u.grade, rpm, elapsedMs) : 0;
 
-    // Feature 4: hand posture.
     dyn.riderPosition = u.riderPosition ?? 'hoods';
 
     // Globe transform: heading + pitch (+ climb tilt) + lean.
@@ -750,7 +732,6 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
 
     recomputeParts();
   }
-  // ---- End avatar render (Wave 30.B) --------------------------------------
 
   function setColors(next: AvatarColors): void {
     colors = { ...next };

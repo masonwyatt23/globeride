@@ -12,6 +12,20 @@
 
 export type CameraMode = 'chase' | 'firstPerson' | 'overhead' | 'sideTracking' | 'cinematic';
 
+/** Runtime set used to validate persisted values from localStorage. */
+export const CAMERA_MODES: ReadonlyArray<CameraMode> = [
+  'chase',
+  'firstPerson',
+  'overhead',
+  'sideTracking',
+  'cinematic',
+];
+
+/** Type-guard for narrowing untrusted input (e.g. rehydrated localStorage). */
+export function isCameraMode(value: unknown): value is CameraMode {
+  return typeof value === 'string' && (CAMERA_MODES as ReadonlyArray<string>).includes(value);
+}
+
 /** A rider snapshot fed to the camera each frame. */
 export interface RiderPose {
   lat: number;      // degrees
@@ -82,11 +96,30 @@ export const CINEMATIC_DEG_PER_SEC   = 6;
  * @param timeMs      performance.now() value — used for head-bob and cinematic orbit.
  * @returns           ENU offset + orientation that the caller should apply.
  */
+/** Safe fallback pose used when riderPose has NaN/non-finite components. */
+const ZERO_POSE: CameraPose = {
+  offsetENU: { x: 0, y: 0, z: CHASE_UP_M },
+  heading: 0,
+  pitch: CHASE_PITCH_RAD,
+  roll: 0,
+};
+
 export function computeCameraPose(
   mode: CameraMode,
   riderPose: RiderPose,
   timeMs: number,
 ): CameraPose {
+  // NaN/infinity guard — initial frames before GPS or BLE arrive can pass through
+  // unset values. Falling through into sin/cos would propagate NaN into the
+  // viewer.camera.setView call, freezing the renderer on some platforms.
+  if (
+    !Number.isFinite(riderPose.heading) ||
+    !Number.isFinite(riderPose.cadence) ||
+    !Number.isFinite(riderPose.speed)
+  ) {
+    return ZERO_POSE;
+  }
+
   const h = riderPose.heading; // radians, ENU bearing
 
   switch (mode) {
