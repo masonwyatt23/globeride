@@ -30,6 +30,7 @@ import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
 import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useRaceRecorder } from '@/hooks/useRaceRecorder';
+import { cancelSpeech } from '@/lib/speechSynthesis';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
 
@@ -37,6 +38,9 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  * Active ride view. Cesium full-bleed in the background; HUD + controls
  * float on top. Boots the requestAnimationFrame ride loop and a screen
  * wake lock for the duration of the run.
+ *
+ * A global click handler cancels any in-progress commentary speech so the
+ * user can dismiss the commentator by tapping anywhere.
  */
 export function Ride() {
   const navigate      = useNavigate();
@@ -46,7 +50,7 @@ export function Ride() {
   const activeWorkout = useRideStore((s) => s.activeWorkout);
 
   // Run the replay loop when replay data is present; otherwise the live loop.
-  // Both hooks are always called (Rules of Hooks) — each guards on its own
+  // Both hooks are always called (Rules of Hooks) -- each guards on its own
   // condition internally so only one does real work at a time.
   useRideLoop();
   useReplayLoop();
@@ -54,7 +58,7 @@ export function Ride() {
   useRideHistoryRecorder();
   useRaceRecorder();
   useRideAudio();
-  useCompanionReceiver();  // phone companion — ingests phone HR/cadence + handles remote control
+  useCompanionReceiver();  // phone companion -- ingests phone HR/cadence + handles remote control
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
@@ -71,6 +75,21 @@ export function Ride() {
   useEffect(() => {
     if (!route) navigate('/');
   }, [route, navigate]);
+
+  // Cancel commentary speech on pause or finish so the user isn't talked at
+  // while stopped. The useRideLoop cleanup handles the unmount case.
+  useEffect(() => {
+    if (rideState === 'paused' || rideState === 'finished') {
+      cancelSpeech();
+    }
+  }, [rideState]);
+
+  // Global click handler: tap anywhere to dismiss in-progress speech.
+  useEffect(() => {
+    const handler = () => cancelSpeech();
+    document.addEventListener('click', handler, { capture: true, passive: true });
+    return () => document.removeEventListener('click', handler, { capture: true });
+  }, []);
 
   if (!token) {
     return (
@@ -100,7 +119,7 @@ export function Ride() {
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-background">
       <CesiumViewer ionToken={token} />
 
-      {/* Paused dim veil — subtle darkening when ride is paused */}
+      {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (
         <div
           className="absolute inset-0 bg-background/30 backdrop-blur-[2px] pointer-events-none z-[1] transition-opacity duration-300"
@@ -108,7 +127,7 @@ export function Ride() {
         />
       )}
 
-      {/* ── Top bar ────────────────────────────────────────────────────── */}
+      {/* -- Top bar -------------------------------------------------------- */}
       <div
         className="absolute top-0 left-0 right-0 flex items-start justify-between gap-3 pointer-events-none z-[2]"
         style={{
@@ -144,7 +163,7 @@ export function Ride() {
           <SensorStatusPills />
         </div>
 
-        {/* Right: HUD column (tablet+) — scrollable if workout panel is tall */}
+        {/* Right: HUD column (tablet+) -- scrollable if workout panel is tall */}
         <div
           className="hidden sm:flex flex-col gap-2 pointer-events-none w-full max-w-[22rem] md:max-w-[25rem] lg:max-w-[28rem] xl:max-w-[31rem] overflow-y-auto"
           style={{ maxHeight: 'calc(100vh - 6rem)' }}
@@ -154,7 +173,7 @@ export function Ride() {
         </div>
       </div>
 
-      {/* ── Mobile HUD — below the top bar ─────────────────────────────── */}
+      {/* -- Mobile HUD -- below the top bar -------------------------------- */}
       <div
         className="sm:hidden absolute left-0 right-0 pointer-events-none z-[2]"
         style={{
@@ -171,7 +190,7 @@ export function Ride() {
         )}
       </div>
 
-      {/* ── Elevation profile — bottom-left ─────────────────────────────── */}
+      {/* -- Elevation profile -- bottom-left -------------------------------- */}
       <div
         className="absolute pointer-events-auto z-[2]"
         style={{
@@ -185,10 +204,10 @@ export function Ride() {
         </div>
       </div>
 
-      {/* ── Minimap — bottom-right ──────────────────────────────────────── */}
+      {/* -- Minimap -- bottom-right ---------------------------------------- */}
       <Minimap className="absolute bottom-[6rem] right-3 z-[2] pointer-events-none hidden sm:block" />
 
-      {/* ── Transport controls — bottom-center ──────────────────────────── */}
+      {/* -- Transport controls -- bottom-center ----------------------------- */}
       <div
         className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-[3]"
         style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
@@ -196,12 +215,11 @@ export function Ride() {
         <RideControls />
       </div>
 
-      {/* ── Finish overlay ──────────────────────────────────────────────── */}
+      {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}
 
-      {/* ── Keyboard shortcuts overlay ──────────────────────────────────── */}
+      {/* -- Keyboard shortcuts overlay ------------------------------------- */}
       <RideShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
-
