@@ -63,15 +63,17 @@ function makeUploadRecord(overrides: Partial<StravaUploadRecord> = {}): StravaUp
   };
 }
 
-function mockFetch(responses: Array<{ ok: boolean; status?: number; json?: unknown; text?: string }>) {
+function mockFetch(responses: Array<{ ok: boolean; status?: number; json?: unknown; text?: string; headers?: Record<string, string> }>) {
   let call = 0;
   return vi.fn(async () => {
     const resp = responses[Math.min(call++, responses.length - 1)];
+    const hdrs = resp.headers ?? {};
     return {
       ok: resp.ok,
       status: resp.status ?? (resp.ok ? 200 : 400),
       json: async () => resp.json ?? {},
       text: async () => resp.text ?? '',
+      headers: { get: (key: string) => hdrs[key] ?? null },
     };
   });
 }
@@ -871,7 +873,49 @@ describe('uploadFit — rate limiting', () => {
     await assertion;
   });
 
-  // TODO: add retry-on-429 test once uploadFit implements automatic back-off retries
+  it('succeeds after two 429 retries then a 201', async () => {
+    vi.useFakeTimers();
+
+    // token refresh + two 429s + successful upload + one poll (activity ready)
+    const fetchMock = mockFetch([
+      tokenResponse,
+      { ok: false, status: 429, text: 'Too Many Requests' },
+      { ok: false, status: 429, text: 'Too Many Requests' },
+      { ok: true, status: 201, json: makeUploadRecord({ id: 600 }) },
+      { ok: true, json: makeUploadRecord({ id: 600, activity_id: 99, status: 'Your activity is ready.' }) },
+    ]);
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const blob = new Blob(['fake-fit'], { type: 'application/vnd.ant.fit' });
+    const uploadPromise = uploadFit(blob, { name: 'Retry success ride' });
+    await vi.runAllTimersAsync();
+
+    const result = await uploadPromise;
+    expect(result.id).toBe(99);
+  });
+
+  it('throws rate_limited after exhausting all four retries (five 429 responses)', async () => {
+    vi.useFakeTimers();
+
+    // token refresh + 5 × 429 (attempt 0 through attempt 4)
+    const fetchMock = mockFetch([
+      tokenResponse,
+      { ok: false, status: 429, text: 'rate limit' },
+      { ok: false, status: 429, text: 'rate limit' },
+      { ok: false, status: 429, text: 'rate limit' },
+      { ok: false, status: 429, text: 'rate limit' },
+      { ok: false, status: 429, text: 'rate limit' },
+    ]);
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const blob = new Blob(['fake-fit'], { type: 'application/vnd.ant.fit' });
+    const uploadPromise = uploadFit(blob, { name: 'Exhausted retries ride' });
+    const assertion = expect(uploadPromise).rejects.toSatisfy(
+      (e: unknown) => e instanceof StravaError && e.kind === 'rate_limited',
+    );
+    await vi.runAllTimersAsync();
+    await assertion;
+  });
 });
 
 // ---------------------------------------------------------------------------

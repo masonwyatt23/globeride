@@ -22,35 +22,27 @@ import { Download, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatDuration, formatDistance } from '@/lib/utils';
 import type { RoutePoint } from '@/types';
+import type { RaceManifest, RaceResult } from '@/lib/race/raceProtocol';
 
-// ─── Stub types (reconciled by integrator once raceProtocol.ts lands) ────────
-// TODO(wave-25): replace these local stubs with direct imports from
-// `@/lib/race/raceProtocol` once the integrator wires RaceResultCard into
-// the race-finish flow.  The field names already match the real protocol
-// (utcWindow.startMs/endMs, rideHash, signature).
-
-/** Minimal race manifest fields needed for the card. */
-export interface RaceManifest {
-  id: string;
-  name: string;
-  organiser?: string;
-  utcWindow?: { startMs: number; endMs: number };
-  routeRef?: string;
-  /** Route points for the 2D map — may be absent before the route loads. */
+// ─── Card-local prop extensions ──────────────────────────────────────────────
+// RaceResultCard needs two fields the core protocol types don't carry:
+//   • RaceManifest doesn't include the resolved route polyline (uses routeRef
+//     instead), so we extend it for the card's map preview.
+//   • RaceResult doesn't include distanceM (the protocol records finishTimeMs
+//     and totalAscentM; distance is derived by the caller from the route).
+export interface RaceCardManifest extends RaceManifest {
+  /** Route points for the 2D map — may be absent before the route resolves. */
   points?: RoutePoint[];
 }
 
-/** Minimal race result fields needed for the card. */
-export interface RaceResult {
-  raceId: string;
-  rider: { name: string; ftpW?: number; weightKg?: number };
-  finishTimeMs: number;
-  avgPowerW?: number;
-  totalAscentM: number;
-  recordedAt: number;
-  /** Total distance in meters. */
+export interface RaceCardResult extends Omit<RaceResult, 'signature'> {
+  /** Total distance in meters — provided by the caller from the route. */
   distanceM?: number;
-  rideHash: string;
+  /**
+   * HMAC-SHA-256 signature — optional for the card because the component
+   * only renders the rideHash chip; callers may pass a pre-signed result or
+   * an unsigned preview result.
+   */
   signature?: string;
 }
 
@@ -213,8 +205,8 @@ function StatCell({ stat }: { stat: StatItem }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export interface RaceResultCardProps {
-  race: RaceManifest;
-  result: RaceResult;
+  race: RaceCardManifest;
+  result: RaceCardResult;
   placement?: number;
 }
 
@@ -418,7 +410,7 @@ export function RaceResultCard({ race, result, placement }: RaceResultCardProps)
                 fontWeight: 500,
               }}
             >
-              Organised by {race.organiser}
+              Organised by {race.organiser.name}
             </div>
           )}
         </div>

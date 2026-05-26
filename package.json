@@ -30,7 +30,6 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gen-avatar": "vite-node scripts/gen-avatar-gltf.ts",
     "lint": "eslint src",
     "check": "npm run typecheck && npm run lint && npm test",
     "vercel-build": "npm run check && vite build"
