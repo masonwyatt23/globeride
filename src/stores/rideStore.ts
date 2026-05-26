@@ -214,6 +214,15 @@ interface RideStoreState {
   /** Action: update the last resolved ERG target for the HUD. */
   setWorkoutTargetWatts: (watts: number | null) => void;
 
+  // ---- ADDITIVE: Multi-rider session ----
+  /**
+   * Peer ID of the connected multi-rider partner, if any.
+   * Set when a peer connects. Used by the FIT exporter and result card.
+   */
+  multiriderId?: string;
+  /** Action: set or clear the active multi-rider peer ID. */
+  setMultiriderId: (id: string | null) => void;
+
   // ---- ADDITIVE: Pace Bots ----
   /**
    * Active pace bot instances. Each carries its own personality + live state.
@@ -316,6 +325,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   route: null,
   rideState: 'idle',
   paceBots: [],
+  multiriderId: undefined,
 
   mode: 'trainer',
   startedAt: null,
@@ -400,6 +410,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     set((st) => ({ workoutElapsedSec: st.workoutElapsedSec + dt })),
 
   setWorkoutTargetWatts: (watts) => set({ workoutTargetWatts: watts }),
+
+  // ---- ADDITIVE: Multi-rider actions ----
+  setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
 
   // ---- ADDITIVE: Pace Bot actions ----
   setPaceBots: (bots) => set({ paceBots: bots }),

@@ -75,7 +75,7 @@ const NO_DRAFT: DraftState = {
 
 /**
  * Compute the current draft state given the rider's position and a list of
- * other riders (pace bots, ghosts, opponents) that could act as leaders.
+ * other riders (pace bots, ghosts, live multi-rider peers, opponents) that could act as leaders.
  *
  * @param args.riderDistance  Rider's distance along the route, metres.
  * @param args.riderHeading   Rider's heading, radians.

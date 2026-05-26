@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
@@ -47,6 +47,7 @@ import {
   type WeatherSystem,
   type WeatherKind,
 } from '@/lib/weatherParticles';
+import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -133,6 +134,8 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
+  // Multi-rider peers: state to trigger re-render when viewer is ready.
+  const [viewerReady, setViewerReady] = useState(false);
 
   const route = useRideStore((s) => s.route);
   const rideMode = useRideStore((s) => s.rideMode);
@@ -165,6 +168,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     });
     viewerRef.current = viewer;
     setActiveViewer(viewer);
+    setViewerReady(true);
 
     // Add Bing Maps Aerial as the permanent globe base layer so terrain is
     // always visible — even in rural areas where Google Photorealistic Tiles
@@ -295,6 +299,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
+      setViewerReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -739,5 +744,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   // No additional effect needed — the per-frame handler in the preRender
   // block uses rideStore.distance which useRideLoop advances from GPS speed.
 
-  return <div ref={containerRef} className="absolute inset-0 h-full w-full" />;
+  return (
+    <>
+      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
+      {/* Multi-rider peer avatars — rendered into the Cesium viewer once it is ready. */}
+      {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
+        <MultiRiderPeers viewer={viewerRef.current} />
+      )}
+    </>
+  );
 }

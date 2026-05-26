@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { gradientAt, EmaSmoother, elevationAt } from '@/lib/gradientCalculator';
-import { sampleRouteAtDistance } from '@/lib/gpxParser';
+import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
 import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics';
 import {
   setSimulationParams,
@@ -20,6 +20,7 @@ import {
   type RideSnapshot,
 } from '@/lib/ai/commentator';
 import { speakLine, cancelSpeech, pickPreferredVoice } from '@/lib/speechSynthesis';
+import { useMultiriderStore } from '@/stores/multiriderStore';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -187,6 +188,19 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       const recordSample = now - lastSampleT.current >= 1000;
       if (recordSample) lastSampleT.current = now;
 
+      // ---- Build otherRiders for drafting (pace bots + live multi-rider peers) ----
+      const peerEntries = Object.values(useMultiriderStore.getState().peers);
+      const peerOtherRiders = peerEntries.map((peer) => ({
+        id: peer.peerId,
+        distance: peer.distance,
+        heading: peer.heading,
+      }));
+      const botOtherRiders = s.paceBots.map((bot) => ({
+        id: bot.id,
+        distance: bot.state.distance,
+        heading: bot.state.heading,
+      }));
+
       s.tick({
         now,
         dt,
@@ -198,6 +212,8 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         cadenceNow: cadence,
         powerNow: power,
         heartRateNow: hr,
+        otherRiders: [...botOtherRiders, ...peerOtherRiders],
+        riderHeading: s.route ? headingAt(s.route, distanceNow) : 0,
       });
 
       // Advance pace bots in the same frame (cheap — no allocations per bot).
