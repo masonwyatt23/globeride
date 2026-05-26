@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { CommentarySettings } from '@/components/profile/CommentarySettings';
+import { VoiceCuesSettings } from '@/components/profile/VoiceCuesSettings';
 import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette, Monitor } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -145,6 +146,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
           {/* Live commentary */}
           <CommentarySettings />
+
+          {/* Voice cues (workout transitions + climb announcements) */}
+          <VoiceCuesSettings />
 
           {/* Strava integration */}
           <StravaSection />

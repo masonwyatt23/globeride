@@ -42,6 +42,11 @@ import {
   setSimulationParams,
   hasFtmsControlWriter,
 } from '@/lib/ftmsErg';
+import {
+  detectAndSpeakCue,
+  createVoiceCueState,
+  type VoiceCueState,
+} from '@/lib/workoutVoiceCues';
 
 export function useWorkoutEngine(): void {
   const store = useRideStore;
@@ -51,6 +56,8 @@ export function useWorkoutEngine(): void {
   const smoother = useRef(new EmaSmoother(0.18));
   // Track whether we've set workoutRunning=true so we can clean up on unmount.
   const engineActive = useRef(false);
+  // Voice cue state — persists across frames so repeat-fire guards work.
+  const voiceCueStateRef = useRef<VoiceCueState>(createVoiceCueState());
 
   useEffect(() => {
     let raf = 0;
@@ -202,6 +209,23 @@ export function useWorkoutEngine(): void {
         powerNow: power,
         heartRateNow: hr,
       });
+
+      // ---- Workout voice cues ----
+      // Only fire while a workout is actively running. The commentator in
+      // useRideLoop bails when workoutRunning===true, so there is no TTS
+      // competition between the two systems.
+      detectAndSpeakCue(
+        cursor.segment,
+        cursor.next,
+        cursor.elapsedInSegmentSec,
+        cursor.segment.durationSec,
+        voiceCueStateRef.current,
+        {
+          workoutVoiceCuesEnabled: settings.workoutVoiceCuesEnabled,
+          commentaryVolume: settings.commentaryVolume,
+          commentaryRate: settings.commentaryRate,
+        },
+      );
     };
 
     raf = requestAnimationFrame(frame);
@@ -211,6 +235,8 @@ export function useWorkoutEngine(): void {
       lastT.current = 0;
       lastSentT.current = 0;
       lastSampleT.current = 0;
+      // Reset voice cue state so the next ride starts fresh.
+      voiceCueStateRef.current = createVoiceCueState();
       // Ensure workoutRunning is cleared on unmount.
       if (engineActive.current) {
         useRideStore.setState({ workoutRunning: false });

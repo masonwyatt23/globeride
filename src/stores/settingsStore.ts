@@ -47,6 +47,11 @@ export interface RiderSettings {
   commentaryRate: number;
   /** Minimum seconds between commentary lines, 30-90. */
   commentaryThrottleSec: number;
+  // ---- Voice cues (Wave 29.C) ----
+  /** Whether spoken workout segment transition cues are enabled. */
+  workoutVoiceCuesEnabled: boolean;
+  /** Whether spoken climb detection announcements are enabled. */
+  climbAnnouncementsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -70,6 +75,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   commentaryVolume: 70,
   commentaryRate: 100,
   commentaryThrottleSec: 45,
+  workoutVoiceCuesEnabled: true,
+  climbAnnouncementsEnabled: true,
 };
 
 type CommentaryPatch = Partial<
@@ -118,6 +125,13 @@ export const useSettingsStore = create<SettingsStoreState>()(
         commentaryThrottleSec:
           (persisted as Partial<RiderSettings>).commentaryThrottleSec ??
           DEFAULT_SETTINGS.commentaryThrottleSec,
+        // Graceful migration for Wave 29.C fields.
+        workoutVoiceCuesEnabled:
+          (persisted as Partial<RiderSettings>).workoutVoiceCuesEnabled ??
+          DEFAULT_SETTINGS.workoutVoiceCuesEnabled,
+        climbAnnouncementsEnabled:
+          (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
+          DEFAULT_SETTINGS.climbAnnouncementsEnabled,
       }),
       partialize: (s) =>
         ({
@@ -141,6 +155,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           commentaryVolume: s.commentaryVolume,
           commentaryRate: s.commentaryRate,
           commentaryThrottleSec: s.commentaryThrottleSec,
+          workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
+          climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
         }) satisfies RiderSettings,
     },
   ),
