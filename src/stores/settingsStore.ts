@@ -67,6 +67,9 @@ export interface RiderSettings {
   // ---- Camera mode (Wave 30.A) ----
   /** Active cinematic camera mode — persisted between rides. */
   cameraMode: CameraMode;
+  // ---- Voice control (Wave 34.D) ----
+  /** Whether hands-free voice command recognition is enabled during rides. */
+  voiceControlEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -95,6 +98,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   workoutVoiceCuesEnabled: true,
   climbAnnouncementsEnabled: true,
   cameraMode: 'chase',
+  voiceControlEnabled: true,
 };
 
 type CommentaryPatch = Partial<
@@ -117,6 +121,8 @@ interface SettingsStoreState extends RiderSettings {
   setGestureControlsEnabled: (enabled: boolean) => void;
   /** Set the active camera mode (Wave 30.A). */
   setCameraMode: (mode: CameraMode) => void;
+  /** Toggle hands-free voice control on/off (Wave 34.D). */
+  setVoiceControlEnabled: (enabled: boolean) => void;
   reset: () => void;
 }
 
@@ -129,6 +135,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setLowLightHud: (mode) => set({ lowLightHud: mode }),
       setGestureControlsEnabled: (enabled) => set({ gestureControlsEnabled: enabled }),
       setCameraMode: (mode) => set({ cameraMode: mode }),
+      setVoiceControlEnabled: (enabled) => set({ voiceControlEnabled: enabled }),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -172,6 +179,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
         cameraMode: isCameraMode((persisted as Partial<RiderSettings>).cameraMode)
           ? (persisted as Partial<RiderSettings>).cameraMode!
           : DEFAULT_SETTINGS.cameraMode,
+        // Graceful migration for Wave 34.D voice control setting.
+        voiceControlEnabled:
+          (persisted as Partial<RiderSettings>).voiceControlEnabled ??
+          DEFAULT_SETTINGS.voiceControlEnabled,
       }),
       partialize: (s) =>
         ({
@@ -200,6 +211,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           workoutVoiceCuesEnabled: s.workoutVoiceCuesEnabled,
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
           cameraMode: s.cameraMode,
+          voiceControlEnabled: s.voiceControlEnabled,
         }) satisfies RiderSettings,
     },
   ),

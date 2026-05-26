@@ -38,6 +38,8 @@ import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
 import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
 import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 import { cancelSpeech } from '@/lib/speechSynthesis';
+import { useVoiceControl } from '@/hooks/useVoiceControl';
+import { VoiceControlButton } from '@/components/ride/VoiceControlButton';
 import { useMultiriderSync } from '@/hooks/useMultiriderSync';
 import { MultiRiderInvite } from '@/components/ride/MultiRiderInvite';
 import { SegmentHUD } from '@/components/ride/SegmentHUD';
@@ -107,6 +109,10 @@ export function Ride() {
   // ---- Handlebar gestures (Wave 29.B) ----
   // Always called — the hook is a no-op when gestureControlsEnabled=false.
   useHandlebarGestures(rideCanvasRef, { enabled: gestureControlsEnabled });
+
+  // ---- Voice control (Wave 34.D) ----
+  // Always called (Rules of Hooks). No-op when unsupported or setting is off.
+  const { isListening, startListening, stopListening } = useVoiceControl();
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -354,6 +360,21 @@ export function Ride() {
         }}
       >
         <EnterVRButton viewer={cesiumViewer} />
+      </div>
+
+      {/* -- Voice control button (Wave 34.D) — top-right, below VR button -- */}
+      {/* Invisible on Firefox / unsupported browsers (returns null). */}
+      <div
+        className="absolute pointer-events-auto z-[4]"
+        style={{
+          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 10rem)',
+          right: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <VoiceControlButton
+          isListening={isListening}
+          onToggle={isListening ? stopListening : startListening}
+        />
       </div>
 
       {/* -- VR HUD overlay (Wave 33.A) — visible only during XR session ------ */}

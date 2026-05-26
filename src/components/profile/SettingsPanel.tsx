@@ -184,8 +184,10 @@ const LOW_LIGHT_OPTIONS: { value: LowLightSetting; label: string; sub: string }[
 function DisplayGesturesSection() {
   const lowLightHud           = useSettingsStore((s) => s.lowLightHud);
   const gestureControlsEnabled = useSettingsStore((s) => s.gestureControlsEnabled);
+  const voiceControlEnabled    = useSettingsStore((s) => s.voiceControlEnabled);
   const setLowLightHud         = useSettingsStore((s) => s.setLowLightHud);
   const setGestureControlsEnabled = useSettingsStore((s) => s.setGestureControlsEnabled);
+  const setVoiceControlEnabled = useSettingsStore((s) => s.setVoiceControlEnabled);
 
   return (
     <Section icon={<Smartphone className="h-4 w-4" />} title="Display &amp; Gestures">
@@ -225,6 +227,25 @@ function DisplayGesturesSection() {
             aria-label="Enable handlebar gesture controls"
             checked={gestureControlsEnabled}
             onChange={(e) => setGestureControlsEnabled(e.target.checked)}
+            className="h-4 w-4 accent-primary cursor-pointer shrink-0"
+          />
+        </label>
+
+        {/* Voice control toggle (Wave 34.D) */}
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2 cursor-pointer select-none">
+          <div>
+            <p className="text-xs font-medium text-foreground">Voice control</p>
+            <p className="text-[11px] text-muted-foreground">
+              Hands-free commands: "pause", "resume", "lap", "switch camera", "end ride" and more.
+              Chrome &amp; Edge only.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            role="switch"
+            aria-label="Enable voice control during rides"
+            checked={voiceControlEnabled}
+            onChange={(e) => setVoiceControlEnabled(e.target.checked)}
             className="h-4 w-4 accent-primary cursor-pointer shrink-0"
           />
         </label>

@@ -18,6 +18,8 @@ import type { PaceBot } from '@/lib/paceBots';
 import { tickPaceBot } from '@/lib/paceBots';
 import { gradientAt } from '@/lib/gradientCalculator';
 import type { RouteSegment } from '@/lib/segmentOverlay';
+import type { ProPelotonState } from '@/lib/proCycling/proPelotonSimulator';
+import { tickProPeloton } from '@/lib/proCycling/proPelotonSimulator';
 
 /** A camera target requested by the route-search flow. */
 export interface FlyToTarget {
@@ -235,6 +237,18 @@ interface RideStoreState {
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
 
+  // ---- ADDITIVE: Pro Peloton Ghosts (Wave 34.C) ----
+  /**
+   * Active pro peloton simulation state. Non-null when the user has opted into
+   * the pro peloton overlay for the current World Tour stage.
+   * Null during normal rides or when no stage results are available.
+   */
+  proPeloton: ProPelotonState | null;
+  /** Activate the pro peloton for the current stage. */
+  setProPeloton: (state: ProPelotonState) => void;
+  /** Deactivate and clear the pro peloton. */
+  clearProPeloton: () => void;
+
   // ---- ADDITIVE: Strava Live Segments (Wave 33.B) ----
   /**
    * RouteSegment objects mapped onto the loaded route. Populated after
@@ -417,6 +431,9 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   workoutElapsedSec: 0,
   workoutTargetWatts: null,
 
+  // ---- ADDITIVE: Pro Peloton initial state (Wave 34.C) ----
+  proPeloton: null,
+
   // ---- ADDITIVE: Strava Live Segments initial state (Wave 33.B) ----
   loadedSegments: [],
   activeSegment: null,
@@ -450,6 +467,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: Multi-rider actions ----
   setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
 
+  // ---- ADDITIVE: Pro Peloton actions (Wave 34.C) ----
+  setProPeloton: (state) => set({ proPeloton: state }),
+  clearProPeloton: () => set({ proPeloton: null }),
+
   // ---- ADDITIVE: Pace Bot actions ----
   setPaceBots: (bots) => set({ paceBots: bots }),
   clearPaceBots: () => set({ paceBots: [] }),
@@ -473,19 +494,25 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   tickBots: (dt) =>
     set((st) => {
-      if (st.rideState !== 'running' || !st.route || st.paceBots.length === 0) return st;
+      if (st.rideState !== 'running' || !st.route) return st;
       const route = st.route;
       const riderDistance = st.distance;
-      // Build a new array (never mutate in place — Wave 8 immutability rule).
-      const nextBots = st.paceBots.map((bot) => {
-        // Compute gradient at the bot's current position (not the rider's)
-        // so each bot responds to its own terrain independently.
-        const grade = gradientAt(route, bot.state.distance);
-        const newState = tickPaceBot(bot, route, dt, riderDistance, grade);
-        // Return new bot object with updated state — no in-place mutation.
-        return { ...bot, state: newState };
-      });
-      return { paceBots: nextBots };
+
+      // ---- Pace bots ----
+      const nextBots = st.paceBots.length > 0
+        ? st.paceBots.map((bot) => {
+            const grade = gradientAt(route, bot.state.distance);
+            const newState = tickPaceBot(bot, route, dt, riderDistance, grade);
+            return { ...bot, state: newState };
+          })
+        : st.paceBots;
+
+      // ---- Pro peloton ghosts (Wave 34.C) ----
+      const nextProPeloton = st.proPeloton
+        ? tickProPeloton(st.proPeloton, dt, route.totalDistance)
+        : st.proPeloton;
+
+      return { paceBots: nextBots, proPeloton: nextProPeloton };
     }),
 
   bumpLibrary: () => set((st) => ({ libraryVersion: st.libraryVersion + 1 })),
@@ -559,6 +586,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       replayIndex: 0,
       // Clear bots so they re-seat at the new route's start when re-selected.
       paceBots: [],
+      // Clear pro peloton — results are route-specific.
+      proPeloton: null,
       // Clear segment overlays — they are route-specific.
       loadedSegments: [],
       activeSegment: null,
@@ -720,6 +749,8 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
       activeSegment: null,
       segmentDistanceStarted: 0,
       segmentElapsedSec: 0,
+      // Reset pro peloton to start so re-rides begin from distance 0.
+      proPeloton: null,
     }),
 
   tick: (input) =>

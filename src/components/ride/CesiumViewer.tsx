@@ -73,6 +73,7 @@ import {
   type SpectatorCollection,
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
+import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
 import {
   computeCameraPose,
   easedCameraTransition,
@@ -1043,6 +1044,10 @@ export function CesiumViewer({
       {/* Multi-rider peer avatars — rendered into the Cesium viewer once it is ready. */}
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <MultiRiderPeers viewer={viewerRef.current} />
+      )}
+      {/* ---- Pro peloton ghosts (Wave 34.C) ---- */}
+      {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
+        <ProPelotonAvatars viewer={viewerRef.current} />
       )}
     </>
   );

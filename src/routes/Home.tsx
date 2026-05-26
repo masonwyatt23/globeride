@@ -59,6 +59,7 @@ import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
+import { ProPelotonSetup } from '@/components/setup/ProPelotonSetup';
 
 /**
  * Landing / setup page — reorganised into four focused tabs:
@@ -314,8 +315,10 @@ export function Home() {
                     </span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <PaceBotsPanel />
+                  {/* Pro Peloton overlay — shown only when the loaded route has curated results */}
+                  <ProPelotonSetup />
                 </CardContent>
               </Card>
 

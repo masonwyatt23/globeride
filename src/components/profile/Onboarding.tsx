@@ -32,171 +32,13 @@ import { cn } from '@/lib/utils';
 import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useProfileStore } from '@/stores/profileStore';
 import { useSettingsStore } from '@/stores/settingsStore';
-
-// ---------------------------------------------------------------------------
-// Inline SVG illustrations — CSS-only, no external assets
-// ---------------------------------------------------------------------------
-
-/** Rotating globe with a latitudinal orbit ring */
-function GlobeIllustration() {
-  return (
-    <svg
-      viewBox="0 0 80 80"
-      className="h-14 w-14"
-      aria-hidden
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Atmosphere glow */}
-      <circle cx="40" cy="40" r="38" fill="hsl(var(--primary)/0.08)" />
-      {/* Globe body */}
-      <circle cx="40" cy="40" r="28" fill="hsl(var(--primary)/0.18)" stroke="hsl(var(--primary)/0.50)" strokeWidth="1.5" />
-      {/* Latitude lines */}
-      <ellipse cx="40" cy="40" rx="28" ry="10" stroke="hsl(var(--primary)/0.30)" strokeWidth="1" />
-      <ellipse cx="40" cy="40" rx="28" ry="20" stroke="hsl(var(--primary)/0.20)" strokeWidth="0.8" />
-      {/* Meridian */}
-      <ellipse cx="40" cy="40" rx="10" ry="28" stroke="hsl(var(--primary)/0.30)" strokeWidth="1" />
-      {/* Orbit ring */}
-      <ellipse cx="40" cy="40" rx="37" ry="13" stroke="hsl(var(--accent)/0.55)" strokeWidth="1.5" strokeDasharray="4 3" />
-      {/* Rider dot on ring */}
-      <circle cx="77" cy="40" r="3.5" fill="hsl(var(--accent))" />
-      {/* Sun glint */}
-      <circle cx="29" cy="30" r="4" fill="hsl(var(--primary)/0.35)" />
-    </svg>
-  );
-}
-
-/** Trainer silhouette with a gradient resistance bar */
-function TrainerIllustration() {
-  return (
-    <svg
-      viewBox="0 0 80 80"
-      className="h-14 w-14"
-      aria-hidden
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Rear wheel */}
-      <circle cx="22" cy="54" r="16" stroke="hsl(var(--primary)/0.45)" strokeWidth="2" />
-      <circle cx="22" cy="54" r="7" stroke="hsl(var(--primary)/0.30)" strokeWidth="1.5" />
-      {/* Front wheel */}
-      <circle cx="60" cy="54" r="16" stroke="hsl(var(--primary)/0.45)" strokeWidth="2" />
-      <circle cx="60" cy="54" r="7" stroke="hsl(var(--primary)/0.30)" strokeWidth="1.5" />
-      {/* Frame */}
-      <polyline points="22,54 38,26 54,54" stroke="hsl(var(--primary)/0.70)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="38" y1="26" x2="60" y2="54" stroke="hsl(var(--primary)/0.70)" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="38" y1="26" x2="38" y2="20" stroke="hsl(var(--primary)/0.70)" strokeWidth="2.5" strokeLinecap="round" />
-      {/* Handlebar */}
-      <line x1="33" y1="20" x2="43" y2="20" stroke="hsl(var(--primary)/0.60)" strokeWidth="2" strokeLinecap="round" />
-      {/* Gradient resistance indicator */}
-      <rect x="14" y="68" width="52" height="5" rx="2.5" fill="hsl(var(--muted)/0.60)" />
-      <rect x="14" y="68" width="34" height="5" rx="2.5" fill="hsl(var(--accent)/0.70)" />
-      {/* BT badge */}
-      <circle cx="67" cy="18" r="9" fill="hsl(var(--primary)/0.15)" stroke="hsl(var(--primary)/0.40)" strokeWidth="1" />
-      <path d="M66 13 L70 17 L66 21 M66 21 L70 17 M66 13 L66 21" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** Two rider dots in a peloton formation + a dashed P2P link */
-function PelotonIllustration() {
-  return (
-    <svg
-      viewBox="0 0 80 80"
-      className="h-14 w-14"
-      aria-hidden
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Road */}
-      <ellipse cx="40" cy="68" rx="34" ry="6" fill="hsl(var(--muted)/0.40)" />
-      {/* Lead rider */}
-      <circle cx="40" cy="42" r="9" fill="hsl(var(--accent)/0.20)" stroke="hsl(var(--accent)/0.70)" strokeWidth="1.5" />
-      <circle cx="40" cy="36" r="4" fill="hsl(var(--accent)/0.55)" />
-      {/* Draft rider left */}
-      <circle cx="24" cy="50" r="7" fill="hsl(var(--primary)/0.15)" stroke="hsl(var(--primary)/0.50)" strokeWidth="1.5" />
-      <circle cx="24" cy="45" r="3" fill="hsl(var(--primary)/0.45)" />
-      {/* Draft rider right */}
-      <circle cx="56" cy="50" r="7" fill="hsl(var(--primary)/0.15)" stroke="hsl(var(--primary)/0.50)" strokeWidth="1.5" />
-      <circle cx="56" cy="45" r="3" fill="hsl(var(--primary)/0.45)" />
-      {/* Draft lines */}
-      <line x1="30" y1="50" x2="35" y2="46" stroke="hsl(var(--accent)/0.35)" strokeWidth="1" strokeDasharray="2 2" />
-      <line x1="50" y1="50" x2="45" y2="46" stroke="hsl(var(--accent)/0.35)" strokeWidth="1" strokeDasharray="2 2" />
-      {/* P2P link arc */}
-      <path d="M12 20 Q40 8 68 20" stroke="hsl(var(--primary)/0.45)" strokeWidth="1.5" strokeDasharray="4 3" />
-      <circle cx="12" cy="20" r="3" fill="hsl(var(--primary)/0.60)" />
-      <circle cx="68" cy="20" r="3" fill="hsl(var(--primary)/0.60)" />
-      {/* Link label dots */}
-      <circle cx="40" cy="11" r="2" fill="hsl(var(--primary)/0.50)" />
-    </svg>
-  );
-}
-
-/** Brain + upward trend chart = AI coach */
-function CoachIllustration() {
-  return (
-    <svg
-      viewBox="0 0 80 80"
-      className="h-14 w-14"
-      aria-hidden
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Chart base */}
-      <line x1="10" y1="66" x2="70" y2="66" stroke="hsl(var(--border))" strokeWidth="1.5" />
-      <line x1="10" y1="66" x2="10" y2="20" stroke="hsl(var(--border))" strokeWidth="1.5" />
-      {/* CTL/ATL lines */}
-      <polyline points="10,60 22,55 34,46 46,40 58,32 70,24"
-        stroke="hsl(var(--primary)/0.70)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="10,62 22,58 34,54 46,50 58,46 70,42"
-        stroke="hsl(var(--accent)/0.55)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2" />
-      {/* Brain icon ring */}
-      <circle cx="58" cy="22" r="14" fill="hsl(var(--primary)/0.12)" stroke="hsl(var(--primary)/0.40)" strokeWidth="1" />
-      {/* Simplified neuron cross */}
-      <circle cx="58" cy="22" r="4" fill="hsl(var(--primary)/0.50)" />
-      <line x1="58" y1="12" x2="58" y2="18" stroke="hsl(var(--primary)/0.60)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="58" y1="26" x2="58" y2="32" stroke="hsl(var(--primary)/0.60)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="48" y1="22" x2="54" y2="22" stroke="hsl(var(--primary)/0.60)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="62" y1="22" x2="68" y2="22" stroke="hsl(var(--primary)/0.60)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="51" y1="15" x2="55" y2="19" stroke="hsl(var(--primary)/0.40)" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="61" y1="25" x2="65" y2="29" stroke="hsl(var(--primary)/0.40)" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Phone outline with HR pulse + cadence number */
-function CompanionIllustration() {
-  return (
-    <svg
-      viewBox="0 0 80 80"
-      className="h-14 w-14"
-      aria-hidden
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* Phone body */}
-      <rect x="22" y="8" width="36" height="64" rx="6" fill="hsl(var(--card)/0.60)" stroke="hsl(var(--border))" strokeWidth="1.5" />
-      {/* Screen */}
-      <rect x="26" y="16" width="28" height="44" rx="3" fill="hsl(var(--primary)/0.08)" />
-      {/* HR wave */}
-      <polyline
-        points="27,42 31,42 33,36 35,48 37,38 39,46 41,42 55,42"
-        stroke="hsl(4 84% 53%/0.80)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Cadence readout */}
-      <text x="40" y="28" textAnchor="middle" fontSize="9" fill="hsl(var(--primary))" fontWeight="700" fontFamily="monospace">94 rpm</text>
-      {/* Bottom home bar */}
-      <rect x="33" y="67" width="14" height="2.5" rx="1.25" fill="hsl(var(--border))" />
-      {/* Wifi bars suggesting BroadcastChannel */}
-      <path d="M62 26 Q67 21 72 26" stroke="hsl(var(--accent)/0.70)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M64 29 Q67 26 70 29" stroke="hsl(var(--accent)/0.60)" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <circle cx="67" cy="31" r="1.5" fill="hsl(var(--accent)/0.80)" />
-    </svg>
-  );
-}
+import {
+  RealEarthScene,
+  TrainerScene,
+  PelotonScene,
+  CoachScene,
+  CompanionScene,
+} from '@/components/onboarding/OnboardingIllustrations';
 
 // ---------------------------------------------------------------------------
 // Step definitions
@@ -204,8 +46,8 @@ function CompanionIllustration() {
 
 interface Step {
   id: string;
-  illustration: React.ReactNode;
-  iconBg: string;
+  /** Full-width bespoke scene illustration (280×160 viewBox) */
+  scene: React.ReactNode;
   heading: string;
   subheading: string;
   body: string;
@@ -214,8 +56,7 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: 'real-earth',
-    illustration: <GlobeIllustration />,
-    iconBg: 'from-sky-500/20 to-primary/10',
+    scene: <RealEarthScene />,
     heading: 'Real Earth. Every mile.',
     subheading: 'Photoreal 3D Tiles · Cinematic moods · Live weather',
     body:
@@ -223,8 +64,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'trainer',
-    illustration: <TrainerIllustration />,
-    iconBg: 'from-violet-500/20 to-indigo-500/10',
+    scene: <TrainerScene />,
     heading: 'Smart trainer. Real gradient.',
     subheading: 'FTMS Bluetooth · Demo Mode · Strava .FIT export',
     body:
@@ -232,8 +72,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'peloton',
-    illustration: <PelotonIllustration />,
-    iconBg: 'from-rose-500/20 to-orange-500/10',
+    scene: <PelotonScene />,
     heading: 'Pace partners. P2P racing.',
     subheading: 'Niki · Yuki · Attila bots · Shareable race links',
     body:
@@ -241,8 +80,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'coach',
-    illustration: <CoachIllustration />,
-    iconBg: 'from-emerald-500/20 to-teal-500/10',
+    scene: <CoachScene />,
     heading: 'AI coach. Training load.',
     subheading: 'Workout catalog · CTL/ATL/TSB · Iconic climbs',
     body:
@@ -250,8 +88,7 @@ const STEPS: Step[] = [
   },
   {
     id: 'companion',
-    illustration: <CompanionIllustration />,
-    iconBg: 'from-cyan-500/20 to-sky-500/10',
+    scene: <CompanionScene />,
     heading: 'Companion screen.',
     subheading: 'HR · Cadence · Remote control · Activity feed',
     body:
@@ -446,18 +283,16 @@ function OnboardingInner({ onDismiss }: { onDismiss: () => void }) {
               CONCEPT STEPS (stepIndex 0..N-1)
           ---------------------------------------------------------------- */}
           {conceptStep && (
-            <div key={animKey} className={cn('px-7 pt-8 pb-7', stepAnim)}>
-              {/* Illustration */}
+            <div key={animKey} className={cn('pb-7', stepAnim)}>
+              {/* Full-width scene illustration */}
               <div
-                className={cn(
-                  'h-16 w-16 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-5',
-                  'ring-1 ring-white/10 shadow-[0_4px_20px_-6px_hsl(var(--primary)/0.35)]',
-                  conceptStep.iconBg,
-                )}
+                className="w-full overflow-hidden rounded-t-2xl"
+                aria-hidden
               >
-                {conceptStep.illustration}
+                {conceptStep.scene}
               </div>
 
+              <div className="px-7 pt-5">
               <h2 className="text-xl font-bold tracking-tight text-foreground [letter-spacing:-0.025em] mb-0.5">
                 {conceptStep.heading}
               </h2>
@@ -485,6 +320,7 @@ function OnboardingInner({ onDismiss }: { onDismiss: () => void }) {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+              </div>{/* end px-7 pt-5 */}
             </div>
           )}
 

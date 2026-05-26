@@ -407,3 +407,9 @@ html:not(.dark) .cesium-viewer {
 .snap-x::-webkit-scrollbar {
   display: none;
 }
+
+/* Voice control button — pulsing green glow when mic is active (Wave 34.D) */
+@keyframes voicePulse {
+  0%, 100% { box-shadow: 0 0 8px 1px rgba(74, 222, 128, 0.3); }
+  50%       { box-shadow: 0 0 18px 4px rgba(74, 222, 128, 0.6); }
+}
