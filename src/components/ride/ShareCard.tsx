@@ -13,7 +13,7 @@
  *   5. Date footer + watermark
  */
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import { Download, Share2 } from 'lucide-react';
 
@@ -22,6 +22,8 @@ import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { computeMetrics } from '@/lib/metrics';
 import { formatDuration } from '@/lib/utils';
+import { resolveIonToken, isWebGLAvailable } from '@/components/landing/HeroVisual';
+import { ShareCardGlobe } from '@/components/share/ShareCardGlobe';
 import type { Route, RoutePoint } from '@/types';
 
 // ─── Card dimensions ──────────────────────────────────────────────────────────
@@ -29,6 +31,17 @@ import type { Route, RoutePoint } from '@/types';
 /** Physical pixel dimensions of the share card (Instagram story vertical). */
 const CARD_W = 1080;
 const CARD_H = 1350;
+
+/**
+ * Resolve whether we can render a Cesium globe in the share card.
+ * Requires a Cesium ion token AND WebGL support.
+ * Called once per download attempt (not at module load) so it's always fresh.
+ */
+function canRenderGlobe(): { ok: boolean; token: string | null } {
+  const token = resolveIonToken();
+  const webgl = isWebGLAvailable();
+  return { ok: !!(token && webgl), token };
+}
 
 /** Horizontal padding inside the card, px. */
 const CARD_PX = 72;
@@ -161,6 +174,37 @@ export function ShareCard() {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isCapturing, setIsCapturing] = useState(false);
 
+  // ---- Globe state ----
+  // globeToken: non-null → ShareCardGlobe is mounted; null → SVG minimap.
+  // globeReadyRef: resolves the promise that handleDownload awaits before toPng.
+  const [globeToken, setGlobeToken] = useState<string | null>(null);
+  const globeReadyRef = useRef<(() => void) | null>(null);
+
+  // Called when the user clicks Download — decide whether to show the globe.
+  // We set state here (triggering a re-render that mounts ShareCardGlobe)
+  // and then wait for the globe's onReady callback before capturing.
+  const triggerGlobeCapture = useCallback(
+    (token: string): Promise<void> =>
+      new Promise<void>((resolve) => {
+        globeReadyRef.current = resolve;
+        setGlobeToken(token);
+      }),
+    [],
+  );
+
+  const handleGlobeReady = useCallback(() => {
+    globeReadyRef.current?.();
+    globeReadyRef.current = null;
+  }, []);
+
+  const handleGlobeError = useCallback(() => {
+    // Globe failed — resolve so capture proceeds with whatever is rendered
+    // (the SVG minimap, which is already in the DOM as fallback).
+    globeReadyRef.current?.();
+    globeReadyRef.current = null;
+    setGlobeToken(null);
+  }, []);
+
   // ---- Data from stores ----
   const route       = useRideStore((s) => s.route);
   const distance    = useRideStore((s) => s.distance);
@@ -233,6 +277,15 @@ export function ShareCard() {
     if (!cardRef.current || isCapturing) return;
     setIsCapturing(true);
     try {
+      // Check globe capability once per download attempt.
+      const { ok, token } = canRenderGlobe();
+
+      if (ok && token && route) {
+        // Mount the globe and wait for it to signal tile-load completion
+        // before firing html-to-image. This prevents a gray/blank capture.
+        await triggerGlobeCapture(token);
+      }
+
       const dataUrl = await toPng(cardRef.current, {
         width: CARD_W,
         height: CARD_H,
@@ -257,6 +310,8 @@ export function ShareCard() {
     } catch (err) {
       console.error('[ShareCard] toPng failed:', err);
     } finally {
+      // Unmount the Cesium globe (destroys viewer, frees GPU memory).
+      setGlobeToken(null);
       setIsCapturing(false);
     }
   }
@@ -422,7 +477,7 @@ export function ShareCard() {
           )}
         </div>
 
-        {/* ── 2. Route SVG map ───────────────────────────────────────── */}
+        {/* ── 2. Route map — photoreal globe (with SVG fallback) ────── */}
         <div
           style={{
             padding: `28px ${CARD_PX}px 8px`,
@@ -441,7 +496,19 @@ export function ShareCard() {
               boxShadow: `0 0 60px -20px ${ACCENT_GLOW}`,
             }}
           >
-            {mapData ? (
+            {/* Globe view — mounted only when token+WebGL available AND
+                a download is in progress. Destroyed after capture. */}
+            {globeToken && route ? (
+              <ShareCardGlobe
+                route={route}
+                ionToken={globeToken}
+                width={mapW}
+                height={MAP_H}
+                onReady={handleGlobeReady}
+                onError={handleGlobeError}
+              />
+            ) : mapData ? (
+              /* SVG minimap fallback — shown when globe unavailable */
               <svg
                 width={mapW}
                 height={MAP_H}
@@ -507,7 +574,7 @@ export function ShareCard() {
                 />
               </svg>
             ) : (
-              /* Fallback when no route */
+              /* No route data at all */
               <div
                 style={{
                   width: '100%',

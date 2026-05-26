@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Bookmark,
@@ -17,6 +17,8 @@ import {
   loadRoute,
   seedSampleRoutesIfMissing,
 } from '@/lib/routeLibrary';
+import { resolveCesiumToken } from '@/lib/landingGates';
+import { RouteCardPreview } from '@/components/library/RouteCardPreview';
 import type { SavedRoute } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +33,9 @@ export function RouteLibrary() {
   const currentRouteId  = useRideStore((s) => s.route?.id);
   const libraryVersion  = useRideStore((s) => s.libraryVersion);
   const bumpLibrary     = useRideStore((s) => s.bumpLibrary);
+
+  // Resolve once at library level — do NOT call resolveCesiumToken() per card.
+  const ionToken = useMemo(() => resolveCesiumToken(), []);
 
   const [routes, setRoutes]               = useState<SavedRoute[] | null>(null);
   const [seeding, setSeeding]             = useState(true);
@@ -133,12 +138,16 @@ export function RouteLibrary() {
           <li
             key={r.id}
             className={cn(
-              'group flex flex-col gap-2.5 rounded-xl border bg-card/40 p-3 transition-all duration-150',
+              'group flex flex-col gap-0 rounded-xl border bg-card/40 overflow-hidden transition-all duration-150',
               isActive
                 ? 'border-accent/50 bg-accent/5 ring-1 ring-accent/20'
                 : 'border-border/60 hover:border-primary/35 hover:bg-card/60',
             )}
           >
+            {/* Mini-globe preview (or SVG fallback) */}
+            <RouteCardPreview route={r} ionToken={ionToken} heightPx={140} />
+
+            <div className="flex flex-col gap-2.5 p-3">
             <div className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -194,6 +203,7 @@ export function RouteLibrary() {
                 <span className="text-sky-600 dark:text-sky-400">−{Math.round(r.descent)} m</span>
               </Stat>
             </div>
+            </div>{/* end inner p-3 wrapper */}
           </li>
         );
       })}

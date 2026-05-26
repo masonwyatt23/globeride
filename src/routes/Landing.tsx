@@ -1,5 +1,6 @@
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
+import { DemoRideSection } from '@/components/landing/DemoRideSection';
 import { GallerySection } from '@/components/landing/GallerySection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
 import { HowItWorks } from '@/components/landing/HowItWorks';
@@ -30,6 +31,10 @@ export function Landing() {
       {/* pt-16 to clear the fixed header */}
       <main className="flex-1 pt-16">
         <HeroSection />
+
+        <Divider />
+
+        <DemoRideSection />
 
         <Divider />
 
