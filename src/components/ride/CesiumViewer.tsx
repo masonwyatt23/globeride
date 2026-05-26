@@ -73,7 +73,6 @@ import {
   type SpectatorCollection,
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
-// ---- Camera (Wave 30.A) ----
 import {
   computeCameraPose,
   easedCameraTransition,
@@ -134,7 +133,6 @@ function resolveWeatherKind(mood: unknown): WeatherKind {
   return 'none';
 }
 
-// ---- Camera (Wave 30.A) ----
 // Camera transition duration in milliseconds.
 const CAM_TRANSITION_MS = 1200;
 
@@ -167,12 +165,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const botAvatarsRef = useRef<Avatar[]>([]);
   // Weather particle system — recreated on route change and quality change.
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
-  // Wave 30.C: cloud collection + shadow entity — created on route load.
+  // Cloud collection + shadow entity — created on route load.
   const cloudCollectionRef = useRef<Cesium.CloudCollection | null>(null);
   const shadowHandleRef = useRef<ShadowHandle | null>(null);
   const skyCleanupRef = useRef<(() => void) | null>(null);
-  // ---- Spectator crowds (Wave 30.D) ----
-  // Rebuilt on route change; null when the route has no spectator zones.
+  // Spectator crowds — rebuilt on route change; null when the route has no spectator zones.
   const spectatorCollectionRef = useRef<SpectatorCollection | null>(null);
   // Pre-computed along-route distance for each spectator (parallel array).
   const spectatorDistancesRef = useRef<number[]>([]);
@@ -521,7 +518,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     // Build start / finish / km markers.
     routeMarkersRef.current = buildRouteMarkers(viewer, route, positions);
 
-    // ---- Route material (Wave 30.D) ----
     // When the active mood is rain-themed, replace the standard glow material
     // on each gradient segment with the wet-road reflective material.
     if (shouldUseWetMaterial(resolvedMood as string)) {
@@ -539,7 +535,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       wetMaterialRef.current = null;
     }
 
-    // ---- Spectator crowds (Wave 30.D) ----
     // Only World Tour routes with spectatorClimbs defined get crowds.
     const spectZones = spectatorZonesForRoute(route);
     if (spectZones.length > 0 && !viewer.isDestroyed()) {
@@ -704,9 +699,6 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         ent.show = ghostsEnabled;
       }
     }
-    // If ghosts are being enabled and we have loaded rides but no avatars yet,
-    // re-trigger by clearing the route ref so the next route effect re-runs.
-    // (This handles the edge case where user enables ghosts after route loaded.)
   }, [ghostsEnabled]);
 
   // ---- Per-frame follow-cam + avatar update ----
@@ -743,7 +735,7 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         riderPosition: useSettingsStore.getState().riderPosition,
       });
 
-      // ---- Camera (Wave 30.A) ----
+      // ---- Camera: per-mode positioning + cross-mode transition ----
       if (state.rideState === 'running' || state.rideState === 'paused') {
         const currentMode = useSettingsStore.getState().cameraMode;
         const riderPose = {
@@ -825,14 +817,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         }
       }
 
-      // ---- Route material (Wave 30.D) — advance wet-road streak animation ----
-      // Use performance.now() as a proxy frame counter — monotonically increasing
-      // in fractional ms; scaled to a slow drift in the shader (~0.008 per call).
+      // Advance the wet-road streak animation.
+      // performance.now() is monotonic; scaled to a slow drift in the shader.
       if (wetMaterialRef.current) {
         updateWetMaterialTime(wetMaterialRef.current, performance.now());
       }
 
-      // ---- Spectator crowds (Wave 30.D) — fade based on rider proximity ----
+      // Spectator crowds — fade based on rider proximity.
       if (
         spectatorCollectionRef.current &&
         spectatorDistancesRef.current.length > 0
