@@ -12,6 +12,14 @@ import {
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
 import type { GpsSample } from '@/lib/outdoorGps';
+import {
+  detectTriggers,
+  pickAndGenerate,
+  createCommentatorState,
+  type CommentatorState,
+  type RideSnapshot,
+} from '@/lib/ai/commentator';
+import { speakLine, cancelSpeech, pickPreferredVoice } from '@/lib/speechSynthesis';
 
 /**
  * The heart of GlobeRide: a requestAnimationFrame loop that advances the
@@ -29,6 +37,11 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
   const lastSampleT = useRef<number>(0);
   const smoother = useRef(new EmaSmoother(0.18));
 
+  // ---- Commentator state (persists across frames) ----
+  const commentatorStateRef = useRef<CommentatorState>(createCommentatorState());
+  /** True while a pickAndGenerate() call is in-flight (prevents double-firing). */
+  const commentatorBusyRef = useRef(false);
+
   useEffect(() => {
     let raf = 0;
 
@@ -39,7 +52,6 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Replay loop handles frames when replayData is present — bail out here.
       // Workout engine handles frames when a workout is running — bail out here too.
       // Outdoor rides don't require a pre-loaded route — route is built live.
-      // Replay and workout engines take over when their conditions are met.
       if (s.replayData || s.workoutRunning || s.rideState !== 'running') {
         lastT.current = tHigh;
         return;
@@ -191,9 +203,78 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Advance pace bots in the same frame (cheap — no allocations per bot).
       // Skip for outdoor mode — pace bots are an indoor-only feature.
       if (s.rideMode !== 'outdoor' && s.paceBots.length > 0) s.tickBots(dt);
+
+      // ---- Live commentary ------------------------------------------------
+      // Guard: skip if disabled, muted, or already firing.
+      if (
+        settings.liveCommentaryEnabled &&
+        settings.commentaryVolume > 0 &&
+        !commentatorBusyRef.current
+      ) {
+        const csRef = commentatorStateRef.current;
+        const throttleMs = settings.commentaryThrottleSec * 1000;
+
+        if (now - csRef.lastFiredMs >= throttleMs) {
+          // Build a lightweight snapshot for trigger detection.
+          // Outdoor mode may not have a pre-loaded route — fall back to 0 totalDistance
+          // (the commentator's halfway/final-2km triggers will just no-op in that case).
+          const leadBot = s.paceBots.length > 0
+            ? s.paceBots.reduce<number | null>((closest, bot) => {
+                const gap = bot.state.distance - distanceNow;
+                if (closest === null) return gap;
+                return Math.abs(gap) < Math.abs(closest) ? gap : closest;
+              }, null)
+            : null;
+
+          const snapshot: RideSnapshot = {
+            speed,
+            power: power ?? 0,
+            grade,
+            distance: distanceNow,
+            totalDistance: s.route?.totalDistance ?? 0,
+            rideState: s.rideState,
+            leadBotGapM: leadBot,
+            botCount: s.paceBots.length,
+          };
+
+          const triggers = detectTriggers(snapshot, csRef);
+
+          if (triggers.length > 0) {
+            commentatorBusyRef.current = true;
+            csRef.lastFiredMs = now;
+
+            pickAndGenerate(triggers, snapshot)
+              .then((line) => {
+                if (line) {
+                  speakLine(line, {
+                    volume: settings.commentaryVolume,
+                    rate: settings.commentaryRate,
+                    voice: pickPreferredVoice(),
+                  });
+                }
+              })
+              .catch(() => undefined)
+              .finally(() => {
+                commentatorBusyRef.current = false;
+              });
+          }
+        }
+      }
     };
 
+    // Cancel speech when the loop mounts (e.g., ride resets).
+    cancelSpeech();
+    commentatorStateRef.current = createCommentatorState();
+    commentatorBusyRef.current = false;
+
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      cancelSpeech();
+    };
+    // outdoorSamplesRef is a RefObject — its identity is stable across renders,
+    // and reads happen inside the rAF callback so we don't need to re-run the
+    // effect when the ref changes. Suppress exhaustive-deps for that ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store]);
 }

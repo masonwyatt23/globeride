@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { CommentarySettings } from '@/components/profile/CommentarySettings';
 import { Settings, X, RotateCcw, Bike, Wind, Weight, Activity, Gauge, Zap, CheckCircle2, AlertCircle, Loader2, ExternalLink, Copy, Palette, Monitor } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -141,6 +142,9 @@ export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () =>
 
           {/* Avatar garage */}
           <GarageSection />
+
+          {/* Live commentary */}
+          <CommentarySettings />
 
           {/* Strava integration */}
           <StravaSection />

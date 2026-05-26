@@ -14,9 +14,9 @@ export interface RiderSettings {
   bikeMassKg: number;
   bikeType: BikeType;
   riderPosition: RiderPosition;
-  /** Drivetrain efficiency, 0–1. */
+  /** Drivetrain efficiency, 0-1. */
   drivetrainEff: number;
-  /** Air density, kg/m³ (1.225 = sea level, 15 °C). */
+  /** Air density, kg/m3 (1.225 = sea level, 15 C). */
   rho: number;
   /** Wind speed magnitude, m/s. */
   windSpeedMs: number;
@@ -24,7 +24,7 @@ export interface RiderSettings {
   windDirectionDeg: number;
   /** Constant pedal power used by Demo Mode, W. */
   demoPowerW: number;
-  /** Functional Threshold Power, W — the basis for %FTP workout targets. */
+  /** Functional Threshold Power, W -- the basis for %FTP workout targets. */
   ftpW: number;
   /** Display unit system. */
   units: UnitSystem;
@@ -34,10 +34,19 @@ export interface RiderSettings {
   graphicsQuality: GraphicsQuality;
   /** Automatically upload the .FIT to Strava when a ride finishes (requires Strava connected). */
   autoUploadStrava: boolean;
-  /** Currently equipped helmet id — defaults to the level-0 starter. */
+  /** Currently equipped helmet id -- defaults to the level-0 starter. */
   helmetId: string;
   /** Free-form training goal persisted for the AI coach (e.g. "build base for a century"). */
   coachGoal: string;
+  // ---- Live AI commentary (Wave 28) ----
+  /** Whether live AI race commentary is enabled. */
+  liveCommentaryEnabled: boolean;
+  /** Commentary volume, 0-100. */
+  commentaryVolume: number;
+  /** Speech rate, 80-120 (maps to 0.8-1.2 on the Web Speech API). */
+  commentaryRate: number;
+  /** Minimum seconds between commentary lines, 30-90. */
+  commentaryThrottleSec: number;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -57,10 +66,26 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   autoUploadStrava: true,
   helmetId: 'helmet-starter',
   coachGoal: '',
+  liveCommentaryEnabled: true,
+  commentaryVolume: 70,
+  commentaryRate: 100,
+  commentaryThrottleSec: 45,
 };
+
+type CommentaryPatch = Partial<
+  Pick<
+    RiderSettings,
+    | 'liveCommentaryEnabled'
+    | 'commentaryVolume'
+    | 'commentaryRate'
+    | 'commentaryThrottleSec'
+  >
+>;
 
 interface SettingsStoreState extends RiderSettings {
   setSettings: (patch: Partial<RiderSettings>) => void;
+  /** Dedicated setter for commentary fields -- convenience for CommentarySettings UI. */
+  setCommentarySettings: (patch: CommentaryPatch) => void;
   reset: () => void;
 }
 
@@ -69,12 +94,31 @@ export const useSettingsStore = create<SettingsStoreState>()(
     (set) => ({
       ...DEFAULT_SETTINGS,
       setSettings: (patch) => set((s) => ({ ...s, ...patch })),
+      setCommentarySettings: (patch) => set((s) => ({ ...s, ...patch })),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
       name: 'globeride.settings.v1',
       storage: createJSONStorage(() => localStorage),
       version: 1,
+      // Graceful migration: new fields default if missing in existing localStorage.
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<SettingsStoreState>),
+        // Ensure commentary fields default when upgrading from pre-Wave-28 saves.
+        liveCommentaryEnabled:
+          (persisted as Partial<RiderSettings>).liveCommentaryEnabled ??
+          DEFAULT_SETTINGS.liveCommentaryEnabled,
+        commentaryVolume:
+          (persisted as Partial<RiderSettings>).commentaryVolume ??
+          DEFAULT_SETTINGS.commentaryVolume,
+        commentaryRate:
+          (persisted as Partial<RiderSettings>).commentaryRate ??
+          DEFAULT_SETTINGS.commentaryRate,
+        commentaryThrottleSec:
+          (persisted as Partial<RiderSettings>).commentaryThrottleSec ??
+          DEFAULT_SETTINGS.commentaryThrottleSec,
+      }),
       partialize: (s) =>
         ({
           riderMassKg: s.riderMassKg,
@@ -93,6 +137,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
           autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
           coachGoal: s.coachGoal,
+          liveCommentaryEnabled: s.liveCommentaryEnabled,
+          commentaryVolume: s.commentaryVolume,
+          commentaryRate: s.commentaryRate,
+          commentaryThrottleSec: s.commentaryThrottleSec,
         }) satisfies RiderSettings,
     },
   ),
