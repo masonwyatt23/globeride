@@ -16,6 +16,19 @@ import type { MoodId } from '@/lib/cesiumUtils';
 // Extra metadata
 // ---------------------------------------------------------------------------
 
+/** One crowd zone on an iconic climb — used by the spectator system (Wave 30.D). */
+export interface SpectatorClimb {
+  /** Distance from route start where the crowd section begins, meters. */
+  startDistance: number;
+  /** Distance from route start where the crowd section ends, meters. */
+  endDistance: number;
+  /**
+   * Target spectator count per km of road within this zone.
+   * ~40–80 for Tour-de-France famous climbs, lower for less iconic ones.
+   */
+  densityPerKm: number;
+}
+
 export interface WorldTourStageInfo {
   route: Route;
   info: {
@@ -45,6 +58,12 @@ export interface WorldTourStageInfo {
      * Falls back to `moodForRoute()` heuristics when absent.
      */
     mood?: MoodId;
+    /**
+     * Sections of the route where spectator crowds line the road (Wave 30.D).
+     * Defined only for stages with famous climbs where crowds are expected.
+     * Absent = no crowd rendering for this stage.
+     */
+    spectatorClimbs?: SpectatorClimb[];
   };
 }
 
@@ -418,6 +437,11 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'queen',
       heroNarrative: 'Three giants of the Alps — only the strongest survive Bonette.',
       mood: 'alpine-storm',  // Bonette in summer invites dramatic storm fronts
+      // Wave 30.D — spectator crowds on Isola 2000 summit finish (final 2 km).
+      // Packed crowds line the narrow resort road on the approach to the line.
+      spectatorClimbs: [
+        { startDistance: 142_000, endDistance: 144_000, densityPerKm: 75 },
+      ],
     },
   },
   {
@@ -436,6 +460,12 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'queen',
       heroNarrative: "Mortirolo breaks the body — Sella breaks the spirit. Survive both.",
       mood: 'overcast',  // Mortirolo and the Dolomites are moody and grey
+      // Wave 30.D — spectator crowds on Passo del Mortirolo (the most feared
+      // climb in the Giro). Dense crowds pack the narrowest hairpins in pro
+      // cycling, ~2 km before the summit.
+      spectatorClimbs: [
+        { startDistance: 51_500, endDistance: 53_560, densityPerKm: 70 },
+      ],
     },
   },
   {
@@ -508,6 +538,12 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'mountain',
       heroNarrative: 'Where Spain meets France — the Tourmalet awaits both nations.',
       mood: 'golden-hour',  // Vuelta stage finishes late — warm Pyrenean sunset light
+      // Wave 30.D — spectator crowds on Col du Tourmalet, the most-climbed
+      // mountain in Tour de France history. Two km of roadside fans on the
+      // upper flanks leading to the 2115 m summit.
+      spectatorClimbs: [
+        { startDistance: 133_000, endDistance: 135_000, densityPerKm: 80 },
+      ],
     },
   },
 ];
