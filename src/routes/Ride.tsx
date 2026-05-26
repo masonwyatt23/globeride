@@ -16,6 +16,7 @@ import { SensorStatusPills } from '@/components/trainer/SensorConnect';
 import { ReplayBadge } from '@/components/ride/ReplayBadge';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { GestureLegend } from '@/components/ride/GestureLegend';
+import { CameraSwitcher } from '@/components/ride/CameraSwitcher';
 import { Button } from '@/components/ui/button';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -53,6 +54,9 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  *     long-press, two-finger swipe) — gated by settings.gestureControlsEnabled.
  *   - GestureLegend overlay (the "?" chip in the top-right corner of the
  *     ride canvas).
+ *
+ * Wave 30.A additions:
+ *   - CameraSwitcher overlay (top-right, below gesture legend) — always shown.
  */
 export function Ride() {
   const navigate      = useNavigate();
@@ -286,6 +290,17 @@ export function Ride() {
           </div>
         </div>
       )}
+
+      {/* -- Camera switcher (Wave 30.A) — top-right, below gesture chip ----- */}
+      <div
+        className="absolute pointer-events-auto z-[4]"
+        style={{
+          top:   'calc(max(env(safe-area-inset-top), 0.75rem) + 2.5rem)',
+          right: 'max(env(safe-area-inset-right), 0.75rem)',
+        }}
+      >
+        <CameraSwitcher />
+      </div>
 
       {/* -- Finish overlay ------------------------------------------------- */}
       {rideState === 'finished' && <FinishCard />}
