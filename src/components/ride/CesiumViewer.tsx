@@ -59,6 +59,19 @@ import {
   updateShadowEntity,
   type ShadowHandle,
 } from '@/lib/dynamicShadow';
+import {
+  shouldUseWetMaterial,
+  createWetRoadMaterial,
+  updateWetMaterialTime,
+} from '@/lib/wetRoadMaterial';
+import {
+  spectatorZonesForRoute,
+  generateSpectatorPositions,
+  createSpectatorBillboards,
+  updateSpectatorVisibility,
+  buildSpectatorDistanceIndex,
+  type SpectatorCollection,
+} from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 // ---- Camera (Wave 30.A) ----
 import {
@@ -158,6 +171,13 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const cloudCollectionRef = useRef<Cesium.CloudCollection | null>(null);
   const shadowHandleRef = useRef<ShadowHandle | null>(null);
   const skyCleanupRef = useRef<(() => void) | null>(null);
+  // ---- Spectator crowds (Wave 30.D) ----
+  // Rebuilt on route change; null when the route has no spectator zones.
+  const spectatorCollectionRef = useRef<SpectatorCollection | null>(null);
+  // Pre-computed along-route distance for each spectator (parallel array).
+  const spectatorDistancesRef = useRef<number[]>([]);
+  // Active wet-road material instance — null when the mood is not rain.
+  const wetMaterialRef = useRef<import('cesium').Material | null>(null);
   // Live polyline entity for outdoor GPS mode.
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
@@ -345,6 +365,11 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         }
       }
       osmTilesetRef.current = null;
+      // Tear down spectator collection.
+      spectatorCollectionRef.current?.destroy();
+      spectatorCollectionRef.current = null;
+      spectatorDistancesRef.current = [];
+      wetMaterialRef.current = null;
       setActiveViewer(null);
       if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
@@ -444,6 +469,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
     }
     // ------------------------------------------------
 
+    // ---- Spectator crowds (Wave 30.D) ----
+    spectatorCollectionRef.current?.destroy();
+    spectatorCollectionRef.current = null;
+    spectatorDistancesRef.current = [];
+    wetMaterialRef.current = null;
+
     if (!route) return;
 
     // Resolve the scene mood: prefer explicit mood from the route catalog,
@@ -499,6 +530,38 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
 
     // Build start / finish / km markers.
     routeMarkersRef.current = buildRouteMarkers(viewer, route, positions);
+
+    // ---- Route material (Wave 30.D) ----
+    // When the active mood is rain-themed, replace the standard glow material
+    // on each gradient segment with the wet-road reflective material.
+    if (shouldUseWetMaterial(resolvedMood as string)) {
+      const mat = createWetRoadMaterial();
+      wetMaterialRef.current = mat;
+      for (const seg of gradientSegmentsRef.current) {
+        if (seg.entity.polyline) {
+          // Cesium's entity system accepts a raw Material on polyline.material
+          // via the MaterialProperty duck-type path at runtime.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (seg.entity.polyline as any).material = mat;
+        }
+      }
+    } else {
+      wetMaterialRef.current = null;
+    }
+
+    // ---- Spectator crowds (Wave 30.D) ----
+    // Only World Tour routes with spectatorClimbs defined get crowds.
+    const spectZones = spectatorZonesForRoute(route);
+    if (spectZones.length > 0 && !viewer.isDestroyed()) {
+      const quality = useSettingsStore.getState().graphicsQuality;
+      const spectPositions = generateSpectatorPositions(route, spectZones, quality);
+      if (spectPositions.length > 0) {
+        spectatorCollectionRef.current = createSpectatorBillboards(viewer, spectPositions);
+        spectatorDistancesRef.current = buildSpectatorDistanceIndex(
+          spectZones, spectPositions, route, quality,
+        );
+      }
+    }
 
     // With photoreal tiles the GPX elevations don't match the rendered
     // surface — clamp all segment positions onto the real surface once
@@ -776,6 +839,27 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
         }
       }
       // ---- End Camera (Wave 30.A) ----
+
+      // ---- Route material (Wave 30.D) — advance wet-road streak animation ----
+      // Use performance.now() as a proxy frame counter — monotonically increasing
+      // in fractional ms; scaled to a slow drift in the shader (~0.008 per call).
+      if (wetMaterialRef.current) {
+        updateWetMaterialTime(wetMaterialRef.current, performance.now());
+      }
+
+      // ---- Spectator crowds (Wave 30.D) — fade based on rider proximity ----
+      if (
+        spectatorCollectionRef.current &&
+        spectatorDistancesRef.current.length > 0
+      ) {
+        updateSpectatorVisibility(
+          spectatorCollectionRef.current,
+          state.distance,
+          spectatorDistancesRef.current,
+          200,   // fade-in over 200 m
+          1000,  // show within 1 km
+        );
+      }
 
       // ---- Weather particle system update ----
       // Reposition spawn volume above the rider each frame. Zero allocations.
