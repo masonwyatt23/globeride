@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
@@ -29,6 +29,7 @@ import { WorkoutHUD } from '@/components/ride/WorkoutHUD';
 import { RideShortcutsHelp } from '@/components/ride/RideShortcutsHelp';
 import { FinishCard } from '@/components/ride/FinishCard';
 import { useCompanionReceiver } from '@/hooks/useCompanionReceiver';
+import { useGeolocationWatch } from '@/hooks/useGeolocationWatch';
 import { useRaceRecorder } from '@/hooks/useRaceRecorder';
 
 const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
@@ -44,11 +45,21 @@ export function Ride() {
   const rideState     = useRideStore((s) => s.rideState);
   const replayData    = useRideStore((s) => s.replayData);
   const activeWorkout = useRideStore((s) => s.activeWorkout);
+  const rideMode      = useRideStore((s) => s.rideMode);
+
+  // ---- Outdoor GPS watcher ----
+  // Always called (Rules of Hooks). Only does work when rideMode === 'outdoor'.
+  // The samples ref is passed to useRideLoop so the frame loop can consume GPS.
+  const { samples: gpsSamples, error: gpsError } = useGeolocationWatch();
+  // We use a ref so the RAF callback always sees the latest samples array
+  // without re-subscribing the effect (no stale closure risk).
+  const gpsSamplesRef = useRef(gpsSamples);
+  gpsSamplesRef.current = gpsSamples;
 
   // Run the replay loop when replay data is present; otherwise the live loop.
   // Both hooks are always called (Rules of Hooks) — each guards on its own
   // condition internally so only one does real work at a time.
-  useRideLoop();
+  useRideLoop(rideMode === 'outdoor' ? gpsSamplesRef : undefined);
   useReplayLoop();
   useWorkoutEngine();
   useRideHistoryRecorder();
@@ -69,8 +80,25 @@ export function Ride() {
   });
 
   useEffect(() => {
-    if (!route) navigate('/');
-  }, [route, navigate]);
+    if (!route && rideMode !== 'outdoor') navigate('/');
+  }, [route, rideMode, navigate]);
+
+  // Surface GPS errors as toasts in outdoor mode.
+  useEffect(() => {
+    if (rideMode !== 'outdoor' || !gpsError) return;
+    const msg =
+      gpsError.code === 1
+        ? 'Location permission denied. Allow location access in browser settings.'
+        : gpsError.code === 2
+          ? 'GPS position unavailable. Check that location services are enabled.'
+          : 'GPS timed out. Move outdoors or check location settings.';
+    useRideStore.getState().pushToast({
+      kind: 'error',
+      title: 'GPS error',
+      message: msg,
+      durationMs: 8_000,
+    });
+  }, [gpsError, rideMode]);
 
   if (!token) {
     return (

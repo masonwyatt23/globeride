@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Library,
   Bike,
+  MapPin,
   Weight,
   Wind,
   Sparkles,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
+import { OutdoorModeToggle } from '@/components/setup/OutdoorModeToggle';
 import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
 import { WorkoutBuilder } from '@/components/workouts/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/workouts/WorkoutLibrary';
@@ -76,6 +78,7 @@ export function Home() {
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
   const mode = useRideStore((s) => s.mode);
+  const rideMode = useRideStore((s) => s.rideMode);
   const settings = useSettingsStore();
 
   const loadWorkout = useRideStore((s) => s.loadWorkout);
@@ -104,7 +107,7 @@ export function Home() {
    *  workout if the user hasn't already picked them, then navigates to /ride. */
   const handleStartRide = () => {
     const store = useRideStore.getState();
-    if (!store.route) {
+    if (!store.route && store.rideMode !== 'outdoor') {
       const iconic = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
       store.setRoute(iconic.route);
     }
@@ -173,6 +176,28 @@ export function Home() {
 
             {/* Left: route picking */}
             <div className="space-y-5">
+              {/* Outdoor / Indoor mode selector */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {rideMode === 'outdoor'
+                      ? <MapPin className="h-3.5 w-3.5 text-primary" />
+                      : <Bike className="h-3.5 w-3.5 text-primary" />}
+                    Ride mode
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <OutdoorModeToggle />
+                  {rideMode === 'outdoor' && (
+                    <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+                      Outdoor mode records your real ride via device GPS. Power is
+                      estimated from speed and gradient. No trainer needed — just
+                      start the ride and go.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>
@@ -180,6 +205,8 @@ export function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {rideMode !== 'outdoor' ? (
+                    <>
                   <RouteSearch />
 
                   <details className="group">
@@ -194,6 +221,15 @@ export function Home() {
                     </div>
                   </details>
 
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your path is recorded live from GPS as you ride — no route
+                      selection needed.
+                    </p>
+                  )}
+
+                  {rideMode !== 'outdoor' && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -203,13 +239,14 @@ export function Home() {
                     <Globe2 className="h-4 w-4" />
                     Explore or draw on the 3D globe
                   </Button>
+                  )}
 
-                  {route && (
+                  {route && rideMode !== 'outdoor' && (
                     <div className="rounded-lg bg-muted/40 p-3 border border-border/60">
                       <ElevationProfile />
                     </div>
                   )}
-                  <RoutePreview />
+                  {rideMode !== 'outdoor' && <RoutePreview />}
                 </CardContent>
               </Card>
 

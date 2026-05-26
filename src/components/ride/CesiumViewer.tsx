@@ -131,8 +131,12 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
   const botAvatarsRef = useRef<Avatar[]>([]);
   // Weather particle system — recreated on route change and quality change.
   const weatherSystemRef = useRef<WeatherSystem | null>(null);
+  // Live polyline entity for outdoor GPS mode.
+  const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
 
   const route = useRideStore((s) => s.route);
+  const rideMode = useRideStore((s) => s.rideMode);
+  const livePolyline = useRideStore((s) => s.livePolyline);
   const flyToTarget = useRideStore((s) => s.flyToTarget);
   const searchPinRef = useRef<Cesium.Entity | null>(null);
   const theme = useThemeStore((s) => s.theme);
@@ -686,6 +690,54 @@ export function CesiumViewer({ ionToken }: { ionToken: string | null }) {
       removeTickRef.current = null;
     };
   }, []);
+
+  // ---- Outdoor GPS live polyline ----
+  // Update the live track entity each time the GPS polyline array grows.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed()) return;
+    if (rideMode !== 'outdoor') {
+      // Remove stale live polyline entity when switching away from outdoor mode.
+      if (livePolylineEntityRef.current) {
+        viewer.entities.remove(livePolylineEntityRef.current);
+        livePolylineEntityRef.current = null;
+      }
+      return;
+    }
+    if (livePolyline.length < 2) return;
+
+    const positions = livePolyline.map((p) =>
+      Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.ele),
+    );
+
+    if (!livePolylineEntityRef.current) {
+      // Create entity on first GPS fix.
+      livePolylineEntityRef.current = viewer.entities.add({
+        name: 'outdoor-live-track',
+        polyline: {
+          positions: new Cesium.ConstantProperty(positions),
+          width: 4,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.2,
+            color: Cesium.Color.fromCssColorString('#22c55e'),
+          }),
+          clampToGround: true,
+        },
+      });
+    } else {
+      // Update positions in-place.
+      if (livePolylineEntityRef.current.polyline) {
+        livePolylineEntityRef.current.polyline.positions = new Cesium.ConstantProperty(positions);
+      }
+    }
+  }, [livePolyline, rideMode]);
+
+  // ---- Outdoor camera: follow live GPS position ----
+  // When in outdoor mode the avatar follow-cam reads positionNow from the
+  // store (set by useRideLoop from the GPS sample), so the existing preRender
+  // handler already drives the camera correctly via rideStore.distance.
+  // No additional effect needed — the per-frame handler in the preRender
+  // block uses rideStore.distance which useRideLoop advances from GPS speed.
 
   return <div ref={containerRef} className="absolute inset-0 h-full w-full" />;
 }
