@@ -81,7 +81,18 @@ async function downloadResultCard(
   await new Promise<void>((resolve) => {
     root.render(
       createElement(RaceResultCard, {
-        race: { id: result.raceId, name: raceName, organiser: raceOrganiser },
+        race: {
+          id: result.raceId,
+          name: raceName,
+          // RaceManifest.organiser is { name: string } — wrap the string value.
+          ...(raceOrganiser ? { organiser: { name: raceOrganiser } } : {}),
+          // Required by RaceManifest — supply minimal stubs for the card preview.
+          schemaVersion: 1 as const,
+          routeRef: { kind: 'iconic' as const, routeId: '' },
+          utcWindow: { startMs: 0, endMs: 0 },
+          rules: {},
+          createdAt: result.recordedAt,
+        },
         result,
       }),
     );

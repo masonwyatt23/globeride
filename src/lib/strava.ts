@@ -491,6 +491,11 @@ export function buildUploadFormData(
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_ATTEMPTS = 30; // 30 × 2s = up to 60s
 
+/** Maximum number of times to retry the initial POST on HTTP 429. */
+const UPLOAD_429_MAX_RETRIES = 4;
+/** Base backoff delay in ms for 429 retries: 1s, 2s, 4s, 8s. */
+const UPLOAD_429_BASE_MS = 1000;
+
 /**
  * Upload a .FIT blob to Strava and poll until the activity is processed.
  *
@@ -500,6 +505,9 @@ const POLL_MAX_ATTEMPTS = 30; // 30 × 2s = up to 60s
  * @returns        { id, status } of the created Strava activity
  *
  * Throws StravaError with a typed `kind` on all unrecoverable failures.
+ * The initial POST retries on HTTP 429 with exponential backoff (1s, 2s, 4s, 8s,
+ * max 4 retries); after exhausting retries it throws kind='rate_limited'.
+ * The polling loop does NOT retry on 429 — that is a separate concern.
  */
 export async function uploadFit(
   blob: Blob,
@@ -509,24 +517,50 @@ export async function uploadFit(
   // 1. Get a valid access token (throws creds_missing | refresh_failed | network_error)
   const token = await refreshAccessToken();
 
-  // 2. POST the multipart upload
+  // 2. POST the multipart upload — retry on 429 with exponential backoff
   onState?.({ phase: 'uploading' });
 
   const form = buildUploadFormData(blob, opts);
 
-  let uploadRes: Response;
-  try {
-    uploadRes = await fetch('/strava-api/api/v3/uploads', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
-    });
-  } catch (err) {
+  // Retry loop — attempt the initial POST up to UPLOAD_429_MAX_RETRIES+1 times
+  // on HTTP 429.  Any other error or success status breaks out immediately.
+  let uploadRes!: Response;
+  let lastRateLimitText = '';
+  for (let attempt = 0; attempt <= UPLOAD_429_MAX_RETRIES; attempt++) {
+    try {
+      uploadRes = await fetch('/strava-api/api/v3/uploads', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+    } catch (err) {
+      throw new StravaError(
+        'Could not reach Strava — check your network connection.',
+        'network_error',
+        undefined,
+        String(err),
+      );
+    }
+
+    if (uploadRes.status !== 429) break;
+
+    // HTTP 429 — respect Retry-After header if present, else use exponential backoff
+    lastRateLimitText = await uploadRes.text().catch(() => '');
+    const retryAfterHeader = uploadRes.headers.get('Retry-After');
+    const backoffMs = retryAfterHeader
+      ? parseInt(retryAfterHeader, 10) * 1000
+      : UPLOAD_429_BASE_MS * Math.pow(2, attempt);
+
+    if (attempt === UPLOAD_429_MAX_RETRIES) break; // retries exhausted — will throw below
+    await delay(backoffMs);
+  }
+
+  if (uploadRes.status === 429) {
     throw new StravaError(
-      'Could not reach Strava — check your network connection.',
-      'network_error',
-      undefined,
-      String(err),
+      'Strava rate limit reached — upload retries exhausted. Wait a few minutes and try again.',
+      'rate_limited',
+      429,
+      lastRateLimitText,
     );
   }
 
@@ -540,14 +574,6 @@ export async function uploadFit(
         uploadRes.status,
         text,
         '#settings-strava',
-      );
-    }
-    if (uploadRes.status === 429) {
-      throw new StravaError(
-        'Strava rate limit reached — wait a minute and try again.',
-        'rate_limited',
-        429,
-        text,
       );
     }
     throw new StravaError(
