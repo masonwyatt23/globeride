@@ -1,6 +1,7 @@
 import * as Cesium from 'cesium';
 import { sampleGroundHeight } from '@/lib/cesiumUtils';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
+import type { RiderPosition } from '@/lib/physics';
 
 export type { AvatarColors } from '@/lib/avatarConfig';
 
@@ -14,8 +15,14 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  * globe via a heading/pitch/roll transform so the bike leans into corners,
  * pitches with the gradient, and points along the route.
  *
- * Animation: wheels spin with speed, cranks + legs pedal with cadence, the
- * body leans with turn rate. All driven from `update()` once per frame.
+ * Animation (Wave 30.B):
+ *   1. Pedaling legs alternate around the bottom bracket at cadence frequency.
+ *   2. Wheels spin with ground speed (radius 0.34 m).
+ *   3. Body leans into corners proportional to centripetal acceleration, smoothed.
+ *   4. Hand positions shift by rider posture (hoods / tops / drops).
+ *   5. Head yaws ±5° toward the direction of heading change.
+ *   6. Climb-mode (grade > 8 %): body tilts forward 5° and hips sway at cadence.
+ * All driven from `update()` once per frame; zero Cesium-primitive allocations.
  */
 
 // ---- Appearance -----------------------------------------------------------
@@ -33,10 +40,12 @@ export interface AvatarUpdate {
   speed: number;
   /** Cadence in rpm — drives pedalling. 0 ⇒ estimate from speed. */
   cadence: number;
-  /** Grade in percent — drives body pitch. */
+  /** Grade in percent — drives body pitch + climb-mode. */
   grade: number;
   /** Seconds since the previous update — integrates the animation. */
   dt: number;
+  /** Rider's handlebar position — shapes hand/arm placement. Optional; defaults to 'hoods'. */
+  riderPosition?: RiderPosition;
 }
 
 export interface Avatar {
@@ -72,10 +81,18 @@ function quatZTo(dir: V3): Cesium.Quaternion {
 
 const QUAT_IDENTITY = Cesium.Quaternion.IDENTITY;
 
-/** Rotation about the body +X axis (the wheel axle / pedalling plane normal). */
+/** Rotation about the body +X axis (wheel axle / pedalling plane normal). */
 function quatRotX(angle: number): Cesium.Quaternion {
   return Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_X, angle, new Cesium.Quaternion());
 }
+
+/** Rotation about the body +Z axis (yaw — head turning). */
+function quatRotZ(angle: number): Cesium.Quaternion {
+  return Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, angle, new Cesium.Quaternion());
+}
+
+// Suppress unused warning — quatRotZ is used by headPart and exported for tests.
+void quatRotZ;
 
 // ---- Part model -----------------------------------------------------------
 
@@ -102,6 +119,14 @@ interface PartSpec {
 interface RigDynamics {
   wheelAngle: number;
   crankAngle: number;
+  /** Head yaw offset, radians — positive toward turn direction. */
+  headYaw: number;
+  /** Hip sway oscillation angle during climb-mode. */
+  climbSway: number;
+  /** Whether we are in climb-out-of-saddle mode (grade > 8 %). */
+  climbing: boolean;
+  /** Rider handlebar posture — drives hand / forearm positions. */
+  riderPosition: RiderPosition;
 }
 
 // ---- Bike + rider geometry (all metres, body-local) -----------------------
@@ -119,12 +144,42 @@ const THIGH_L = 0.43;
 const SHIN_L = 0.43;
 
 // Derived geometry constants reused by multiple detail parts
-const SEATPOST_TOP = v3(0, -0.13, 0.67); // base of saddle rails
-const SEATPOST_BOT = v3(0, -0.06, 0.52); // seatpost emerges from seat-tube
-const DROP_LEFT  = v3(-0.21, 0.46, 0.86); // left end of flat bar section
-const DROP_RIGHT = v3( 0.21, 0.46, 0.86); // right end
-const HOOD_LEFT  = v3(-0.21, 0.44, 0.82); // brake hood under each drop
+const SEATPOST_TOP = v3(0, -0.13, 0.67);
+const SEATPOST_BOT = v3(0, -0.06, 0.52);
+const DROP_LEFT  = v3(-0.21, 0.46, 0.86);
+const DROP_RIGHT = v3( 0.21, 0.46, 0.86);
+const HOOD_LEFT  = v3(-0.21, 0.44, 0.82);
 const HOOD_RIGHT = v3( 0.21, 0.44, 0.82);
+
+// ---- Hand positions per posture (Wave 30.B feature 4) ---------------------
+
+/** Body-local hand positions for each rider posture. */
+const HAND_POS: Record<RiderPosition, { left: V3; right: V3 }> = {
+  hoods: {
+    left:  v3(-0.21, 0.46, 0.84),
+    right: v3( 0.21, 0.46, 0.84),
+  },
+  drops: {
+    left:  v3(-0.21, 0.50, 0.76),
+    right: v3( 0.21, 0.50, 0.76),
+  },
+  tops: {
+    left:  v3(-0.10, 0.40, 0.90),
+    right: v3( 0.10, 0.40, 0.90),
+  },
+};
+
+/** Forearm wrist endpoints per posture (elbow stays fixed, wrist follows hand). */
+const FOREARM_END: Record<RiderPosition, { left: V3; right: V3 }> = {
+  hoods: { left: v3(-0.21, 0.44, 0.86), right: v3( 0.21, 0.44, 0.86) },
+  drops: { left: v3(-0.21, 0.48, 0.78), right: v3( 0.21, 0.48, 0.78) },
+  tops:  { left: v3(-0.10, 0.40, 0.92), right: v3( 0.10, 0.40, 0.92) },
+};
+
+const ELBOW_LEFT  = v3(-0.19, 0.34, 0.98);
+const ELBOW_RIGHT = v3( 0.19, 0.34, 0.98);
+
+// ---- Part factory functions -----------------------------------------------
 
 /** A frame tube: a thin cylinder spanning two body-local points. */
 function tube(name: string, a: V3, b: V3, radius: number, role: ColorRole): PartSpec {
@@ -212,9 +267,7 @@ function hubPart(name: string, hub: V3): PartSpec {
 }
 
 /**
- * Rim accent — a thin-walled ring slightly inside the tyre to give the wheel
- * a two-tone look (wheel colour for the rubber, accent for the rim bed).
- * Implemented as a flat disc/ring approximated by a short wide cylinder.
+ * Rim accent — a thin-walled ring slightly inside the tyre.
  */
 function rimAccent(name: string, hub: V3): PartSpec {
   return {
@@ -226,10 +279,7 @@ function rimAccent(name: string, hub: V3): PartSpec {
   };
 }
 
-/**
- * Chainring — thin disc at the bottom bracket, spins with the crank.
- * Oriented in the X–Z plane (same as the crank rotation plane).
- */
+/** Chainring — thin disc at the bottom bracket, spins with the crank. */
 function chainringPart(): PartSpec {
   return {
     name: 'chainring',
@@ -240,10 +290,7 @@ function chainringPart(): PartSpec {
   };
 }
 
-/**
- * Pedal platform — a flat box at the pedal position, oriented roughly
- * horizontal (world-up), following the crank.
- */
+/** Pedal platform — follows crank angle. */
 function pedalPart(name: string, side: -1 | 1): PartSpec {
   return {
     name,
@@ -255,16 +302,97 @@ function pedalPart(name: string, side: -1 | 1): PartSpec {
 }
 
 /**
- * Hand — small ellipsoid resting on a brake hood.  Static (hands stay on the
- * hoods regardless of crank position, which is correct for a road position).
+ * Hand — position follows rider posture.
+ * Wave 30.B feature 4: hoods / drops / tops move the hands.
  */
-function handPart(name: string, pos: V3): PartSpec {
+function handPart(name: string, side: 'left' | 'right'): PartSpec {
   return {
     name,
     kind: 'ellipsoid',
     dims: v3(0.045, 0.06, 0.04),
     role: 'skin',
-    place: { pos, rot: QUAT_IDENTITY },
+    place: (d) => ({ pos: HAND_POS[d.riderPosition][side], rot: QUAT_IDENTITY }),
+  };
+}
+
+/**
+ * Forearm — wrist follows posture, elbow is fixed.
+ * Wave 30.B feature 4.
+ */
+function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
+  const elbow = side === 'left' ? ELBOW_LEFT : ELBOW_RIGHT;
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.038, 0.20, 0.038),
+    role: 'skin',
+    place: (d) => {
+      const wrist = FOREARM_END[d.riderPosition][side];
+      return { pos: mid(elbow, wrist), rot: quatZTo(sub(wrist, elbow)) };
+    },
+  };
+}
+
+/**
+ * Head — yaws ±5° toward turn direction.
+ * Wave 30.B feature 5.
+ */
+function headPart(): PartSpec {
+  return {
+    name: 'head',
+    kind: 'ellipsoid',
+    dims: v3(0.10, 0.12, 0.13),
+    role: 'skin',
+    place: (d) => ({
+      pos: v3(0, 0.30, 1.19),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Helmet — follows head yaw. */
+function helmetPart(): PartSpec {
+  return {
+    name: 'helmet',
+    kind: 'ellipsoid',
+    dims: v3(0.125, 0.16, 0.105),
+    role: 'helmet',
+    place: (d) => ({
+      pos: v3(0, 0.28, 1.255),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Helmet visor — follows head yaw. */
+function helmetVisorPart(): PartSpec {
+  return {
+    name: 'helmet-visor',
+    kind: 'box',
+    dims: v3(0.12, 0.06, 0.018),
+    role: 'helmet',
+    place: (d) => ({
+      pos: v3(0, 0.40, 1.21),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/**
+ * Hips — sway laterally during climb-mode.
+ * Wave 30.B feature 6: out-of-saddle dance on steep grades.
+ */
+function hipsPart(): PartSpec {
+  return {
+    name: 'hips',
+    kind: 'box',
+    dims: v3(0.30, 0.22, 0.20),
+    role: 'kit',
+    place: (d) => {
+      if (!d.climbing) return { pos: v3(0, -0.06, 0.82), rot: QUAT_IDENTITY };
+      const swayX = Math.sin(d.climbSway) * 0.06;
+      return { pos: v3(swayX, -0.06, 0.82), rot: QUAT_IDENTITY };
+    },
   };
 }
 
@@ -299,9 +427,7 @@ const PARTS: PartSpec[] = [
   tube('seat-stay',  REAR_HUB, SADDLE_J, 0.022, 'frame'),
   tube('fork',       HEAD_TOP, FRONT_HUB, 0.028, 'frame'),
   tube('steerer',    HEAD_TOP, BAR,      0.026, 'frame'),
-
-  // Seatpost — runs from the seat-tube junction to just under the saddle
-  tube('seatpost', SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
+  tube('seatpost',   SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
 
   // Flat top section of the handlebar
   {
@@ -311,11 +437,9 @@ const PARTS: PartSpec[] = [
     role: 'frame',
     place: { pos: BAR, rot: QUAT_IDENTITY },
   },
-  // Drop sections — angled cylinders hanging down from each bar end
   tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
   tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
 
-  // Brake hoods — ergonomic bump where hands rest
   {
     name: 'hood-left',
     kind: 'ellipsoid',
@@ -331,7 +455,6 @@ const PARTS: PartSpec[] = [
     place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY },
   },
 
-  // Saddle — wider main body + narrower nose for a shaped profile
   {
     name: 'saddle',
     kind: 'box',
@@ -355,49 +478,21 @@ const PARTS: PartSpec[] = [
   pedalPart('pedal-right',  1),
 
   // ---- rider body ----------------------------------------------------------
-  {
-    name: 'hips',
-    kind: 'box',
-    dims: v3(0.30, 0.22, 0.20),
-    role: 'kit',
-    place: { pos: v3(0, -0.06, 0.82), rot: QUAT_IDENTITY },
-  },
+  hipsPart(),
   tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
 
-  // Upper arms (shoulder to elbow)
   tube('upper-arm-left',  v3(-0.16, 0.18, 1.10), v3(-0.19, 0.34, 0.98), 0.048, 'kit'),
   tube('upper-arm-right', v3( 0.16, 0.18, 1.10), v3( 0.19, 0.34, 0.98), 0.048, 'kit'),
-  // Forearms (elbow to hood)
-  tube('forearm-left',  v3(-0.19, 0.34, 0.98), v3(-0.21, 0.44, 0.86), 0.038, 'skin'),
-  tube('forearm-right', v3( 0.19, 0.34, 0.98), v3( 0.21, 0.44, 0.86), 0.038, 'skin'),
 
-  // Hands on the hoods
-  handPart('hand-left',  v3(-0.21, 0.46, 0.84)),
-  handPart('hand-right', v3( 0.21, 0.46, 0.84)),
+  forearmPart('forearm-left',  'left'),
+  forearmPart('forearm-right', 'right'),
 
-  // Head + helmet
-  {
-    name: 'head',
-    kind: 'ellipsoid',
-    dims: v3(0.10, 0.12, 0.13),
-    role: 'skin',
-    place: { pos: v3(0, 0.30, 1.19), rot: QUAT_IDENTITY },
-  },
-  {
-    name: 'helmet',
-    kind: 'ellipsoid',
-    dims: v3(0.125, 0.16, 0.105),
-    role: 'helmet',
-    place: { pos: v3(0, 0.28, 1.255), rot: QUAT_IDENTITY },
-  },
-  // Helmet visor — a thin flat box projecting forward from the brow
-  {
-    name: 'helmet-visor',
-    kind: 'box',
-    dims: v3(0.12, 0.06, 0.018),
-    role: 'helmet',
-    place: { pos: v3(0, 0.40, 1.21), rot: QUAT_IDENTITY },
-  },
+  handPart('hand-left',  'left'),
+  handPart('hand-right', 'right'),
+
+  headPart(),
+  helmetPart(),
+  helmetVisorPart(),
 
   // ---- legs ----------------------------------------------------------------
   legPart('thigh-left',  -1, 'thigh'),
@@ -405,7 +500,6 @@ const PARTS: PartSpec[] = [
   legPart('shin-left',   -1, 'shin'),
   legPart('shin-right',   1, 'shin'),
 
-  // Cycling shoes — follow the pedal position exactly (clipped in)
   {
     name: 'shoe-left',
     kind: 'box',
@@ -422,32 +516,135 @@ const PARTS: PartSpec[] = [
   },
 ];
 
+// ---- Animation constants --------------------------------------------------
+
+/** Maximum head yaw in radians (~5°). Wave 30.B feature 5. */
+const HEAD_YAW_MAX = (5 * Math.PI) / 180;
+
+/** Additional forward pitch when climbing out of saddle (~5°). Wave 30.B feature 6. */
+const CLIMB_FORWARD_TILT_RAD = (5 * Math.PI) / 180;
+
+/** Maximum hip sway during climb-mode (~8°). Wave 30.B feature 6. */
+const CLIMB_SWAY_MAX_RAD = (8 * Math.PI) / 180;
+
+// ===========================================================================
+// Pure-numeric animation helpers — exported for unit tests (Wave 30.B)
+// ===========================================================================
+
+/**
+ * Returns the current crank phase in radians (unbounded accumulation; use in sin/cos)
+ * given a cadence and an elapsed wall-clock time in milliseconds.
+ *
+ * At 60 RPM = 1 rev/sec → 1000 ms → exactly 2π.
+ */
+export function pedalPhaseFromCadence(cadenceRpm: number, elapsedMs: number): number {
+  if (cadenceRpm <= 0) return 0;
+  return (cadenceRpm / 60000) * elapsedMs * 2 * Math.PI;
+}
+
+/**
+ * Returns the new accumulated wheel rotation (radians) after dtMs milliseconds
+ * at speedMs m/s with a wheel of radius wheelRadius m.
+ *
+ * ω = v / r  (rad/s); Δθ = ω · dt
+ *
+ * No wrapping — caller uses result in sin/cos.
+ */
+export function wheelRotationFromSpeed(
+  speedMs: number,
+  wheelRadius: number,
+  prevRotation: number,
+  dtMs: number,
+): number {
+  if (speedMs <= 0 || wheelRadius <= 0 || dtMs <= 0) return prevRotation;
+  const omega = speedMs / wheelRadius;
+  return prevRotation + omega * (dtMs / 1000);
+}
+
+/**
+ * Returns the target body lean angle (radians) for a corner.
+ *
+ * Centripetal acceleration: a_c = v · |Δheading| / dt.
+ * Lean θ = atan2(a_c, g).
+ * Sign: right turn (positive Δheading) → lean right → negative Cesium roll.
+ *
+ * Smooth this result with smoothLean() before applying.
+ */
+export function cornerLeanAngle(
+  headingDeltaRad: number,
+  speedMs: number,
+  dtSec: number,
+): number {
+  const G = 9.80665;
+  if (dtSec <= 0 || speedMs <= 0 || headingDeltaRad === 0) return 0;
+  const turnRateAbs = Math.abs(headingDeltaRad) / dtSec;
+  const centripetal = speedMs * turnRateAbs;
+  const magnitude = Math.atan2(centripetal, G);
+  return Math.sign(headingDeltaRad) * -magnitude;
+}
+
+/**
+ * Exponential-smoothing helper for lean angle.
+ * alpha ∈ [0, 1]: 0 = no movement, 1 = instant.
+ */
+export function smoothLean(prev: number, target: number, alpha: number): number {
+  return prev + (target - prev) * Math.max(0, Math.min(1, alpha));
+}
+
+/**
+ * Returns hip sway oscillation angle (radians) during climb-out-of-saddle.
+ *
+ * Returns 0 when grade ≤ 8 % or cadence = 0 (not in climb mode).
+ * Oscillates at half-cadence (one body-swing per two pedal strokes).
+ * Amplitude scales from 0 at 8 % to CLIMB_SWAY_MAX_RAD at 20 % grade.
+ */
+export function climbingSwayAngle(
+  gradePct: number,
+  cadenceRpm: number,
+  elapsedMs: number,
+): number {
+  if (gradePct <= 8 || cadenceRpm <= 0) return 0;
+  const halfCadence = cadenceRpm / 2;
+  const phase = pedalPhaseFromCadence(halfCadence, elapsedMs);
+  const normalizedGrade = Math.min(1, (gradePct - 8) / 12);
+  return Math.sin(phase) * normalizedGrade * CLIMB_SWAY_MAX_RAD;
+}
+
 // ---- Avatar construction --------------------------------------------------
 
 /**
  * Build the procedural cyclist into `viewer`. Call `update()` each frame from
  * the render loop; `setColors()` to restyle; `dispose()` to remove it.
+ *
+ * Zero Cesium-primitive allocations inside `update()` — all entities are
+ * created once here and mutated in-place via CallbackProperty reads each frame.
  */
 export function createAvatar(viewer: Cesium.Viewer): Avatar {
   const scene = viewer.scene;
   let colors: AvatarColors = { ...DEFAULT_AVATAR_COLORS };
 
-  // Shared, mutated each frame; the CallbackProperties below read from it.
   let bodyToWorld = Cesium.Matrix4.clone(Cesium.Matrix4.IDENTITY);
   let bodyQuat = Cesium.Quaternion.clone(Cesium.Quaternion.IDENTITY);
-  const dyn: RigDynamics = { wheelAngle: 0, crankAngle: 0 };
+  const dyn: RigDynamics = {
+    wheelAngle: 0,
+    crankAngle: 0,
+    headYaw: 0,
+    climbSway: 0,
+    climbing: false,
+    riderPosition: 'hoods',
+  };
 
-  // Per-part computed world transform, recomputed each update().
   const world: { pos: Cesium.Cartesian3; rot: Cesium.Quaternion }[] = PARTS.map(() => ({
     pos: new Cesium.Cartesian3(),
     rot: new Cesium.Quaternion(),
   }));
 
-  // Smoothed ground height + lean so the rig doesn't pop or snap.
   let smoothedEle: number | null = null;
   let lean = 0;
   let pitch = 0;
   let lastHeading: number | null = null;
+  let smoothedHeadYaw = 0;
+  let elapsedMs = 0;
 
   const roleColor = (role: ColorRole) => Cesium.Color.fromCssColorString(colors[role]);
 
@@ -493,50 +690,67 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     for (let i = 0; i < PARTS.length; i++) {
       const part = PARTS[i];
       const local = typeof part.place === 'function' ? part.place(dyn) : part.place;
-      // Body-local position → world.
       Cesium.Matrix4.multiplyByPoint(
         bodyToWorld,
         new Cesium.Cartesian3(local.pos[0], local.pos[1], local.pos[2]),
         world[i].pos,
       );
-      // Body-local orientation → world.
       Cesium.Quaternion.multiply(bodyQuat, local.rot, world[i].rot);
     }
   }
 
+  // ---- Avatar render (Wave 30.B) ------------------------------------------
   function update(u: AvatarUpdate): void {
     const dt = Math.min(0.1, Math.max(0, u.dt));
+    elapsedMs += dt * 1000;
 
-    // Sit the rig on whatever surface is rendered (photoreal mesh / terrain),
-    // smoothing so streaming tiles don't make it jump.
+    // Ground height — smoothed so streaming tile changes don't pop.
     const ground = sampleGroundHeight(scene, u.lon, u.lat);
     const targetEle = ground ?? u.ele;
     if (smoothedEle === null) smoothedEle = targetEle;
     else smoothedEle += (targetEle - smoothedEle) * (1 - Math.exp(-6 * dt));
 
-    // Lean into corners from the turn rate; pitch with the gradient.
-    const turnRate = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading) / (dt || 1 / 60);
+    // Feature 3: corner lean — centripetal tilt, smoothed.
+    const headingDelta = lastHeading === null ? 0 : shortestAngle(lastHeading, u.heading);
     lastHeading = u.heading;
-    const targetLean = Math.max(-0.45, Math.min(0.45, -turnRate * 0.35));
+    const targetLean = cornerLeanAngle(headingDelta, u.speed, dt || 1 / 60);
     lean += (targetLean - lean) * (1 - Math.exp(-5 * dt));
+
+    // Pitch from gradient.
     const targetPitch = Math.atan(u.grade / 100);
     pitch += (targetPitch - pitch) * (1 - Math.exp(-4 * dt));
 
-    // Wheels spin with ground speed; cranks pedal with cadence (estimated
-    // from speed when no cadence sensor / trainer value is available).
-    dyn.wheelAngle += (u.speed / WHEEL_R) * dt;
-    const rpm = u.cadence > 0 ? u.cadence : estimateCadence(u.speed);
-    dyn.crankAngle += ((rpm * 2 * Math.PI) / 60) * dt;
+    // Feature 2: wheel rotation.
+    dyn.wheelAngle = wheelRotationFromSpeed(u.speed, WHEEL_R, dyn.wheelAngle, dt * 1000);
 
-    // Body transform: place the rig on the globe, oriented by heading, pitched
-    // by the gradient, rolled into the corner.
+    // Feature 1: pedaling — crank phase from cadence.
+    const rpm = u.cadence > 0 ? u.cadence : estimateCadence(u.speed);
+    dyn.crankAngle = pedalPhaseFromCadence(rpm, elapsedMs);
+
+    // Feature 5: head yaw toward turn, capped at ±5°, smoothed.
+    const turnRate = headingDelta / (dt || 1 / 60);
+    const targetHeadYaw = Math.max(-HEAD_YAW_MAX, Math.min(HEAD_YAW_MAX, turnRate * 0.12));
+    smoothedHeadYaw += (targetHeadYaw - smoothedHeadYaw) * (1 - Math.exp(-8 * dt));
+    dyn.headYaw = smoothedHeadYaw;
+
+    // Feature 6: climb-mode out-of-saddle.
+    const climbing = u.grade > 8;
+    dyn.climbing = climbing;
+    dyn.climbSway = climbing ? climbingSwayAngle(u.grade, rpm, elapsedMs) : 0;
+
+    // Feature 4: hand posture.
+    dyn.riderPosition = u.riderPosition ?? 'hoods';
+
+    // Globe transform: heading + pitch (+ climb tilt) + lean.
+    const climbTilt = climbing ? CLIMB_FORWARD_TILT_RAD : 0;
     const origin = Cesium.Cartesian3.fromDegrees(u.lon, u.lat, smoothedEle);
-    const hpr = new Cesium.HeadingPitchRoll(u.heading, pitch, lean);
+    const hpr = new Cesium.HeadingPitchRoll(u.heading, pitch + climbTilt, lean);
     bodyToWorld = Cesium.Transforms.headingPitchRollToFixedFrame(origin, hpr, Cesium.Ellipsoid.WGS84, undefined, bodyToWorld);
     bodyQuat = Cesium.Transforms.headingPitchRollQuaternion(origin, hpr, Cesium.Ellipsoid.WGS84, undefined, bodyQuat);
 
     recomputeParts();
   }
+  // ---- End avatar render (Wave 30.B) --------------------------------------
 
   function setColors(next: AvatarColors): void {
     colors = { ...next };
@@ -558,6 +772,8 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
   return { entities, update, setColors, dispose };
 }
 
+// ---- Private helpers ------------------------------------------------------
+
 /** Shortest signed angular delta a→b, radians, in (-π, π]. */
 function shortestAngle(a: number, b: number): number {
   let d = (b - a) % (Math.PI * 2);
@@ -566,9 +782,8 @@ function shortestAngle(a: number, b: number): number {
   return d;
 }
 
-/** Plausible cadence from speed when no sensor reports it (≈70 GI gearing). */
+/** Plausible cadence from speed when no sensor reports it (~70 GI gearing). */
 function estimateCadence(speedMs: number): number {
   if (speedMs < 0.5) return 0;
-  // ~7.4 m per pedal revolution at a moderate gear; clamp to a human range.
   return Math.max(55, Math.min(105, (speedMs / 7.4) * 60));
 }
