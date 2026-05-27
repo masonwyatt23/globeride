@@ -266,7 +266,7 @@ export function CesiumViewer({
     void (async () => {
       const container = containerRef.current!;
 
-      // Defensive mount-timing guard (Wave 43.D): wait until the container
+      // Defensive mount-timing guard: wait until the container
       // has positive layout dimensions before constructing the Cesium Viewer.
       // The ride view is a full-page route so the race is rare in practice,
       // but React StrictMode double-invocation and fast navigation can trigger

@@ -23,7 +23,7 @@ function Divider() {
  * The ride-setup app lives at /app.
  * Dark "deep space" theme with cyan (#22d3ee) accent throughout.
  *
- * Section order (Wave 40.C additions marked with *):
+ * Section order (newer additions marked with *):
  *   HeroSection → DemoRideSection → *QuickstartSection → FeatureGrid
  *   → *RidersSection → GallerySection → HowItWorks → *ComparisonSection
  *   → LandingCTA
@@ -46,7 +46,7 @@ export function Landing() {
 
         <Divider />
 
-        {/* Wave 40.C — makes "this looks easy to try" visceral before the feature grid */}
+        {/* makes "this looks easy to try" visceral before the feature grid */}
         <QuickstartSection />
 
         <Divider />
@@ -55,7 +55,7 @@ export function Landing() {
 
         <Divider />
 
-        {/* Wave 40.C — scenario cards showing what the experience offers */}
+        {/* scenario cards showing what the experience offers */}
         <RidersSection />
 
         <Divider />
@@ -68,7 +68,7 @@ export function Landing() {
 
         <Divider />
 
-        {/* Wave 40.C — philosophy comparison near the bottom, just before CTA */}
+        {/* philosophy comparison near the bottom, just before CTA */}
         <ComparisonSection />
 
         <Divider />

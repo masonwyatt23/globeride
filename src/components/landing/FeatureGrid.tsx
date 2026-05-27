@@ -1,7 +1,7 @@
 /**
  * FeatureGrid — comprehensive feature showcase for GlobeRide.
  * Each card has a bespoke SVG illustration communicating the feature visually.
- * Wave 40.D: glass cards, scroll-reveal stagger, tier-based prominence, mobile-first grid.
+ * Glass cards with scroll-reveal stagger, tier-based prominence, mobile-first grid.
  */
 import type { ReactNode } from 'react';
 import { FeatureGlobePreview } from './FeatureGlobePreview';

@@ -15,7 +15,7 @@
  * This component is lazy-loaded by RouteCardPreview — it is NEVER part of
  * the initial bundle unless the IntersectionObserver fires + gates pass.
  *
- * Mount-timing fix (Wave 43.D):
+ * Mount-timing fix:
  *   Because this component is lazy-loaded behind an IntersectionObserver gate,
  *   useEffect can fire before the browser has performed a layout pass on the
  *   container div (clientWidth/Height === 0). Passing a zero-sized element to
