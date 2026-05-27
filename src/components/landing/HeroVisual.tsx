@@ -102,9 +102,14 @@ export function HeroVisual({
     return <HeroGlobeFallback />;
   }
 
+  // HeroGlobe's inner container uses `absolute inset-0`, so it needs a
+  // positioned ancestor with explicit dimensions. Without this wrapper the
+  // Cesium canvas collapses to height:0 and renders as a black void.
   return (
-    <Suspense fallback={<HeroGlobeFallback />}>
-      <LazyHeroGlobe ionToken={token} />
-    </Suspense>
+    <div className="relative h-full w-full min-h-[420px]">
+      <Suspense fallback={<HeroGlobeFallback />}>
+        <LazyHeroGlobe ionToken={token} />
+      </Suspense>
+    </div>
   );
 }

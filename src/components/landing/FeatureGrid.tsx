@@ -192,7 +192,7 @@ const FEATURES: Feature[] = [
   {
     id: 'route-library',
     illustration: <RouteLibraryIcon aria-hidden />,
-    title: '19 iconic route presets',
+    title: '50 iconic route presets',
     description:
       "Alpe d'Huez, Mont Ventoux, Stelvio, Mortirolo, and 15 more — ready to ride without a GPX. Or drag-drop your own route from Strava, Komoot, or Garmin.",
   },
@@ -343,7 +343,7 @@ export function FeatureGrid() {
             Flagship cards span lg:col-span-2 to anchor each desktop row. */}
         <div
           ref={gridRef}
-          className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense"
         >
           {FEATURES.map((f) => (
             <div

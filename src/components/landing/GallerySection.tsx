@@ -290,7 +290,7 @@ export function GallerySection() {
             className="mt-4 max-w-xl mx-auto text-base sm:text-lg leading-relaxed"
             style={{ color: 'hsl(215 18% 52%)' }}
           >
-            19 routes ready to ride — or upload your own GPX. Every kilometre rendered in
+            50 routes ready to ride — or upload your own GPX. Every kilometre rendered in
             photorealistic 3D, every watt felt through your trainer.
           </p>
         </div>
@@ -348,7 +348,7 @@ export function GallerySection() {
           <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4" aria-hidden>
             <path d="M2 2h12v12H2V2zm1 5v5h10V7H3zm0-1h10V3H3v3z" />
           </svg>
-          Browse all 19 routes
+          Browse all 50 routes
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" className="h-3.5 w-3.5" aria-hidden>
             <path d="M3 8h10M9 4l4 4-4 4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

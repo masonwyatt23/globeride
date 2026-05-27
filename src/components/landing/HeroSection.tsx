@@ -111,7 +111,7 @@ export function HeroSection() {
             <span className="text-white font-medium">FTMS smart trainer</span> via Web Bluetooth,
             and exports a{' '}
             <span className="text-white font-medium">Strava-ready .FIT file</span> when you finish.{' '}
-            19 iconic climbs. 45-part 3D avatar. Offline PWA.
+            50 iconic climbs. 45-part 3D avatar. Offline PWA.
           </p>
 
           <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4 animate-fadeUp [animation-delay:180ms]">

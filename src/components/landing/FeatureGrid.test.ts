@@ -66,7 +66,7 @@ const FEATURES_MIRROR: FeatureMirror[] = [
   { id: 'wet-road', title: 'Wet road PBR reflections', description: 'PBR wet-asphalt' },
   { id: 'spectators', title: 'Spectator crowds on climbs', description: 'spectator crowds' },
   { id: 'keyboard', title: 'Full keyboard shortcuts', description: 'Every action mapped' },
-  { id: 'route-library', title: '19 iconic route presets', description: "Alpe d'Huez" },
+  { id: 'route-library', title: '50 iconic route presets', description: "Alpe d'Huez" },
   { id: 'physics', title: 'Real cycling power physics', description: 'Martin et al. 1998' },
 ];
 

@@ -80,7 +80,7 @@ export function LandingHeader() {
             cursor: 'pointer',
           }}
         >
-          <span className="hidden xs:inline">Launch </span>app
+          <span className="hidden xs:inline">Launch{' '}</span>app
         </button>
       </div>
     </header>

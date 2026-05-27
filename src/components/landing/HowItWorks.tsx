@@ -15,7 +15,7 @@ const STEPS: Step[] = [
     n: '01',
     icon: <Upload className="h-6 w-6" />,
     title: 'Pick your route',
-    description: 'Upload any GPX from Strava, Komoot, or Garmin — or search a place and GlobeRide generates a real OSM cycling route on the spot. 19 iconic climbs included.',
+    description: 'Upload any GPX from Strava, Komoot, or Garmin — or search a place and GlobeRide generates a real OSM cycling route on the spot. 50 iconic climbs included.',
     accent: '#22d3ee',
   },
   {

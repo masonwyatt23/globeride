@@ -909,7 +909,7 @@ export function KeyboardIcon({ title = 'Keyboard shortcuts during a ride', anima
 }
 
 // ── Route library / GPX upload ──────────────────────────────────────────────
-export function RouteLibraryIcon({ title = 'GPX route library — 19 iconic climbs', animate = false, ...props }: IconProps) {
+export function RouteLibraryIcon({ title = 'GPX route library — 50 iconic climbs', animate = false, ...props }: IconProps) {
   if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
