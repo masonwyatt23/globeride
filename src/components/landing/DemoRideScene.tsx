@@ -18,6 +18,7 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
 import { tryEnableHDR } from '@/lib/cesiumHDR';
+import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
 
 /** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
 const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
@@ -104,333 +105,349 @@ export function DemoRideScene({ ionToken }: { ionToken: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    setIonToken(ionToken);
-
-    // ------------------------------------------------------------------ //
-    // 1. Viewer — same minimal chrome as HeroGlobe.                       //
-    // ------------------------------------------------------------------ //
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      timeline: false,
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      navigationHelpButton: false,
-      navigationInstructionsInitiallyVisible: false,
-    });
-
-    const scene = viewer.scene;
-
-    // Non-interactive — demo only.
-    scene.screenSpaceCameraController.enableInputs = false;
-    scene.backgroundColor = Cesium.Color.BLACK;
-
-    // ------------------------------------------------------------------ //
-    // 2. GPU budget — reduce resolution on high-DPI / mobile.             //
-    // ------------------------------------------------------------------ //
-    const isMobile = (navigator.hardwareConcurrency ?? 8) < 4;
-    viewer.resolutionScale = isMobile ? 0.6 : window.devicePixelRatio > 2 ? 0.75 : 1.0;
-
-    // ------------------------------------------------------------------ //
-    // 3. Imagery + atmosphere — same brand config as HeroGlobe.           //
-    // ------------------------------------------------------------------ //
-    scene.imageryLayers.removeAll();
-    setupBaseImagery(viewer).catch(() => undefined);
-
-    // ------------------------------------------------------------------ //
-    // 3b. HDR + ACES tonemapping.                                         //
-    // ------------------------------------------------------------------ //
-    tryEnableHDR(viewer);
-
-    // ------------------------------------------------------------------ //
-    // 3c. Google Photorealistic 3D Tiles — hidden above 5 km altitude.   //
-    // Only loaded on capable hardware (not on isMobile low-end devices).  //
-    // ------------------------------------------------------------------ //
+    let cancelled = false;
+    let viewer: Cesium.Viewer | null = null;
+    let roResize: ResizeObserver | null = null;
+    let onPreRender: (() => void) | null = null;
     let photorealTileset: Cesium.Cesium3DTileset | null = null;
+    let routeEntityRef: Cesium.Entity | null = null;
+    let riderEntityRef: Cesium.Entity | null = null;
 
-    if (!isMobile) {
-      Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
-        maximumScreenSpaceError: 16,
-      })
-        .then((tileset) => {
-          if (viewer.isDestroyed()) {
-            tileset.destroy?.();
-            return;
-          }
-          tileset.show = false; // altitude gate controls visibility per-frame
-          viewer.scene.primitives.add(tileset);
-          photorealTileset = tileset;
-        })
-        .catch(() => undefined); // token may lack photoreal access — that's fine
-    }
+    async function init() {
+      if (!containerRef.current) return;
 
-    if (scene.skyAtmosphere) {
-      scene.skyAtmosphere.show = true;
-      scene.skyAtmosphere.hueShift = 0.0;
-      scene.skyAtmosphere.saturationShift = 0.15;
-      scene.skyAtmosphere.brightnessShift = 0.05;
-      scene.skyAtmosphere.perFragmentAtmosphere = true;
-      if ('atmosphereLightIntensity' in scene.skyAtmosphere) {
-        // atmosphereLightIntensity is a Cesium private field not yet in @types/cesium.
-        (scene.skyAtmosphere as Cesium.SkyAtmosphere & { atmosphereLightIntensity?: number }).atmosphereLightIntensity = 60;
-      }
-    }
+      // Defer Cesium construction until the container has non-zero dimensions.
+      const size = await waitForContainerSize(containerRef.current);
+      if (cancelled || !size || !containerRef.current) return;
 
-    if (scene.skyBox) scene.skyBox.show = true;
+      setIonToken(ionToken);
 
-    viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
-    viewer.clock.multiplier = 1;
-    viewer.clock.shouldAnimate = true;
-    scene.globe.enableLighting = true;
-
-    // ------------------------------------------------------------------ //
-    // 4. Route polyline — aqua PolylineGlow, brand colour.                //
-    // ------------------------------------------------------------------ //
-    const routePositions = VENTOUX_COORDS.map(toC3);
-
-    const routeEntity = viewer.entities.add({
-      polyline: {
-        positions: routePositions,
-        width: 5,
-        material: new Cesium.PolylineGlowMaterialProperty({
-          color: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.9),
-          glowPower: 0.3,
-        }),
-        clampToGround: false,
-      },
-    });
-
-    // ------------------------------------------------------------------ //
-    // 5. Rider avatar — simple glowing sphere billboard at current pos.   //
-    // ------------------------------------------------------------------ //
-    const startCoord = VENTOUX_COORDS[0];
-    const riderEntity = viewer.entities.add({
-      position: toC3(startCoord),
-      ellipsoid: {
-        radii: new Cesium.Cartesian3(12, 12, 12),
-        material: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.95),
-        outline: false,
-      },
-    });
-
-    // ------------------------------------------------------------------ //
-    // 6. Initial camera — 25 000 km looking at Southern France.           //
-    // ------------------------------------------------------------------ //
-    const OVERVIEW_LON = 5.23;
-    const OVERVIEW_LAT = 44.17;
-    const OVERVIEW_ALT = 25_000_000;
-
-    viewer.camera.setView({
-      destination: Cesium.Cartesian3.fromDegrees(OVERVIEW_LON, OVERVIEW_LAT, OVERVIEW_ALT),
-      orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
-    });
-
-    // ------------------------------------------------------------------ //
-    // 7. State machine                                                     //
-    // ------------------------------------------------------------------ //
-    type Phase = 'globeOverview' | 'flyToStart' | 'riding' | 'fadeOut';
-
-    let phase: Phase = 'globeOverview';
-    let phaseElapsed = 0;   // seconds since phase start
-    let rideProgress = 0;   // [0, 1] along VENTOUX_COORDS
-    let lastTickMs = performance.now();
-
-    // Chase-cam easing state (mirrors applyFollowCam's approach locally).
-    let lastCamPos: Cesium.Cartesian3 | null = null;
-    let lastHeading: number | null = null;
-    let lastPitch: number | null = null;
-
-    function resetChaseCamState() {
-      lastCamPos = null;
-      lastHeading = null;
-      lastPitch = null;
-    }
-
-    function applyChaseCam(progress: number, dt: number) {
-      const LOOKAHEAD = 0.02;
-      const currentCoord = sampleRoute(progress);
-      const nextCoord = sampleRoute(Math.min(1, progress + LOOKAHEAD));
-
-      const current = toC3(currentCoord);
-      const next = toC3(nextCoord);
-
-      // Derive heading in ENU frame.
-      const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
-      const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
-      const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
-      const targetHeading = Math.atan2(localNext.x, localNext.y);
-
-      // Camera offset behind & above the rider.
-      const offsetLocal = new Cesium.Cartesian3(
-        -Math.sin(targetHeading) * FOLLOW_CAM_BACK_M,
-        -Math.cos(targetHeading) * FOLLOW_CAM_BACK_M,
-        FOLLOW_CAM_UP_M,
-      );
-      const targetCamPos = Cesium.Matrix4.multiplyByPoint(enu, offsetLocal, new Cesium.Cartesian3());
-      const targetPitch = Cesium.Math.toRadians(FOLLOW_CAM_PITCH_DEG);
-
-      const clampedDt = Math.min(Math.max(dt, 0), 0.1);
-      const posBlend = 1 - Math.exp(-3.0 * clampedDt);
-      const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
-
-      const camPos =
-        lastCamPos === null
-          ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
-          : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
-
-      function angleDelta(a: number, b: number): number {
-        let d = b - a;
-        while (d > Math.PI) d -= 2 * Math.PI;
-        while (d < -Math.PI) d += 2 * Math.PI;
-        return d;
-      }
-
-      const heading =
-        lastHeading === null
-          ? targetHeading
-          : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
-      const pitch =
-        lastPitch === null ? targetPitch : lastPitch + (targetPitch - lastPitch) * rotBlend;
-
-      lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
-      lastHeading = heading;
-      lastPitch = pitch;
-
-      viewer.camera.setView({
-        destination: camPos,
-        orientation: { heading, pitch, roll: 0 },
+      // ------------------------------------------------------------------ //
+      // 1. Viewer — same minimal chrome as HeroGlobe.                       //
+      // ------------------------------------------------------------------ //
+      viewer = new Cesium.Viewer(containerRef.current, {
+        timeline: false,
+        animation: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        navigationHelpButton: false,
+        navigationInstructionsInitiallyVisible: false,
       });
 
-      // Update rider entity position.
-      (riderEntity.position as Cesium.ConstantPositionProperty).setValue(toC3(currentCoord));
-    }
+      const scene = viewer.scene;
 
-    const onPreRender = () => {
-      // Belt-and-suspenders: skip the frame entirely if Cesium is torn down.
-      if (viewer.isDestroyed()) return;
+      // Non-interactive — demo only.
+      scene.screenSpaceCameraController.enableInputs = false;
+      scene.backgroundColor = Cesium.Color.BLACK;
 
-      const nowMs = performance.now();
-      const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
-      lastTickMs = nowMs;
-      phaseElapsed += dt;
+      // ------------------------------------------------------------------ //
+      // 2. GPU budget — reduce resolution on high-DPI / mobile.             //
+      // ------------------------------------------------------------------ //
+      const isMobile = (navigator.hardwareConcurrency ?? 8) < 4;
+      viewer.resolutionScale = isMobile ? 0.6 : window.devicePixelRatio > 2 ? 0.75 : 1.0;
 
-      // --- Photoreal altitude gate ---
-      // positionCartographic can be undefined when the canvas has zero size
-      // (h:0 race) and Cesium's camera state is corrupt — guard before read.
-      if (photorealTileset && !photorealTileset.isDestroyed()) {
-        const cartographic = viewer.camera.positionCartographic;
-        if (!cartographic) {
-          if (import.meta.env.DEV) {
-            console.warn('[DemoRideScene] frame skipped — positionCartographic undefined');
+      // ------------------------------------------------------------------ //
+      // 3. Imagery + atmosphere — same brand config as HeroGlobe.           //
+      // ------------------------------------------------------------------ //
+      scene.imageryLayers.removeAll();
+      setupBaseImagery(viewer).catch(() => undefined);
+
+      // ------------------------------------------------------------------ //
+      // 3b. HDR + ACES tonemapping.                                         //
+      // ------------------------------------------------------------------ //
+      tryEnableHDR(viewer);
+
+      // ------------------------------------------------------------------ //
+      // 3c. Google Photorealistic 3D Tiles — hidden above 5 km altitude.   //
+      // Only loaded on capable hardware (not on isMobile low-end devices).  //
+      // ------------------------------------------------------------------ //
+      if (!isMobile) {
+        Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
+          maximumScreenSpaceError: 16,
+        })
+          .then((tileset) => {
+            if (!viewer || viewer.isDestroyed()) {
+              tileset.destroy?.();
+              return;
+            }
+            tileset.show = false; // altitude gate controls visibility per-frame
+            viewer.scene.primitives.add(tileset);
+            photorealTileset = tileset;
+          })
+          .catch(() => undefined); // token may lack photoreal access — that's fine
+      }
+
+      if (scene.skyAtmosphere) {
+        scene.skyAtmosphere.show = true;
+        scene.skyAtmosphere.hueShift = 0.0;
+        scene.skyAtmosphere.saturationShift = 0.15;
+        scene.skyAtmosphere.brightnessShift = 0.05;
+        scene.skyAtmosphere.perFragmentAtmosphere = true;
+        if ('atmosphereLightIntensity' in scene.skyAtmosphere) {
+          // atmosphereLightIntensity is a Cesium private field not yet in @types/cesium.
+          (scene.skyAtmosphere as Cesium.SkyAtmosphere & { atmosphereLightIntensity?: number }).atmosphereLightIntensity = 60;
+        }
+      }
+
+      if (scene.skyBox) scene.skyBox.show = true;
+
+      viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
+      viewer.clock.multiplier = 1;
+      viewer.clock.shouldAnimate = true;
+      scene.globe.enableLighting = true;
+
+      // ------------------------------------------------------------------ //
+      // 4. Route polyline — aqua PolylineGlow, brand colour.                //
+      // ------------------------------------------------------------------ //
+      const routePositions = VENTOUX_COORDS.map(toC3);
+
+      routeEntityRef = viewer.entities.add({
+        polyline: {
+          positions: routePositions,
+          width: 5,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            color: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.9),
+            glowPower: 0.3,
+          }),
+          clampToGround: false,
+        },
+      });
+
+      // ------------------------------------------------------------------ //
+      // 5. Rider avatar — simple glowing sphere billboard at current pos.   //
+      // ------------------------------------------------------------------ //
+      const startCoord = VENTOUX_COORDS[0];
+      riderEntityRef = viewer.entities.add({
+        position: toC3(startCoord),
+        ellipsoid: {
+          radii: new Cesium.Cartesian3(12, 12, 12),
+          material: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.95),
+          outline: false,
+        },
+      });
+
+      // ------------------------------------------------------------------ //
+      // 6. Initial camera — 25 000 km looking at Southern France.           //
+      // ------------------------------------------------------------------ //
+      const OVERVIEW_LON = 5.23;
+      const OVERVIEW_LAT = 44.17;
+      const OVERVIEW_ALT = 25_000_000;
+
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(OVERVIEW_LON, OVERVIEW_LAT, OVERVIEW_ALT),
+        orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
+      });
+
+      // ------------------------------------------------------------------ //
+      // 7. State machine                                                     //
+      // ------------------------------------------------------------------ //
+      type Phase = 'globeOverview' | 'flyToStart' | 'riding' | 'fadeOut';
+
+      let phase: Phase = 'globeOverview';
+      let phaseElapsed = 0;   // seconds since phase start
+      let rideProgress = 0;   // [0, 1] along VENTOUX_COORDS
+      let lastTickMs = performance.now();
+
+      // Chase-cam easing state (mirrors applyFollowCam's approach locally).
+      let lastCamPos: Cesium.Cartesian3 | null = null;
+      let lastHeading: number | null = null;
+      let lastPitch: number | null = null;
+
+      function resetChaseCamState() {
+        lastCamPos = null;
+        lastHeading = null;
+        lastPitch = null;
+      }
+
+      function applyChaseCam(progress: number, dt: number) {
+        if (!viewer || viewer.isDestroyed()) return;
+
+        const LOOKAHEAD = 0.02;
+        const currentCoord = sampleRoute(progress);
+        const nextCoord = sampleRoute(Math.min(1, progress + LOOKAHEAD));
+
+        const current = toC3(currentCoord);
+        const next = toC3(nextCoord);
+
+        // Derive heading in ENU frame.
+        const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
+        const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
+        const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
+        const targetHeading = Math.atan2(localNext.x, localNext.y);
+
+        // Camera offset behind & above the rider.
+        const offsetLocal = new Cesium.Cartesian3(
+          -Math.sin(targetHeading) * FOLLOW_CAM_BACK_M,
+          -Math.cos(targetHeading) * FOLLOW_CAM_BACK_M,
+          FOLLOW_CAM_UP_M,
+        );
+        const targetCamPos = Cesium.Matrix4.multiplyByPoint(enu, offsetLocal, new Cesium.Cartesian3());
+        const targetPitch = Cesium.Math.toRadians(FOLLOW_CAM_PITCH_DEG);
+
+        const clampedDt = Math.min(Math.max(dt, 0), 0.1);
+        const posBlend = 1 - Math.exp(-3.0 * clampedDt);
+        const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
+
+        const camPos =
+          lastCamPos === null
+            ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
+            : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
+
+        function angleDelta(a: number, b: number): number {
+          let d = b - a;
+          while (d > Math.PI) d -= 2 * Math.PI;
+          while (d < -Math.PI) d += 2 * Math.PI;
+          return d;
+        }
+
+        const heading =
+          lastHeading === null
+            ? targetHeading
+            : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
+        const pitch =
+          lastPitch === null ? targetPitch : lastPitch + (targetPitch - lastPitch) * rotBlend;
+
+        lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
+        lastHeading = heading;
+        lastPitch = pitch;
+
+        viewer.camera.setView({
+          destination: camPos,
+          orientation: { heading, pitch, roll: 0 },
+        });
+
+        // Update rider entity position.
+        if (riderEntityRef) {
+          (riderEntityRef.position as Cesium.ConstantPositionProperty).setValue(toC3(currentCoord));
+        }
+      }
+
+      onPreRender = () => {
+        if (!viewer || viewer.isDestroyed()) return;
+
+        const nowMs = performance.now();
+        const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
+        lastTickMs = nowMs;
+        phaseElapsed += dt;
+
+        // --- Photoreal altitude gate ---
+        if (photorealTileset && !photorealTileset.isDestroyed()) {
+          const cartographic = viewer.camera.positionCartographic;
+          if (cartographic) {
+            photorealTileset.show = cartographic.height < PHOTOREAL_SHOW_ALTITUDE_M;
+          }
+        }
+
+        // ---- Phase 0: globe overview — slow rotation ---- //
+        if (phase === 'globeOverview') {
+          const deltaRad = Cesium.Math.toRadians(ROTATE_DEG_PER_SEC * dt);
+          viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, -deltaRad);
+
+          if (phaseElapsed >= PHASE_OVERVIEW_S) {
+            phase = 'flyToStart';
+            phaseElapsed = 0;
           }
           return;
         }
-        const altM = cartographic.height;
-        photorealTileset.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
-      }
 
-      // ---- Phase 0: globe overview — slow rotation ---- //
-      if (phase === 'globeOverview') {
-        const deltaRad = Cesium.Math.toRadians(ROTATE_DEG_PER_SEC * dt);
-        viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, -deltaRad);
+        // ---- Phase 1: fly to route start ---- //
+        if (phase === 'flyToStart') {
+          const t = easeOutCubic(Math.min(phaseElapsed / PHASE_FLY_S, 1));
 
-        if (phaseElapsed >= PHASE_OVERVIEW_S) {
-          phase = 'flyToStart';
-          phaseElapsed = 0;
-        }
-        return;
-      }
+          // Interpolate from overview altitude down to just above route start.
+          const startCoord = VENTOUX_COORDS[0];
+          const flyTargetAlt = startCoord[2] + 2000; // 2 km above base
+          const alt = OVERVIEW_ALT + (flyTargetAlt - OVERVIEW_ALT) * t;
 
-      // ---- Phase 1: fly to route start ---- //
-      if (phase === 'flyToStart') {
-        const t = easeOutCubic(Math.min(phaseElapsed / PHASE_FLY_S, 1));
+          // Lat/lon pan toward start.
+          const lon = OVERVIEW_LON + (startCoord[0] - OVERVIEW_LON) * t;
+          const lat = OVERVIEW_LAT + (startCoord[1] - OVERVIEW_LAT) * t;
+          const pitchDeg = -90 + 70 * t; // from straight-down → slightly forward
+          const pitch = Cesium.Math.toRadians(pitchDeg);
 
-        // Interpolate from overview altitude down to just above route start.
-        const startCoord = VENTOUX_COORDS[0];
-        const flyTargetAlt = startCoord[2] + 2000; // 2 km above base
-        const alt = OVERVIEW_ALT + (flyTargetAlt - OVERVIEW_ALT) * t;
-
-        // Lat/lon pan toward start.
-        const lon = OVERVIEW_LON + (startCoord[0] - OVERVIEW_LON) * t;
-        const lat = OVERVIEW_LAT + (startCoord[1] - OVERVIEW_LAT) * t;
-        const pitchDeg = -90 + 70 * t; // from straight-down → slightly forward
-        const pitch = Cesium.Math.toRadians(pitchDeg);
-
-        viewer.camera.setView({
-          destination: Cesium.Cartesian3.fromDegrees(lon, lat, alt),
-          orientation: { heading: 0, pitch, roll: 0 },
-        });
-
-        if (phaseElapsed >= PHASE_FLY_S) {
-          phase = 'riding';
-          phaseElapsed = 0;
-          rideProgress = 0;
-          resetChaseCamState();
-        }
-        return;
-      }
-
-      // ---- Phase 2: riding — chase cam ---- //
-      if (phase === 'riding') {
-        const distanceCovered = EFFECTIVE_SPEED * phaseElapsed;
-        rideProgress = Math.min(distanceCovered / ROUTE_LENGTH_M, 1);
-
-        applyChaseCam(rideProgress, dt);
-
-        if (rideProgress >= 1) {
-          phase = 'fadeOut';
-          phaseElapsed = 0;
-        }
-        return;
-      }
-
-      // ---- Phase 3: fade out — hold at summit, pull back ---- //
-      if (phase === 'fadeOut') {
-        // Keep chase cam locked at summit.
-        applyChaseCam(1, dt);
-
-        if (phaseElapsed >= PHASE_FADE_S) {
-          // Reset to globe overview.
           viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(OVERVIEW_LON, OVERVIEW_LAT, OVERVIEW_ALT),
-            orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
+            destination: Cesium.Cartesian3.fromDegrees(lon, lat, alt),
+            orientation: { heading: 0, pitch, roll: 0 },
           });
-          rideProgress = 0;
-          resetChaseCamState();
-          phase = 'globeOverview';
-          phaseElapsed = 0;
-          // Reset rider to start.
-          (riderEntity.position as Cesium.ConstantPositionProperty).setValue(toC3(VENTOUX_COORDS[0]));
+
+          if (phaseElapsed >= PHASE_FLY_S) {
+            phase = 'riding';
+            phaseElapsed = 0;
+            rideProgress = 0;
+            resetChaseCamState();
+          }
+          return;
         }
-        return;
-      }
-    };
 
-    scene.preRender.addEventListener(onPreRender);
+        // ---- Phase 2: riding — chase cam ---- //
+        if (phase === 'riding') {
+          const distanceCovered = EFFECTIVE_SPEED * phaseElapsed;
+          rideProgress = Math.min(distanceCovered / ROUTE_LENGTH_M, 1);
 
-    // ------------------------------------------------------------------ //
-    // 8. ResizeObserver — refit canvas on container resize.               //
-    // ------------------------------------------------------------------ //
-    const ro = new ResizeObserver(() => {
-      if (!viewer.isDestroyed()) viewer.resize();
-    });
-    ro.observe(containerRef.current!);
+          applyChaseCam(rideProgress, dt);
 
-    // ------------------------------------------------------------------ //
-    // Cleanup                                                              //
-    // ------------------------------------------------------------------ //
+          if (rideProgress >= 1) {
+            phase = 'fadeOut';
+            phaseElapsed = 0;
+          }
+          return;
+        }
+
+        // ---- Phase 3: fade out — hold at summit, pull back ---- //
+        if (phase === 'fadeOut') {
+          // Keep chase cam locked at summit.
+          applyChaseCam(1, dt);
+
+          if (phaseElapsed >= PHASE_FADE_S) {
+            // Reset to globe overview.
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(OVERVIEW_LON, OVERVIEW_LAT, OVERVIEW_ALT),
+              orientation: { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 },
+            });
+            rideProgress = 0;
+            resetChaseCamState();
+            phase = 'globeOverview';
+            phaseElapsed = 0;
+            // Reset rider to start.
+            if (riderEntityRef) {
+              (riderEntityRef.position as Cesium.ConstantPositionProperty).setValue(toC3(VENTOUX_COORDS[0]));
+            }
+          }
+          return;
+        }
+      };
+
+      scene.preRender.addEventListener(onPreRender);
+
+      // ------------------------------------------------------------------ //
+      // 8. ResizeObserver — refit canvas on container resize.               //
+      // ------------------------------------------------------------------ //
+      roResize = new ResizeObserver(() => {
+        if (viewer && !viewer.isDestroyed()) viewer.resize();
+      });
+      roResize.observe(containerRef.current!);
+    }
+
+    init();
+
     return () => {
-      ro.disconnect();
-      if (!viewer.isDestroyed()) {
-        scene.preRender.removeEventListener(onPreRender);
-        try { viewer.entities.remove(routeEntity); } catch { /* already gone */ }
-        try { viewer.entities.remove(riderEntity); } catch { /* already gone */ }
+      cancelled = true;
+      roResize?.disconnect();
+      if (viewer && !viewer.isDestroyed()) {
+        if (onPreRender) {
+          viewer.scene.preRender.removeEventListener(onPreRender);
+        }
+        if (routeEntityRef) {
+          try { viewer.entities.remove(routeEntityRef); } catch { /* already gone */ }
+        }
+        if (riderEntityRef) {
+          try { viewer.entities.remove(riderEntityRef); } catch { /* already gone */ }
+        }
         if (photorealTileset && !photorealTileset.isDestroyed()) {
           try {
             viewer.scene.primitives.remove(photorealTileset);

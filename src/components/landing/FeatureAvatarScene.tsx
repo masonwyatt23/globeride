@@ -22,6 +22,7 @@ import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
 import { tryEnableHDR } from '@/lib/cesiumHDR';
 import { createAvatar } from '@/lib/avatar';
 import { claimSceneSlot, releaseSceneSlot } from './FeatureGlobePreview';
+import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
 
 // ---------------------------------------------------------------------------
 // Demo route — short loop near Girona, Spain (flat rolling terrain).
@@ -78,211 +79,227 @@ export function FeatureAvatarScene({ ionToken }: { ionToken: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    let cancelled = false;
+    let viewer: Cesium.Viewer | null = null;
+    let roResize: ResizeObserver | null = null;
+    let onPreRender: (() => void) | null = null;
+    let slotClaimed = false;
+    // avatar and routeEntity are assigned inside init and used in cleanup.
+    // We declare them in the outer closure so the cleanup function can reach them.
+    type AvatarHandle = ReturnType<typeof createAvatar>;
+    let avatarHandle: AvatarHandle | null = null;
+    let routeEntityRef: Cesium.Entity | null = null;
 
-    if (!claimSceneSlot()) return;
+    async function init() {
+      if (!containerRef.current) return;
 
-    setIonToken(ionToken);
+      if (!claimSceneSlot()) return;
+      slotClaimed = true;
 
-    // ---------------------------------------------------------------------- //
-    // 1. Viewer.                                                               //
-    // ---------------------------------------------------------------------- //
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      timeline: false,
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      navigationHelpButton: false,
-      navigationInstructionsInitiallyVisible: false,
-    });
+      // Defer Cesium construction until the container has non-zero dimensions.
+      const size = await waitForContainerSize(containerRef.current);
+      if (cancelled || !size || !containerRef.current) return;
 
-    const scene = viewer.scene;
-    scene.backgroundColor = Cesium.Color.BLACK;
-    scene.screenSpaceCameraController.enableInputs = false;
-    viewer.resolutionScale = 0.75;
+      setIonToken(ionToken);
 
-    // ---------------------------------------------------------------------- //
-    // 2. Imagery + atmosphere.                                                 //
-    // ---------------------------------------------------------------------- //
-    scene.imageryLayers.removeAll();
-    setupBaseImagery(viewer).catch(() => undefined);
-    tryEnableHDR(viewer);
+      // ---------------------------------------------------------------------- //
+      // 1. Viewer.                                                               //
+      // ---------------------------------------------------------------------- //
+      viewer = new Cesium.Viewer(containerRef.current, {
+        timeline: false,
+        animation: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        navigationHelpButton: false,
+        navigationInstructionsInitiallyVisible: false,
+      });
 
-    if (scene.skyAtmosphere) {
-      scene.skyAtmosphere.show = true;
-      scene.skyAtmosphere.saturationShift = 0.15;
-      scene.skyAtmosphere.brightnessShift = 0.05;
-      scene.skyAtmosphere.perFragmentAtmosphere = true;
-    }
+      const scene = viewer.scene;
+      scene.backgroundColor = Cesium.Color.BLACK;
+      scene.screenSpaceCameraController.enableInputs = false;
+      viewer.resolutionScale = 0.75;
 
-    if (scene.skyBox) scene.skyBox.show = true;
+      // ---------------------------------------------------------------------- //
+      // 2. Imagery + atmosphere.                                                 //
+      // ---------------------------------------------------------------------- //
+      scene.imageryLayers.removeAll();
+      setupBaseImagery(viewer).catch(() => undefined);
+      tryEnableHDR(viewer);
 
-    viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
-    viewer.clock.multiplier = 1;
-    viewer.clock.shouldAnimate = true;
-    scene.globe.enableLighting = true;
-
-    // ---------------------------------------------------------------------- //
-    // 3. Route polyline.                                                       //
-    // ---------------------------------------------------------------------- //
-    const routeEntity = viewer.entities.add({
-      polyline: {
-        positions: DEMO_ROUTE.map(toC3),
-        width: 4,
-        material: new Cesium.PolylineGlowMaterialProperty({
-          color: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.85),
-          glowPower: 0.25,
-        }),
-        clampToGround: false,
-      },
-    });
-
-    // ---------------------------------------------------------------------- //
-    // 4. Avatar — actual 45-part procedural cyclist.                          //
-    // ---------------------------------------------------------------------- //
-    const avatar = createAvatar(viewer);
-
-    // ---------------------------------------------------------------------- //
-    // 5. Initial camera — low altitude, looking at route start.              //
-    // ---------------------------------------------------------------------- //
-    const startCoord = DEMO_ROUTE[0];
-    viewer.camera.setView({
-      destination: Cesium.Cartesian3.fromDegrees(startCoord[0], startCoord[1], 500),
-      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-30), roll: 0 },
-    });
-
-    // ---------------------------------------------------------------------- //
-    // 6. State machine — ride loop.                                           //
-    // ---------------------------------------------------------------------- //
-    let rideProgress = 0;      // [0, 1] along DEMO_ROUTE
-    let lastTickMs = performance.now();
-    let lastCamPos: Cesium.Cartesian3 | null = null;
-    let lastHeading: number | null = null;
-    let lastPitch: number | null = null;
-
-    function angleDelta(a: number, b: number): number {
-      let d = b - a;
-      while (d > Math.PI) d -= 2 * Math.PI;
-      while (d < -Math.PI) d += 2 * Math.PI;
-      return d;
-    }
-
-    const onPreRender = () => {
-      // Belt-and-suspenders: skip the frame if Cesium is torn down (h:0 race).
-      if (viewer.isDestroyed()) return;
-
-      const nowMs = performance.now();
-      const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
-      lastTickMs = nowMs;
-
-      // Advance progress; loop seamlessly.
-      rideProgress += (EFFECTIVE_SPEED_MS * dt) / ROUTE_LENGTH_M;
-      if (rideProgress >= 1) rideProgress -= 1;
-
-      const currentCoord = sampleRoute(rideProgress);
-      const nextCoord = sampleRoute(Math.min(1, rideProgress + 0.02));
-
-      const current = toC3(currentCoord);
-      const next = toC3(nextCoord);
-
-      // Heading from current to next in ENU frame.
-      // Guard: if current is degenerate (NaN components from bad coords),
-      // eastNorthUpToFixedFrame produces an invalid matrix — skip the frame.
-      if (!Cesium.Cartesian3.equals(current, current)) {
-        // NaN check: NaN !== NaN, so Cartesian3.equals fails on NaN input.
-        if (import.meta.env.DEV) {
-          console.warn('[FeatureAvatarScene] frame skipped — degenerate position');
-        }
-        return;
+      if (scene.skyAtmosphere) {
+        scene.skyAtmosphere.show = true;
+        scene.skyAtmosphere.saturationShift = 0.15;
+        scene.skyAtmosphere.brightnessShift = 0.05;
+        scene.skyAtmosphere.perFragmentAtmosphere = true;
       }
-      const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
-      const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
-      const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
-      const targetHeading = Math.atan2(localNext.x, localNext.y);
 
-      // Grade: approximate from alt difference over ~20 m horizontal.
-      const altDelta = nextCoord[2] - currentCoord[2];
-      const grade = (altDelta / 20) * 100; // rough %
+      if (scene.skyBox) scene.skyBox.show = true;
 
-      // Avatar update — drives wheel spin, pedalling, body pitch.
-      avatar.update({
-        lon: currentCoord[0],
-        lat: currentCoord[1],
-        ele: currentCoord[2],
-        heading: targetHeading,
-        speed: EFFECTIVE_SPEED_MS / 8, // back to real speed for physics
-        cadence: 0, // estimate from speed
-        grade,
-        dt,
-        riderPosition: 'hoods',
+      viewer.clock.currentTime = Cesium.JulianDate.fromDate(new Date());
+      viewer.clock.multiplier = 1;
+      viewer.clock.shouldAnimate = true;
+      scene.globe.enableLighting = true;
+
+      // ---------------------------------------------------------------------- //
+      // 3. Route polyline.                                                       //
+      // ---------------------------------------------------------------------- //
+      routeEntityRef = viewer.entities.add({
+        polyline: {
+          positions: DEMO_ROUTE.map(toC3),
+          width: 4,
+          material: new Cesium.PolylineGlowMaterialProperty({
+            color: Cesium.Color.fromCssColorString('#22d3ee').withAlpha(0.85),
+            glowPower: 0.25,
+          }),
+          clampToGround: false,
+        },
       });
 
-      // Chase cam.
-      const offsetLocal = new Cesium.Cartesian3(
-        -Math.sin(targetHeading) * CAM_BACK_M,
-        -Math.cos(targetHeading) * CAM_BACK_M,
-        CAM_UP_M,
-      );
-      const targetCamPos = Cesium.Matrix4.multiplyByPoint(
-        enu,
-        offsetLocal,
-        new Cesium.Cartesian3(),
-      );
-      const targetPitch = Cesium.Math.toRadians(CAM_PITCH_DEG);
-      const clampedDt = Math.max(0, Math.min(dt, 0.1));
-      const posBlend = 1 - Math.exp(-3.0 * clampedDt);
-      const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
+      // ---------------------------------------------------------------------- //
+      // 4. Avatar — actual 45-part procedural cyclist.                          //
+      // ---------------------------------------------------------------------- //
+      avatarHandle = createAvatar(viewer);
 
-      const camPos =
-        lastCamPos === null
-          ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
-          : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
-      const heading =
-        lastHeading === null
-          ? targetHeading
-          : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
-      const camPitch =
-        lastPitch === null
-          ? targetPitch
-          : lastPitch + (targetPitch - lastPitch) * rotBlend;
-
-      lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
-      lastHeading = heading;
-      lastPitch = camPitch;
-
+      // ---------------------------------------------------------------------- //
+      // 5. Initial camera — low altitude, looking at route start.              //
+      // ---------------------------------------------------------------------- //
+      const startCoord = DEMO_ROUTE[0];
       viewer.camera.setView({
-        destination: camPos,
-        orientation: { heading, pitch: camPitch, roll: 0 },
+        destination: Cesium.Cartesian3.fromDegrees(startCoord[0], startCoord[1], 500),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-30), roll: 0 },
       });
-    };
 
-    scene.preRender.addEventListener(onPreRender);
+      // ---------------------------------------------------------------------- //
+      // 6. State machine — ride loop.                                           //
+      // ---------------------------------------------------------------------- //
+      let rideProgress = 0;      // [0, 1] along DEMO_ROUTE
+      let lastTickMs = performance.now();
+      let lastCamPos: Cesium.Cartesian3 | null = null;
+      let lastHeading: number | null = null;
+      let lastPitch: number | null = null;
 
-    // ---------------------------------------------------------------------- //
-    // 7. ResizeObserver.                                                       //
-    // ---------------------------------------------------------------------- //
-    const ro = new ResizeObserver(() => {
-      if (!viewer.isDestroyed()) viewer.resize();
-    });
-    ro.observe(containerRef.current!);
+      function angleDelta(a: number, b: number): number {
+        let d = b - a;
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        return d;
+      }
 
-    // ---------------------------------------------------------------------- //
-    // Cleanup                                                                   //
-    // ---------------------------------------------------------------------- //
+      onPreRender = () => {
+        if (!viewer || viewer.isDestroyed()) return;
+
+        const nowMs = performance.now();
+        const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
+        lastTickMs = nowMs;
+
+        // Advance progress; loop seamlessly.
+        rideProgress += (EFFECTIVE_SPEED_MS * dt) / ROUTE_LENGTH_M;
+        if (rideProgress >= 1) rideProgress -= 1;
+
+        const currentCoord = sampleRoute(rideProgress);
+        const nextCoord = sampleRoute(Math.min(1, rideProgress + 0.02));
+
+        const current = toC3(currentCoord);
+        const next = toC3(nextCoord);
+
+        // Heading from current to next in ENU frame.
+        const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
+        const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
+        const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());
+        const targetHeading = Math.atan2(localNext.x, localNext.y);
+
+        // Grade: approximate from alt difference over ~20 m horizontal.
+        const altDelta = nextCoord[2] - currentCoord[2];
+        const grade = (altDelta / 20) * 100; // rough %
+
+        // Avatar update — drives wheel spin, pedalling, body pitch.
+        if (avatarHandle) {
+          avatarHandle.update({
+            lon: currentCoord[0],
+            lat: currentCoord[1],
+            ele: currentCoord[2],
+            heading: targetHeading,
+            speed: EFFECTIVE_SPEED_MS / 8, // back to real speed for physics
+            cadence: 0, // estimate from speed
+            grade,
+            dt,
+            riderPosition: 'hoods',
+          });
+        }
+
+        // Chase cam.
+        const offsetLocal = new Cesium.Cartesian3(
+          -Math.sin(targetHeading) * CAM_BACK_M,
+          -Math.cos(targetHeading) * CAM_BACK_M,
+          CAM_UP_M,
+        );
+        const targetCamPos = Cesium.Matrix4.multiplyByPoint(
+          enu,
+          offsetLocal,
+          new Cesium.Cartesian3(),
+        );
+        const targetPitch = Cesium.Math.toRadians(CAM_PITCH_DEG);
+        const clampedDt = Math.max(0, Math.min(dt, 0.1));
+        const posBlend = 1 - Math.exp(-3.0 * clampedDt);
+        const rotBlend = 1 - Math.exp(-2.5 * clampedDt);
+
+        const camPos =
+          lastCamPos === null
+            ? Cesium.Cartesian3.clone(targetCamPos, new Cesium.Cartesian3())
+            : Cesium.Cartesian3.lerp(lastCamPos, targetCamPos, posBlend, new Cesium.Cartesian3());
+        const heading =
+          lastHeading === null
+            ? targetHeading
+            : lastHeading + angleDelta(lastHeading, targetHeading) * rotBlend;
+        const camPitch =
+          lastPitch === null
+            ? targetPitch
+            : lastPitch + (targetPitch - lastPitch) * rotBlend;
+
+        lastCamPos = Cesium.Cartesian3.clone(camPos, new Cesium.Cartesian3());
+        lastHeading = heading;
+        lastPitch = camPitch;
+
+        viewer.camera.setView({
+          destination: camPos,
+          orientation: { heading, pitch: camPitch, roll: 0 },
+        });
+      };
+
+      scene.preRender.addEventListener(onPreRender);
+
+      // ---------------------------------------------------------------------- //
+      // 7. ResizeObserver.                                                       //
+      // ---------------------------------------------------------------------- //
+      roResize = new ResizeObserver(() => {
+        if (viewer && !viewer.isDestroyed()) viewer.resize();
+      });
+      roResize.observe(containerRef.current!);
+    }
+
+    init();
+
     return () => {
-      ro.disconnect();
-      if (!viewer.isDestroyed()) {
-        scene.preRender.removeEventListener(onPreRender);
-        try { avatar.dispose(); } catch { /* already gone */ }
-        try { viewer.entities.remove(routeEntity); } catch { /* already gone */ }
+      cancelled = true;
+      roResize?.disconnect();
+      if (viewer && !viewer.isDestroyed()) {
+        if (onPreRender) {
+          viewer.scene.preRender.removeEventListener(onPreRender);
+        }
+        if (avatarHandle) {
+          try { avatarHandle.dispose(); } catch { /* already gone */ }
+        }
+        if (routeEntityRef) {
+          try { viewer.entities.remove(routeEntityRef); } catch { /* already gone */ }
+        }
         viewer.destroy();
       }
-      releaseSceneSlot();
+      if (slotClaimed) releaseSceneSlot();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

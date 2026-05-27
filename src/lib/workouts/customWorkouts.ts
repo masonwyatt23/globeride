@@ -43,10 +43,13 @@ export interface CustomWorkout extends Workout {
  * Generate a stable, collision-resistant id for a new custom workout.
  * Format: `custom-<base36 timestamp>-<random hex>`
  */
+// Module-scoped counter so two calls in the same millisecond can't collide.
+let _idCounter = 0;
 export function generateWorkoutId(): string {
   const ts = Date.now().toString(36);
-  const rand = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
-  return `custom-${ts}-${rand}`;
+  const rand = Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+  const seq = (_idCounter++).toString(36);
+  return `custom-${ts}-${rand}-${seq}`;
 }
 
 /**

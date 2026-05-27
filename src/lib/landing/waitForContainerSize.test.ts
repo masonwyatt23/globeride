@@ -1,159 +1,212 @@
 /**
- * waitForContainerSize — unit tests.
+ * Tests for waitForContainerSize.
  *
- * All DOM interactions are mocked — no real browser layout engine required.
+ * Environment: node (vitest). ResizeObserver and requestAnimationFrame are
+ * not available in node, so we inject mocks via globalThis before each test
+ * and restore them after.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { waitForContainerSize } from './waitForContainerSize';
 
-// ── ResizeObserver mock ───────────────────────────────────────────────────────
-// jsdom does not implement ResizeObserver. We provide a manual mock that
-// captures the callback and lets tests fire it with arbitrary ContentRect data.
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-type ROCallback = (entries: ResizeObserverEntry[]) => void;
-
-let capturedCallbacks: ROCallback[] = [];
-
-class MockResizeObserver {
-  private cb: ROCallback;
-  constructor(cb: ROCallback) {
-    this.cb = cb;
-    capturedCallbacks.push(cb);
-  }
-  observe() {}
-  disconnect() {}
-  unobserve() {}
-}
-
-function fireMockRO(width: number, height: number) {
-  const entry = {
-    contentRect: { width, height } as DOMRectReadOnly,
-  } as ResizeObserverEntry;
-  capturedCallbacks.forEach((cb) => cb([entry]));
-}
-
-beforeEach(() => {
-  capturedCallbacks = [];
-  vi.stubGlobal('ResizeObserver', MockResizeObserver);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.useRealTimers();
-});
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-function makeEl(width: number, height: number): Element {
+function makeEl(width: number, height: number): HTMLElement {
   return {
     clientWidth: width,
     clientHeight: height,
-  } as unknown as Element;
+  } as unknown as HTMLElement;
 }
 
-// ── tests ─────────────────────────────────────────────────────────────────────
+type ROCallback = (entries: ResizeObserverEntry[]) => void;
+
+function makeROEntry(el: HTMLElement, w: number, h: number): ResizeObserverEntry {
+  return {
+    target: el,
+    contentRect: { width: w, height: h } as DOMRectReadOnly,
+  } as unknown as ResizeObserverEntry;
+}
+
+// ---------------------------------------------------------------------------
+// Test suite
+// ---------------------------------------------------------------------------
 
 describe('waitForContainerSize', () => {
-  it('resolves on the next microtask when the element already has positive dimensions', async () => {
+  let originalRO: typeof globalThis.ResizeObserver | undefined;
+  let originalRAF: typeof globalThis.requestAnimationFrame | undefined;
+  let originalCAF: typeof globalThis.cancelAnimationFrame | undefined;
+
+  beforeEach(() => {
+    originalRO = (globalThis as Record<string, unknown>).ResizeObserver as typeof globalThis.ResizeObserver | undefined;
+    originalRAF = (globalThis as Record<string, unknown>).requestAnimationFrame as typeof globalThis.requestAnimationFrame | undefined;
+    originalCAF = (globalThis as Record<string, unknown>).cancelAnimationFrame as typeof globalThis.cancelAnimationFrame | undefined;
+
+    // Remove ResizeObserver and rAF so tests start from a clean slate.
+    delete (globalThis as Record<string, unknown>).ResizeObserver;
+    delete (globalThis as Record<string, unknown>).requestAnimationFrame;
+    delete (globalThis as Record<string, unknown>).cancelAnimationFrame;
+
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+
+    if (originalRO !== undefined) {
+      (globalThis as Record<string, unknown>).ResizeObserver = originalRO;
+    } else {
+      delete (globalThis as Record<string, unknown>).ResizeObserver;
+    }
+    if (originalRAF !== undefined) {
+      (globalThis as Record<string, unknown>).requestAnimationFrame = originalRAF;
+    }
+    if (originalCAF !== undefined) {
+      (globalThis as Record<string, unknown>).cancelAnimationFrame = originalCAF;
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // 1. Resolves immediately when initial dimensions already pass
+  // -------------------------------------------------------------------------
+  it('resolves immediately when initial dimensions already pass', async () => {
+    const el = makeEl(400, 300);
+    const result = await waitForContainerSize(el, { minWidth: 100, minHeight: 100 });
+    expect(result).toEqual({ width: 400, height: 300 });
+  });
+
+  // -------------------------------------------------------------------------
+  // 2. Resolves later when ResizeObserver fires with valid dimensions
+  // -------------------------------------------------------------------------
+  it('resolves when ResizeObserver fires with valid dimensions', async () => {
+    const el = makeEl(0, 0); // starts as zero — does not pass fast path
+
+    let capturedCallback: ROCallback | null = null;
+
+    class MockRO {
+      constructor(cb: ROCallback) { capturedCallback = cb; }
+      observe(_el: HTMLElement) {
+        // Simulate dimension read after observe — still 0 in this test.
+      }
+      disconnect() {}
+    }
+
+    (globalThis as Record<string, unknown>).ResizeObserver = MockRO;
+
+    const promise = waitForContainerSize(el, { minWidth: 100, minHeight: 100 });
+
+    // Fire the observer with valid dimensions.
+    expect(capturedCallback).not.toBeNull();
+    capturedCallback!([makeROEntry(el, 500, 400)]);
+
+    const result = await promise;
+    expect(result).toEqual({ width: 500, height: 400 });
+  });
+
+  // -------------------------------------------------------------------------
+  // 3. Returns null when timeout elapses without valid dimensions
+  // -------------------------------------------------------------------------
+  it('returns null when timeout elapses', async () => {
+    const el = makeEl(0, 0);
+
+    class MockRO {
+      constructor(_cb: ROCallback) {}
+      observe(_el: HTMLElement) {}
+      disconnect() {}
+    }
+
+    (globalThis as Record<string, unknown>).ResizeObserver = MockRO;
+
+    const promise = waitForContainerSize(el, { timeoutMs: 3_000, minWidth: 100, minHeight: 100 });
+
+    // Advance past the timeout.
+    vi.advanceTimersByTime(3_001);
+
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // 4. Falls back to polling-rAF loop when ResizeObserver is unavailable
+  // -------------------------------------------------------------------------
+  it('falls back to polling rAF when ResizeObserver is not defined', async () => {
+    // ResizeObserver already deleted in beforeEach. Set up rAF mock.
+    let frameCallback: FrameRequestCallback | null = null;
+    let handle = 0;
+
+    (globalThis as Record<string, unknown>).requestAnimationFrame = (cb: FrameRequestCallback) => {
+      frameCallback = cb;
+      return ++handle;
+    };
+    (globalThis as Record<string, unknown>).cancelAnimationFrame = vi.fn();
+
+    const el = makeEl(0, 0);
+    const promise = waitForContainerSize(el, { minWidth: 100, minHeight: 100, timeoutMs: 5_000 });
+
+    // First rAF fires — still 0×0.
+    expect(frameCallback).not.toBeNull();
+    frameCallback!(0);
+
+    // Now simulate the container getting sized before the next frame.
+    el.clientWidth = 800 as unknown as number;
+    (el as unknown as Record<string, unknown>).clientWidth = 800;
+    (el as unknown as Record<string, unknown>).clientHeight = 600;
+
+    // Second rAF fires — dimensions pass now.
+    expect(frameCallback).not.toBeNull();
+    frameCallback!(16);
+
+    const result = await promise;
+    expect(result).toEqual({ width: 800, height: 600 });
+  });
+
+  // -------------------------------------------------------------------------
+  // 5. Resolves immediately when dimensions already pass on first check (fast path)
+  //    even with ResizeObserver available
+  // -------------------------------------------------------------------------
+  it('resolves immediately via fast path even when ResizeObserver is available', async () => {
     const el = makeEl(300, 200);
-    await expect(waitForContainerSize(el)).resolves.toBeUndefined();
+    const observeSpy = vi.fn();
+    const disconnectSpy = vi.fn();
+
+    class MockRO {
+      constructor(_cb: ROCallback) {}
+      observe = observeSpy;
+      disconnect = disconnectSpy;
+    }
+
+    (globalThis as Record<string, unknown>).ResizeObserver = MockRO;
+
+    const result = await waitForContainerSize(el, { minWidth: 100, minHeight: 100 });
+    expect(result).toEqual({ width: 300, height: 200 });
+    // Fast path resolves before observe is ever called.
+    expect(observeSpy).not.toHaveBeenCalled();
   });
 
-  it('resolves asynchronously (not synchronously) even in the fast path', () => {
-    const el = makeEl(300, 200);
-    let resolved = false;
-    const p = waitForContainerSize(el).then(() => { resolved = true; });
-    // Synchronously, promise should NOT have resolved yet.
-    expect(resolved).toBe(false);
-    return p; // wait for it to finish
-  });
+  // -------------------------------------------------------------------------
+  // 6. Respects custom minWidth / minHeight thresholds
+  // -------------------------------------------------------------------------
+  it('respects custom minWidth and minHeight thresholds', async () => {
+    // 50×50 — passes default 1×1 but not custom 100×100.
+    const el = makeEl(50, 50);
+    let capturedCallback: ROCallback | null = null;
 
-  it('resolves when ResizeObserver fires with positive dimensions', async () => {
-    const el = makeEl(0, 0); // starts zero-sized
-    const p = waitForContainerSize(el);
+    class MockRO {
+      constructor(cb: ROCallback) { capturedCallback = cb; }
+      observe(_el: HTMLElement) {}
+      disconnect() {}
+    }
 
-    // Not yet resolved.
-    let resolved = false;
-    void p.then(() => { resolved = true; });
-    await Promise.resolve();
-    expect(resolved).toBe(false);
+    (globalThis as Record<string, unknown>).ResizeObserver = MockRO;
 
-    // Fire ResizeObserver with positive rect.
-    fireMockRO(320, 200);
-    await p;
-    expect(resolved).toBe(true);
-  });
+    const promise = waitForContainerSize(el, { minWidth: 100, minHeight: 100, timeoutMs: 5_000 });
 
-  it('does NOT resolve when ResizeObserver fires with zero dimensions', async () => {
-    vi.useFakeTimers();
-    const el = makeEl(0, 0);
-    const p = waitForContainerSize(el, { timeoutMs: 500 });
+    // Fire with dimensions that pass the custom thresholds.
+    capturedCallback!([makeROEntry(el, 400, 300)]);
 
-    let resolved = false;
-    void p.then(() => { resolved = true; });
-
-    // Fire with zero height — should be ignored.
-    fireMockRO(320, 0);
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    // Fire with zero width — should also be ignored.
-    fireMockRO(0, 200);
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    // Advance timer to trigger timeout resolution.
-    vi.advanceTimersByTime(600);
-    await p;
-    expect(resolved).toBe(true);
-  });
-
-  it('resolves on timeout if the container never gets dimensions', async () => {
-    vi.useFakeTimers();
-    const el = makeEl(0, 0);
-    const p = waitForContainerSize(el, { timeoutMs: 100 });
-
-    let resolved = false;
-    void p.then(() => { resolved = true; });
-
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    vi.advanceTimersByTime(150);
-    await p;
-    expect(resolved).toBe(true);
-  });
-
-  it('does not resolve twice when both ResizeObserver and timeout fire', async () => {
-    vi.useFakeTimers();
-    const el = makeEl(0, 0);
-    let callCount = 0;
-    const p = waitForContainerSize(el, { timeoutMs: 100 }).then(() => { callCount++; });
-
-    // Fire ResizeObserver first.
-    fireMockRO(300, 200);
-    await Promise.resolve();
-
-    // Then advance timer past the timeout — should not resolve again.
-    vi.advanceTimersByTime(200);
-    await p;
-    expect(callCount).toBe(1);
-  });
-
-  it('accepts a custom timeoutMs option', async () => {
-    vi.useFakeTimers();
-    const el = makeEl(0, 0);
-
-    let resolved = false;
-    const p = waitForContainerSize(el, { timeoutMs: 50 }).then(() => { resolved = true; });
-
-    vi.advanceTimersByTime(40);
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    vi.advanceTimersByTime(20); // total 60ms > 50ms timeout
-    await p;
-    expect(resolved).toBe(true);
+    const result = await promise;
+    expect(result).toEqual({ width: 400, height: 300 });
   });
 });
