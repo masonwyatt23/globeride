@@ -408,6 +408,107 @@ html:not(.dark) .cesium-viewer {
   display: none;
 }
 
+/* -------------------------------------------------------------------------
+   Landing page — glass card + scroll-reveal + hover micro-interactions
+------------------------------------------------------------------------- */
+
+/**
+ * .landing-card-glass
+ * Subtle backdrop-blur glass surface for landing section cards.
+ * Dark glass: near-opaque deep-navy, thin aqua border on hover, gentle glow.
+ */
+.landing-card-glass {
+  background: linear-gradient(155deg, hsl(220 42% 6% / 0.96), hsl(220 50% 4% / 0.98));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid hsl(215 26% 14%);
+  transition:
+    border-color 280ms ease,
+    box-shadow 280ms ease,
+    transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/**
+ * .landing-card-hover
+ * Scale + aqua glow on hover. Always pair with .landing-card-glass.
+ * The transform is suppressed by prefers-reduced-motion below.
+ */
+.landing-card-hover:hover {
+  border-color: hsl(195 92% 56% / 0.35);
+  box-shadow:
+    0 0 0 1px hsl(195 92% 56% / 0.12),
+    0 20px 48px -16px hsl(195 92% 56% / 0.18),
+    0 8px 24px -8px hsl(220 50% 4% / 0.6);
+  transform: scale(1.02) translateY(-2px);
+}
+
+/**
+ * .landing-flagship-card
+ * More prominent treatment for top-tier features.
+ * Slightly stronger glow, filled "FLAGSHIP" pill color.
+ */
+.landing-flagship-card {
+  background: linear-gradient(155deg, hsl(220 42% 7% / 0.97), hsl(215 48% 5% / 0.99));
+}
+.landing-flagship-card:hover {
+  border-color: hsl(195 92% 56% / 0.50);
+  box-shadow:
+    0 0 0 1px hsl(195 92% 56% / 0.18),
+    0 28px 64px -20px hsl(195 92% 56% / 0.28),
+    0 12px 32px -10px hsl(220 50% 4% / 0.7);
+  transform: scale(1.025) translateY(-3px);
+}
+
+/**
+ * .landing-fade-in-up
+ * Initial state: translated down 16px + transparent.
+ * When .is-visible is added (by IntersectionObserver), transitions to full opacity/position.
+ * Stagger delay driven by --reveal-delay CSS variable set by useScrollReveal.
+ *
+ * No layout shift on load — opacity:0 is intentional; elements still occupy space.
+ */
+.landing-fade-in-up {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 600ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
+}
+.landing-fade-in-up.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/**
+ * .landing-section-reveal — used on headings / section wrappers.
+ * Slightly slower, no delay by default.
+ */
+.landing-section-reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 700ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--reveal-delay, 0ms);
+}
+.landing-section-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Respect user motion preference — disable all scroll-reveal animations */
+@media (prefers-reduced-motion: reduce) {
+  .landing-fade-in-up,
+  .landing-section-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .landing-card-hover:hover,
+  .landing-flagship-card:hover {
+    transform: none !important;
+  }
+}
+
 /* Voice control button — pulsing green glow when mic is active */
 @keyframes voicePulse {
   0%, 100% { box-shadow: 0 0 8px 1px rgba(74, 222, 128, 0.3); }

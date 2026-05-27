@@ -40,9 +40,9 @@ export interface PaceBot {
 let resolvedPresets: PaceBot[] | null = null;
 try {
   // Dynamic require so a missing module doesn't break the build.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require('@/lib/paceBots') as { BOT_PRESETS?: PaceBot[] };
-  if (Array.isArray(mod.BOT_PRESETS) && mod.BOT_PRESETS.length > 0) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mod = (globalThis as any).require?.('@/lib/paceBots') as { BOT_PRESETS?: PaceBot[] } | undefined;
+  if (mod && Array.isArray(mod.BOT_PRESETS) && mod.BOT_PRESETS.length > 0) {
     resolvedPresets = mod.BOT_PRESETS;
   }
 } catch {

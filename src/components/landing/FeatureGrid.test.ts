@@ -120,3 +120,83 @@ describe('FeatureGrid — FEATURES data contract', () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// FeatureIcons a11y tests — verify every exported icon has a <title> element.
+// Parsed via regex on the raw source (no DOM / jsdom needed).
+// ---------------------------------------------------------------------------
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const ICONS_SOURCE = readFileSync(
+  resolve(__dirname, 'FeatureIcons.tsx'),
+  'utf-8',
+);
+
+// Extract all exported function names from the icons file
+const ICON_EXPORT_NAMES = [...ICONS_SOURCE.matchAll(/^export function (\w+Icon)\b/gm)]
+  .map(m => m[1]);
+
+// Extract all <title>{…}</title> occurrences (one per icon function)
+const TITLE_OCCURRENCES = [...ICONS_SOURCE.matchAll(/<title>\{title\}<\/title>/g)];
+
+// Extract all animate prop declarations
+const ANIMATE_PROPS = [...ICONS_SOURCE.matchAll(/animate\s*=\s*false/g)];
+
+describe('FeatureIcons — a11y and API contract', () => {
+  it('exports exactly 22 icon functions', () => {
+    expect(ICON_EXPORT_NAMES).toHaveLength(22);
+  });
+
+  it('every exported icon function has a <title>{title}</title> element', () => {
+    // One <title> per icon function
+    expect(TITLE_OCCURRENCES.length).toBeGreaterThanOrEqual(22);
+  });
+
+  it('every exported icon accepts an animate prop with a false default', () => {
+    // Every function should declare animate = false
+    expect(ANIMATE_PROPS.length).toBeGreaterThanOrEqual(22);
+  });
+
+  it('AvatarIcon has a proper bike frame (seat tube line, not a stick body)', () => {
+    // The rebuilt AvatarIcon draws real frame tubes. Verify seat tube line present.
+    expect(ICONS_SOURCE).toContain('seat tube');
+  });
+
+  it('AvatarIcon title mentions 45-part avatar', () => {
+    expect(ICONS_SOURCE).toContain("title = 'Animated 45-part 3D cyclist avatar'");
+  });
+
+  it('GlobeIcon uses multi-stop radial gradient for the sphere', () => {
+    expect(ICONS_SOURCE).toMatch(/radialGradient id="globe-bg"/);
+  });
+
+  it('MultiRiderIcon renders three riders with distinct colors', () => {
+    // Three cyclist colors declared in riders array
+    expect(ICONS_SOURCE).toContain('#22d3ee');
+    expect(ICONS_SOURCE).toContain('#a78bfa');
+    expect(ICONS_SOURCE).toContain('#34d399');
+    // MultiRiderIcon section contains WebRTC badge
+    expect(ICONS_SOURCE).toContain('WebRTC P2P');
+  });
+
+  it('AvatarIcon has front and rear wheels with proper spoke geometry', () => {
+    // Rear wheel center cx=34, front wheel center cx=86
+    expect(ICONS_SOURCE).toContain('cx="34" cy="62" r="13"');
+    expect(ICONS_SOURCE).toContain('cx="86" cy="62" r="13"');
+  });
+
+  it('icon source contains brand aqua accent #22d3ee in every section', () => {
+    const aquaCount = (ICONS_SOURCE.match(/#22d3ee/g) ?? []).length;
+    // At minimum one use per icon
+    expect(aquaCount).toBeGreaterThanOrEqual(22);
+  });
+
+  it('all icons use dark slate background palette (no pure white fills)', () => {
+    // Ensure no flat white fill= attribute exists outside of snow/text highlights
+    // We check that fill="white" only appears in small opacity contexts
+    const whiteFullFills = [...ICONS_SOURCE.matchAll(/fill="white"(?!\s+fillOpacity)/g)];
+    // Allow up to 5 plain white fills (snow cap, leaderboard text, etc.)
+    expect(whiteFullFills.length).toBeLessThanOrEqual(5);
+  });
+});

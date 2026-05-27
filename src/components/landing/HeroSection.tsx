@@ -1,7 +1,9 @@
-import { ArrowRight, Github, Play } from 'lucide-react';
+import { ArrowRight, Github, Play, MonitorPlay } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { HeroVisual } from './HeroVisual';
+import { DemoModal } from './DemoModal';
 
 function StatBadge({ value, label, delay = 0 }: { value: string; label: string; delay?: number }) {
   return (
@@ -22,6 +24,32 @@ function StatBadge({ value, label, delay = 0 }: { value: string; label: string; 
 
 export function HeroSection() {
   const navigate = useNavigate();
+  const [demoOpen, setDemoOpen] = useState(false);
+  const visualRef = useRef<HTMLDivElement>(null);
+
+  // Mouse-tracking parallax on hero visual — ≤8px offset, skipped for reduced-motion
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
+    const MAX_OFFSET = 8;
+    function onMouseMove(e: MouseEvent) {
+      if (!visualRef.current) return;
+      const dx = ((e.clientX - window.innerWidth / 2) / (window.innerWidth / 2)) * MAX_OFFSET;
+      const dy = ((e.clientY - window.innerHeight / 2) / (window.innerHeight / 2)) * MAX_OFFSET;
+      visualRef.current.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+    }
+    function onMouseLeave() {
+      if (visualRef.current) visualRef.current.style.transform = 'translate(0,0)';
+    }
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mouseleave', onMouseLeave);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseleave', onMouseLeave);
+    };
+  }, []);
 
   return (
     <section className="relative min-h-[92vh] flex items-center overflow-hidden">
@@ -63,7 +91,7 @@ export function HeroSection() {
 
           <h1
             className="font-extrabold text-white animate-fadeUp [animation-delay:60ms]"
-            style={{ fontSize: 'clamp(3rem, 8vw, 6rem)', lineHeight: '0.95', letterSpacing: '-0.04em' }}
+            style={{ fontSize: 'clamp(3.25rem, 8.5vw, 6.5rem)', lineHeight: '0.93', letterSpacing: '-0.045em' }}
           >
             Ride{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -74,8 +102,8 @@ export function HeroSection() {
           </h1>
 
           <p
-            className="mt-5 sm:mt-7 max-w-xl text-base sm:text-lg lg:text-xl leading-relaxed animate-fadeUp [animation-delay:120ms] mx-auto lg:mx-0"
-            style={{ color: 'hsl(215 18% 60%)' }}
+            className="mt-5 sm:mt-7 max-w-xl text-base sm:text-lg lg:text-xl animate-fadeUp [animation-delay:120ms] mx-auto lg:mx-0"
+            style={{ color: 'hsl(215 18% 60%)', lineHeight: '1.75' }}
           >
             Upload a GPX from Strava. GlobeRide renders your route on a{' '}
             <span className="text-white font-medium">photorealistic 3D globe</span> with real terrain,
@@ -94,6 +122,15 @@ export function HeroSection() {
             >
               <Play className="h-4 w-4" fill="currentColor" />
               Try demo route
+            </button>
+
+            <button
+              onClick={() => setDemoOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm sm:text-base active:scale-[0.97] transition-all duration-200"
+              style={{ height: '3.5rem', padding: '0 1.75rem', background: 'transparent', color: '#22d3ee', border: '1px solid hsl(195 92% 56% / 0.35)', cursor: 'pointer' }}
+            >
+              <MonitorPlay className="h-4 w-4" />
+              Watch demo
             </button>
 
             <Button
@@ -142,7 +179,13 @@ export function HeroSection() {
           className="relative flex-1 flex items-center justify-center w-full max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms]"
           style={{ minHeight: '320px' }}
         >
-          <HeroVisual />
+          {/* Parallax wrapper — mouse-tracking via useEffect above */}
+          <div
+            ref={visualRef}
+            style={{ width: '100%', transition: 'transform 120ms cubic-bezier(0.2,0.8,0.2,1)', willChange: 'transform' }}
+          >
+            <HeroVisual />
+          </div>
         </div>
       </div>
 
@@ -152,6 +195,8 @@ export function HeroSection() {
           <div className="h-1.5 w-1.5 rounded-full bg-cyan-400/70" style={{ animation: 'scrollDot 2s ease-in-out infinite' }} />
         </div>
       </div>
+
+      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </section>
   );
 }

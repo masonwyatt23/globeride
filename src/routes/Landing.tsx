@@ -1,9 +1,12 @@
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { DemoRideSection } from '@/components/landing/DemoRideSection';
-import { GallerySection } from '@/components/landing/GallerySection';
+import { QuickstartSection } from '@/components/landing/QuickstartSection';
 import { FeatureGrid } from '@/components/landing/FeatureGrid';
+import { RidersSection } from '@/components/landing/RidersSection';
+import { GallerySection } from '@/components/landing/GallerySection';
 import { HowItWorks } from '@/components/landing/HowItWorks';
+import { ComparisonSection } from '@/components/landing/ComparisonSection';
 import { LandingCTA } from '@/components/landing/LandingCTA';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
@@ -19,6 +22,11 @@ function Divider() {
  * Public marketing landing page — entry point at /.
  * The ride-setup app lives at /app.
  * Dark "deep space" theme with cyan (#22d3ee) accent throughout.
+ *
+ * Section order (Wave 40.C additions marked with *):
+ *   HeroSection → DemoRideSection → *QuickstartSection → FeatureGrid
+ *   → *RidersSection → GallerySection → HowItWorks → *ComparisonSection
+ *   → LandingCTA
  */
 export function Landing() {
   return (
@@ -38,7 +46,8 @@ export function Landing() {
 
         <Divider />
 
-        <GallerySection />
+        {/* Wave 40.C — makes "this looks easy to try" visceral before the feature grid */}
+        <QuickstartSection />
 
         <Divider />
 
@@ -46,7 +55,21 @@ export function Landing() {
 
         <Divider />
 
+        {/* Wave 40.C — scenario cards showing what the experience offers */}
+        <RidersSection />
+
+        <Divider />
+
+        <GallerySection />
+
+        <Divider />
+
         <HowItWorks />
+
+        <Divider />
+
+        {/* Wave 40.C — philosophy comparison near the bottom, just before CTA */}
+        <ComparisonSection />
 
         <Divider />
 

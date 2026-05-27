@@ -1,13 +1,37 @@
 /**
  * FeatureIcons.tsx — bespoke SVG illustrations for FeatureGrid cards.
- * Each icon is ~120×80 viewBox, decorative, tunable via CSS custom properties.
- * All SVGs have a <title> for non-decorative usage and accept aria-hidden
- * when used purely as decoration (controlled by the parent).
+ * Each icon is 120×80 viewBox. Multi-stop gradients, proper proportions,
+ * brand aqua #22d3ee accents, dark slate #0f172a backgrounds.
+ *
+ * All SVGs expose:
+ *   - <title> for a11y (non-decorative usage)
+ *   - animate?: boolean — enables subtle CSS keyframe animations (default off)
+ *
+ * No runtime computation, no requestAnimationFrame. Pure static SVG.
  */
 
 import type { SVGProps } from 'react';
 
-type IconProps = SVGProps<SVGSVGElement> & { title?: string };
+// ─── Keyframe styles injected once ─────────────────────────────────────────
+const ANIM_STYLES = `
+@keyframes fi-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fi-pulse { 0%,100% { opacity:0.4; } 50% { opacity:1; } }
+@keyframes fi-dash { to { stroke-dashoffset: -24; } }
+@keyframes fi-glow { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+@keyframes fi-wave { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(1.5); } }
+@keyframes fi-blink { 0%,90%,100% { opacity:1; } 95% { opacity:0; } }
+`;
+
+let _stylesInjected = false;
+function ensureStyles() {
+  if (_stylesInjected || typeof document === 'undefined') return;
+  _stylesInjected = true;
+  const s = document.createElement('style');
+  s.textContent = ANIM_STYLES;
+  document.head.appendChild(s);
+}
+
+type IconProps = SVGProps<SVGSVGElement> & { title?: string; animate?: boolean };
 
 const base: SVGProps<SVGSVGElement> = {
   viewBox: '0 0 120 80',
@@ -16,49 +40,76 @@ const base: SVGProps<SVGSVGElement> = {
 };
 
 // ── Globe / photoreal world ─────────────────────────────────────────────────
-export function GlobeIcon({ title = 'Photoreal 3D world', ...props }: IconProps) {
+export function GlobeIcon({ title = 'Photoreal 3D world', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
       <defs>
-        <radialGradient id="globe-bg" cx="50%" cy="40%" r="55%">
-          <stop offset="0%" stopColor="hsl(215 55% 18%)" />
-          <stop offset="100%" stopColor="hsl(215 70% 5%)" />
+        <radialGradient id="globe-bg" cx="38%" cy="34%" r="60%">
+          <stop offset="0%" stopColor="#1e3a5f" />
+          <stop offset="55%" stopColor="#0c1f3a" />
+          <stop offset="100%" stopColor="#050e1f" />
         </radialGradient>
-        <radialGradient id="globe-glow" cx="38%" cy="34%" r="55%">
-          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.15" />
+        <radialGradient id="globe-atm" cx="35%" cy="30%" r="55%">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
         </radialGradient>
+        <radialGradient id="globe-land" cx="55%" cy="45%" r="45%">
+          <stop offset="0%" stopColor="#1a4a2e" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#0d2a1a" stopOpacity="0.4" />
+        </radialGradient>
+        <filter id="globe-drop">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#22d3ee" floodOpacity="0.25" />
+        </filter>
+        <clipPath id="globe-clip">
+          <circle cx="60" cy="40" r="28" />
+        </clipPath>
       </defs>
-      {/* sphere */}
-      <circle cx="60" cy="40" r="30" fill="url(#globe-bg)" />
-      <circle cx="60" cy="40" r="30" fill="url(#globe-glow)" />
-      <circle cx="60" cy="40" r="30" stroke="#22d3ee" strokeWidth="0.6" strokeOpacity="0.4" />
+      {/* sphere base */}
+      <circle cx="60" cy="40" r="28" fill="url(#globe-bg)" filter="url(#globe-drop)" />
+      <circle cx="60" cy="40" r="28" fill="url(#globe-atm)" />
+      {/* land masses */}
+      <g clipPath="url(#globe-clip)">
+        <ellipse cx="52" cy="34" rx="12" ry="8" fill="url(#globe-land)" />
+        <ellipse cx="70" cy="46" rx="9" ry="6" fill="url(#globe-land)" />
+        <ellipse cx="44" cy="50" rx="6" ry="4" fill="url(#globe-land)" />
+      </g>
       {/* latitude lines */}
-      {[-14, 0, 14].map((dy, i) => (
-        <ellipse key={i} cx="60" cy={40 + dy} rx={Math.sqrt(900 - dy * dy)} ry="5"
-          stroke="#22d3ee" strokeWidth="0.4" strokeOpacity="0.2" />
-      ))}
+      {([-12, 0, 12] as number[]).map((dy, i) => {
+        const rx = Math.sqrt(Math.max(0, 784 - dy * dy));
+        return (
+          <ellipse key={i} cx="60" cy={40 + dy} rx={rx} ry="5"
+            stroke="#22d3ee" strokeWidth="0.4" strokeOpacity="0.18"
+            clipPath="url(#globe-clip)" />
+        );
+      })}
       {/* meridians */}
-      <ellipse cx="60" cy="40" rx="4" ry="30" stroke="#22d3ee" strokeWidth="0.4" strokeOpacity="0.18" />
-      <ellipse cx="60" cy="40" rx="4" ry="30" stroke="#22d3ee" strokeWidth="0.4" strokeOpacity="0.18"
-        transform="rotate(60 60 40)" />
-      <ellipse cx="60" cy="40" rx="4" ry="30" stroke="#22d3ee" strokeWidth="0.4" strokeOpacity="0.18"
-        transform="rotate(-60 60 40)" />
-      {/* route arc */}
-      <path d="M38 50 C46 43 54 40 60 38 C68 36 76 34 83 31"
-        stroke="#22d3ee" strokeWidth="1.8" strokeLinecap="round" />
+      {([0, 60, -60] as number[]).map((rot, i) => (
+        <ellipse key={i} cx="60" cy="40" rx="4" ry="28"
+          stroke="#22d3ee" strokeWidth="0.35" strokeOpacity="0.15"
+          transform={`rotate(${rot} 60 40)`}
+          clipPath="url(#globe-clip)" />
+      ))}
+      {/* glowing route arc */}
+      <path d="M40 52 C48 44 55 41 60 38 C67 35 76 33 84 30"
+        stroke="#22d3ee" strokeWidth="2" strokeLinecap="round"
+        style={animate ? { animation: 'fi-dash 2s linear infinite', strokeDasharray: '6 3' } : undefined} />
       {/* start dot */}
-      <circle cx="38" cy="50" r="2.5" fill="hsl(158 80% 42%)" />
-      {/* end dot with pulse ring */}
-      <circle cx="83" cy="31" r="4" stroke="#22d3ee" strokeWidth="0.8" strokeOpacity="0.4" />
-      <circle cx="83" cy="31" r="2" fill="#22d3ee" />
+      <circle cx="40" cy="52" r="2.8" fill="#34d399" />
+      {/* end dot with pulse */}
+      <circle cx="84" cy="30" r="5" stroke="#22d3ee" strokeWidth="0.8" strokeOpacity="0.3"
+        style={animate ? { animation: 'fi-pulse 1.6s ease-in-out infinite' } : undefined} />
+      <circle cx="84" cy="30" r="2.2" fill="#22d3ee" />
+      {/* atmosphere ring */}
+      <circle cx="60" cy="40" r="30" stroke="#22d3ee" strokeWidth="0.5" strokeOpacity="0.22" />
     </svg>
   );
 }
 
 // ── FTMS / smart trainer resistance ────────────────────────────────────────
-export function FTMSIcon({ title = 'FTMS smart trainer resistance', ...props }: IconProps) {
+export function FTMSIcon({ title = 'FTMS smart trainer resistance', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -92,45 +143,155 @@ export function FTMSIcon({ title = 'FTMS smart trainer resistance', ...props }: 
   );
 }
 
-// ── 3D Animated avatar ──────────────────────────────────────────────────────
-export function AvatarIcon({ title = 'Animated 3D cyclist avatar', ...props }: IconProps) {
+// ── 3D Animated avatar — proper cyclist on a detailed bike frame ─────────────
+export function AvatarIcon({ title = 'Animated 45-part 3D cyclist avatar', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
+  // Road cyclist in aero tuck on a fully detailed diamond frame.
+  // Wheel centers: rear cx=34,cy=62  front cx=86,cy=62
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
+      <defs>
+        <linearGradient id="av-frame" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#2563eb" />
+        </linearGradient>
+        <linearGradient id="av-kit" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#0891b2" />
+        </linearGradient>
+        <radialGradient id="av-helmet" cx="40%" cy="35%" r="55%">
+          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#c2410c" />
+        </radialGradient>
+        <radialGradient id="av-skin" cx="40%" cy="35%" r="55%">
+          <stop offset="0%" stopColor="#fcd34d" />
+          <stop offset="100%" stopColor="#d97706" />
+        </radialGradient>
+        <filter id="av-shadow">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000" floodOpacity="0.35" />
+        </filter>
+      </defs>
+
+      {/* ── BIKE FRAME ── */}
+      {/* rear wheel */}
+      <circle cx="34" cy="62" r="13" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
+      <circle cx="34" cy="62" r="9.5" fill="none" stroke="#334155" strokeWidth="0.5" />
+      {([0, 36, 72, 108, 144, 180, 216, 252, 288, 324] as number[]).map(a => (
+        <line key={`rs${a}`}
+          x1="34" y1="62"
+          x2={34 + 11 * Math.cos((a * Math.PI) / 180)}
+          y2={62 + 11 * Math.sin((a * Math.PI) / 180)}
+          stroke="#64748b" strokeWidth="0.5" />
+      ))}
+      <circle cx="34" cy="62" r="2.5" fill="#94a3b8" />
+      <circle cx="34" cy="62" r="1" fill="#22d3ee" />
+
+      {/* front wheel */}
+      <circle cx="86" cy="62" r="13" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
+      <circle cx="86" cy="62" r="9.5" fill="none" stroke="#334155" strokeWidth="0.5" />
+      {([0, 36, 72, 108, 144, 180, 216, 252, 288, 324] as number[]).map(a => (
+        <line key={`fs${a}`}
+          x1="86" y1="62"
+          x2={86 + 11 * Math.cos((a * Math.PI) / 180)}
+          y2={62 + 11 * Math.sin((a * Math.PI) / 180)}
+          stroke="#64748b" strokeWidth="0.5"
+          style={animate ? { transformOrigin: '86px 62px', animation: 'fi-spin 2s linear infinite' } : undefined}
+        />
+      ))}
+      <circle cx="86" cy="62" r="2.5" fill="#94a3b8" />
+      <circle cx="86" cy="62" r="1" fill="#22d3ee" />
+
+      {/* seat tube */}
+      <line x1="34" y1="62" x2="46" y2="38" stroke="url(#av-frame)" strokeWidth="2.2" strokeLinecap="round" />
+      {/* top tube */}
+      <line x1="46" y1="38" x2="72" y2="36" stroke="url(#av-frame)" strokeWidth="1.8" strokeLinecap="round" />
+      {/* down tube */}
+      <line x1="72" y1="36" x2="38" y2="58" stroke="url(#av-frame)" strokeWidth="2" strokeLinecap="round" />
+      {/* chain stay */}
+      <line x1="38" y1="58" x2="34" y2="62" stroke="url(#av-frame)" strokeWidth="1.6" strokeLinecap="round" />
+      {/* fork */}
+      <line x1="72" y1="36" x2="86" y2="62" stroke="url(#av-frame)" strokeWidth="1.8" strokeLinecap="round" />
+      {/* seat stay */}
+      <line x1="46" y1="38" x2="34" y2="62" stroke="url(#av-frame)" strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.65" />
+
+      {/* bottom bracket */}
+      <circle cx="38" cy="58" r="3.5" fill="#475569" />
+      <circle cx="38" cy="58" r="1.8" fill="#94a3b8" />
+      {/* crank arm */}
+      <line x1="38" y1="58" x2="44" y2="64" stroke="#64748b" strokeWidth="2" strokeLinecap="round" />
+      {/* pedal */}
+      <rect x="41" y="63" width="6" height="2" rx="0.5" fill="#475569" />
+
+      {/* saddle */}
+      <path d="M42 37 Q46 34 52 35 Q50 38 42 37 Z" fill="#1e293b" stroke="#475569" strokeWidth="0.8" />
+      <line x1="46" y1="38" x2="47" y2="35" stroke="#475569" strokeWidth="1.5" />
+
+      {/* handlebar stem */}
+      <line x1="72" y1="36" x2="74" y2="30" stroke="#64748b" strokeWidth="1.8" strokeLinecap="round" />
+      {/* drop bars */}
+      <path d="M68 30 Q74 28 80 30 Q81 33 79 34" stroke="#64748b" strokeWidth="1.6"
+        fill="none" strokeLinecap="round" />
+      {/* brake hoods */}
+      <ellipse cx="70" cy="30" rx="2.5" ry="1.5" fill="#334155" />
+      <ellipse cx="78" cy="30" rx="2.5" ry="1.5" fill="#334155" />
+
+      {/* ── RIDER ── */}
+      {/* torso — aero tuck, flat back */}
+      <path d="M48 38 L66 28 L68 30 L50 42 Z" fill="url(#av-kit)" filter="url(#av-shadow)" />
+      {/* kit stripe */}
+      <line x1="50" y1="41" x2="66" y2="30" stroke="#22d3ee" strokeWidth="0.8" strokeOpacity="0.4" />
+
+      {/* upper arm reaching to bars */}
+      <path d="M50 40 L62 30" stroke="url(#av-skin)" strokeWidth="3.5" strokeLinecap="round" />
+      {/* forearm */}
+      <path d="M62 30 L70 30" stroke="url(#av-skin)" strokeWidth="2.8" strokeLinecap="round" />
+      {/* glove */}
+      <ellipse cx="70" cy="30" rx="2.5" ry="1.5" fill="#1e293b" stroke="#22d3ee" strokeWidth="0.6" />
+
+      {/* hip / bib shorts */}
+      <ellipse cx="48" cy="40" rx="5" ry="4" fill="#1e293b" />
+
+      {/* right leg — power stroke down */}
+      <path d="M48 42 L44 52 L46 60" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" />
+      <path d="M48 42 L44 52 L46 60" stroke="url(#av-kit)" strokeWidth="2.5" strokeLinecap="round" />
+      {/* left leg — recovery */}
+      <path d="M49 42 L52 52 L50 60" stroke="#1e293b" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.55" />
+      <path d="M49 42 L52 52 L50 60" stroke="url(#av-kit)" strokeWidth="2.5" strokeLinecap="round" strokeOpacity="0.55" />
+      {/* cycling shoes */}
+      <rect x="42" y="58" width="7" height="3.5" rx="1" fill="#1e293b" stroke="#22d3ee" strokeWidth="0.5" />
+      <rect x="47" y="58" width="7" height="3.5" rx="1" fill="#1e293b" stroke="#22d3ee" strokeWidth="0.5" strokeOpacity="0.4" />
+
+      {/* ── HEAD & HELMET ── */}
       {/* head */}
-      <circle cx="60" cy="18" r="6" stroke="#22d3ee" strokeWidth="1.2" fill="hsl(215 55% 10%)" />
-      {/* helmet highlight */}
-      <path d="M55 16 Q60 12 65 16" stroke="#22d3ee" strokeWidth="1" strokeOpacity="0.5" />
-      {/* torso */}
-      <path d="M60 24 L58 38 L62 38 L60 24" stroke="#22d3ee" strokeWidth="1.4"
-        strokeLinecap="round" fill="none" />
-      {/* arms — aero tuck */}
-      <path d="M60 27 L48 32 L44 36" stroke="hsl(158 80% 42%)" strokeWidth="1.2"
-        strokeLinecap="round" />
-      <path d="M60 27 L72 32 L76 36" stroke="hsl(158 80% 42%)" strokeWidth="1.2"
-        strokeLinecap="round" />
-      {/* handlebars */}
-      <line x1="44" y1="36" x2="76" y2="36" stroke="hsl(215 26% 30%)" strokeWidth="2" strokeLinecap="round" />
-      {/* legs */}
-      <path d="M59 38 L54 52 L50 58" stroke="#22d3ee" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M61 38 L66 52 L70 58" stroke="hsl(158 80% 42%)" strokeWidth="1.4" strokeLinecap="round" />
-      {/* bike frame */}
-      <path d="M50 58 L60 44 L70 58 L80 50 M70 58 L85 50"
-        stroke="hsl(215 26% 28%)" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      {/* wheels */}
-      <circle cx="48" cy="58" r="10" stroke="hsl(215 26% 24%)" strokeWidth="1.2" />
-      <circle cx="82" cy="58" r="10" stroke="hsl(215 26% 24%)" strokeWidth="1.2" />
-      <circle cx="48" cy="58" r="2" fill="hsl(215 26% 28%)" />
-      <circle cx="82" cy="58" r="2" fill="hsl(215 26% 28%)" />
+      <circle cx="71" cy="23" r="5" fill="url(#av-skin)" />
+      {/* aero helmet shell with vents */}
+      <path d="M65.5 22 Q67 16 71 15 Q76 14 77 20 L77 22 Q74 24 71 24 Q68 24 65.5 22 Z"
+        fill="url(#av-helmet)" />
+      <line x1="68" y1="17" x2="68" y2="22" stroke="#c2410c" strokeWidth="0.6" strokeOpacity="0.45" />
+      <line x1="71" y1="16" x2="71" y2="22" stroke="#c2410c" strokeWidth="0.6" strokeOpacity="0.45" />
+      <line x1="74" y1="17" x2="74" y2="22" stroke="#c2410c" strokeWidth="0.6" strokeOpacity="0.45" />
+      {/* cycling glasses */}
+      <path d="M65.5 24 Q68 25.5 70 25 Q72 25.5 74 24.5"
+        stroke="#0f172a" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+
+      {/* 45-parts badge */}
+      <rect x="3" y="4" width="28" height="11" rx="3"
+        fill="#22d3ee1a" stroke="#22d3ee50" strokeWidth="0.7" />
+      <text x="17" y="12" textAnchor="middle" fontSize="5" fill="#22d3ee"
+        fontFamily="monospace" fontWeight="700">45 parts</text>
+
       {/* motion lines */}
-      <line x1="20" y1="55" x2="35" y2="55" stroke="#22d3ee" strokeWidth="1" strokeOpacity="0.4" />
-      <line x1="22" y1="60" x2="34" y2="60" stroke="#22d3ee" strokeWidth="0.7" strokeOpacity="0.25" />
+      <line x1="6" y1="52" x2="20" y2="52" stroke="#22d3ee" strokeWidth="1.2" strokeOpacity="0.5" strokeLinecap="round" />
+      <line x1="8" y1="57" x2="18" y2="57" stroke="#22d3ee" strokeWidth="0.8" strokeOpacity="0.3" strokeLinecap="round" />
+      <line x1="10" y1="61" x2="17" y2="61" stroke="#22d3ee" strokeWidth="0.5" strokeOpacity="0.2" strokeLinecap="round" />
     </svg>
   );
 }
 
 // ── 5 Camera modes ─────────────────────────────────────────────────────────
-export function CamerasIcon({ title = '5 cinematic camera modes', ...props }: IconProps) {
+export function CamerasIcon({ title = '5 cinematic camera modes', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   const views = [
     { x: 8, y: 8, w: 28, h: 20, label: 'CHASE', active: true },
     { x: 40, y: 8, w: 28, h: 20, label: 'FPV', active: false },
@@ -170,7 +331,8 @@ export function CamerasIcon({ title = '5 cinematic camera modes', ...props }: Ic
 }
 
 // ── .FIT export to Strava ───────────────────────────────────────────────────
-export function FITExportIcon({ title = '.FIT export to Strava', ...props }: IconProps) {
+export function FITExportIcon({ title = '.FIT export to Strava', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -203,7 +365,8 @@ export function FITExportIcon({ title = '.FIT export to Strava', ...props }: Ico
 }
 
 // ── Structured workouts ─────────────────────────────────────────────────────
-export function WorkoutsIcon({ title = 'Structured ERG workouts', ...props }: IconProps) {
+export function WorkoutsIcon({ title = 'Structured ERG workouts', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   const bars = [25, 40, 40, 70, 70, 70, 100, 100, 60, 60, 85, 85, 85, 40, 25];
   const zoneColors = (h: number) =>
     h >= 90 ? '#22d3ee' : h >= 70 ? 'hsl(195 92% 56% / 0.75)' : h >= 50 ? 'hsl(195 92% 56% / 0.5)' : 'hsl(195 92% 56% / 0.28)';
@@ -231,7 +394,8 @@ export function WorkoutsIcon({ title = 'Structured ERG workouts', ...props }: Ic
 }
 
 // ── PWA / installable ───────────────────────────────────────────────────────
-export function PWAIcon({ title = 'Installable PWA — works offline', ...props }: IconProps) {
+export function PWAIcon({ title = 'Installable PWA — works offline', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -260,44 +424,68 @@ export function PWAIcon({ title = 'Installable PWA — works offline', ...props 
 }
 
 // ── WebRTC multi-rider ──────────────────────────────────────────────────────
-export function MultiRiderIcon({ title = 'WebRTC multi-rider ghost peloton', ...props }: IconProps) {
+export function MultiRiderIcon({ title = 'WebRTC multi-rider ghost peloton', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
+  // Three cyclists in a peloton with distinct colors + draft lines
+  type RiderSpec = { cx: number; color: string; opacity: number };
+  const riders: RiderSpec[] = [
+    { cx: 22, color: '#22d3ee', opacity: 1    },
+    { cx: 52, color: '#a78bfa', opacity: 0.9  },
+    { cx: 82, color: '#34d399', opacity: 0.85 },
+  ];
+
+  function MiniRider({ cx, color, opacity }: RiderSpec) {
+    const cy = 44;
+    return (
+      <g opacity={opacity}>
+        <circle cx={cx - 10} cy={cy + 10} r="9" fill="#0f172a" stroke={color} strokeWidth="1" strokeOpacity="0.7" />
+        <circle cx={cx + 10} cy={cy + 10} r="9" fill="#0f172a" stroke={color} strokeWidth="1" strokeOpacity="0.7" />
+        <polygon points={`${cx - 10},${cy + 10} ${cx - 4},${cy - 2} ${cx + 10},${cy + 10}`}
+          fill="none" stroke={color} strokeWidth="1.2" strokeOpacity="0.8" />
+        <line x1={cx - 4} y1={cy - 2} x2={cx + 6} y2={cy - 2} stroke={color} strokeWidth="1" strokeOpacity="0.8" />
+        <line x1={cx + 6} y1={cy - 2} x2={cx + 10} y2={cy + 10} stroke={color} strokeWidth="1.2" strokeOpacity="0.8" />
+        <line x1={cx + 4} y1={cy - 4} x2={cx + 9} y2={cy - 4} stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" />
+        <line x1={cx - 2} y1={cy - 2} x2={cx + 6} y2={cy - 8} stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeOpacity="0.9" />
+        <circle cx={cx + 6} cy={cy - 11} r="3.5" fill="#1e293b" stroke={color} strokeWidth="0.8" />
+        <line x1={cx + 4} y1={cy - 6} x2={cx + 7} y2={cy - 4} stroke={color} strokeWidth="1.2" strokeLinecap="round" strokeOpacity="0.8" />
+      </g>
+    );
+  }
+
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
-      {/* rider 1 (left) */}
-      <circle cx="28" cy="20" r="5" fill="hsl(215 55% 10%)" stroke="#22d3ee" strokeWidth="1" />
-      <circle cx="28" cy="38" r="8" fill="hsl(215 55% 8%)" stroke="#22d3ee" strokeWidth="0.8" />
-      {/* rider 2 (right) */}
-      <circle cx="92" cy="20" r="5" fill="hsl(215 55% 10%)" stroke="hsl(158 80% 42%)" strokeWidth="1" />
-      <circle cx="92" cy="38" r="8" fill="hsl(215 55% 8%)" stroke="hsl(158 80% 42%)" strokeWidth="0.8" />
-      {/* glow connection line */}
       <defs>
         <linearGradient id="rtc-line" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="50%" stopColor="hsl(280 70% 60%)" />
-          <stop offset="100%" stopColor="hsl(158 80% 42%)" />
+          <stop offset="50%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#34d399" />
         </linearGradient>
       </defs>
-      <line x1="36" y1="38" x2="84" y2="38" stroke="url(#rtc-line)" strokeWidth="1.5"
-        strokeOpacity="0.8" strokeDasharray="4,3" />
-      {/* data packets */}
-      <circle cx="55" cy="38" r="2.5" fill="hsl(280 70% 60%)" />
-      <circle cx="65" cy="38" r="2.5" fill="hsl(280 70% 60%)" fillOpacity="0.6" />
-      {/* WebRTC label */}
-      <text x="60" y="58" textAnchor="middle" fontSize="5.5"
-        fill="hsl(280 70% 60%)" fontFamily="monospace" fontWeight="700">WebRTC</text>
-      {/* pulse rings */}
-      <circle cx="28" cy="38" r="13" stroke="#22d3ee" strokeWidth="0.6" strokeOpacity="0.25" />
-      <circle cx="92" cy="38" r="13" stroke="hsl(158 80% 42%)" strokeWidth="0.6" strokeOpacity="0.25" />
-      {/* names */}
-      <text x="28" y="72" textAnchor="middle" fontSize="5" fill="#22d3ee" fontFamily="monospace">You</text>
-      <text x="92" y="72" textAnchor="middle" fontSize="5" fill="hsl(158 80% 42%)" fontFamily="monospace">Ghost</text>
+      {/* road */}
+      <rect x="0" y="56" width="120" height="24" fill="#0f172a" />
+      <line x1="60" y1="56" x2="60" y2="80" stroke="#334155" strokeWidth="0.8" strokeDasharray="4,4" />
+      {/* draft lines */}
+      <path d="M32 50 Q42 50 52 50" stroke="#22d3ee" strokeWidth="0.6" strokeOpacity="0.3" strokeDasharray="3,3"
+        style={animate ? { animation: 'fi-dash 1.2s linear infinite' } : undefined} />
+      <path d="M62 50 Q72 50 82 50" stroke="#a78bfa" strokeWidth="0.6" strokeOpacity="0.3" strokeDasharray="3,3"
+        style={animate ? { animation: 'fi-dash 1.2s linear infinite' } : undefined} />
+      {/* draft cones */}
+      <path d="M32 42 L52 46 L32 50 Z" fill="#22d3ee" fillOpacity="0.05" />
+      <path d="M62 42 L82 46 L62 50 Z" fill="#a78bfa" fillOpacity="0.05" />
+      {/* riders */}
+      {riders.map(r => <MiniRider key={r.cx} {...r} />)}
+      {/* WebRTC badge */}
+      <rect x="30" y="6" width="60" height="14" rx="4" fill="#1e0a3a" stroke="#a78bfa" strokeWidth="0.8" />
+      <text x="60" y="15" textAnchor="middle" fontSize="5.5"
+        fill="#a78bfa" fontFamily="monospace" fontWeight="700">WebRTC P2P</text>
     </svg>
   );
 }
 
 // ── AI live commentary ──────────────────────────────────────────────────────
-export function CommentaryIcon({ title = 'AI live race commentary', ...props }: IconProps) {
+export function CommentaryIcon({ title = 'AI live race commentary', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -329,7 +517,8 @@ export function CommentaryIcon({ title = 'AI live race commentary', ...props }: 
 }
 
 // ── AI training coach / pace bots ───────────────────────────────────────────
-export function PaceBotsIcon({ title = 'AI pace bots with drafting', ...props }: IconProps) {
+export function PaceBotsIcon({ title = 'AI pace bots with drafting', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -362,7 +551,8 @@ export function PaceBotsIcon({ title = 'AI pace bots with drafting', ...props }:
 }
 
 // ── Strava live segments ────────────────────────────────────────────────────
-export function SegmentsIcon({ title = 'Strava live segments overlay', ...props }: IconProps) {
+export function SegmentsIcon({ title = 'Strava live segments overlay', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -392,7 +582,8 @@ export function SegmentsIcon({ title = 'Strava live segments overlay', ...props 
 }
 
 // ── Outdoor GPS mode ────────────────────────────────────────────────────────
-export function OutdoorGPSIcon({ title = 'Outdoor GPS ride recording', ...props }: IconProps) {
+export function OutdoorGPSIcon({ title = 'Outdoor GPS ride recording', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -425,7 +616,8 @@ export function OutdoorGPSIcon({ title = 'Outdoor GPS ride recording', ...props 
 }
 
 // ── Voice cues ──────────────────────────────────────────────────────────────
-export function VoiceCuesIcon({ title = 'Voice cues and workout coaching', ...props }: IconProps) {
+export function VoiceCuesIcon({ title = 'Voice cues and workout coaching', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -455,7 +647,8 @@ export function VoiceCuesIcon({ title = 'Voice cues and workout coaching', ...pr
 }
 
 // ── Climb auto-segmentation ─────────────────────────────────────────────────
-export function ClimbDetectIcon({ title = 'Automatic climb segmentation', ...props }: IconProps) {
+export function ClimbDetectIcon({ title = 'Automatic climb segmentation', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -487,7 +680,8 @@ export function ClimbDetectIcon({ title = 'Automatic climb segmentation', ...pro
 }
 
 // ── Handlebar gestures ──────────────────────────────────────────────────────
-export function GesturesIcon({ title = 'Handlebar gesture controls', ...props }: IconProps) {
+export function GesturesIcon({ title = 'Handlebar gesture controls', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -521,7 +715,8 @@ export function GesturesIcon({ title = 'Handlebar gesture controls', ...props }:
 }
 
 // ── Low-light / night HUD ───────────────────────────────────────────────────
-export function LowLightIcon({ title = 'Low-light night HUD mode', ...props }: IconProps) {
+export function LowLightIcon({ title = 'Low-light night HUD mode', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -555,7 +750,8 @@ export function LowLightIcon({ title = 'Low-light night HUD mode', ...props }: I
 }
 
 // ── Sun + atmosphere ────────────────────────────────────────────────────────
-export function SkyIcon({ title = 'Dynamic sun, clouds, and atmosphere', ...props }: IconProps) {
+export function SkyIcon({ title = 'Dynamic sun, clouds, and atmosphere', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -603,7 +799,8 @@ export function SkyIcon({ title = 'Dynamic sun, clouds, and atmosphere', ...prop
 }
 
 // ── Wet road reflections ────────────────────────────────────────────────────
-export function WetRoadIcon({ title = 'Wet road PBR reflections', ...props }: IconProps) {
+export function WetRoadIcon({ title = 'Wet road PBR reflections', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -637,7 +834,8 @@ export function WetRoadIcon({ title = 'Wet road PBR reflections', ...props }: Ic
 }
 
 // ── Spectator crowds ────────────────────────────────────────────────────────
-export function SpectatorIcon({ title = 'Spectator crowds on iconic climbs', ...props }: IconProps) {
+export function SpectatorIcon({ title = 'Spectator crowds on iconic climbs', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -673,7 +871,8 @@ export function SpectatorIcon({ title = 'Spectator crowds on iconic climbs', ...
 }
 
 // ── Keyboard shortcuts ──────────────────────────────────────────────────────
-export function KeyboardIcon({ title = 'Keyboard shortcuts during a ride', ...props }: IconProps) {
+export function KeyboardIcon({ title = 'Keyboard shortcuts during a ride', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   const keys = [
     { k: '←', x: 12, y: 46 }, { k: '→', x: 28, y: 46 }, { k: '↑', x: 44, y: 46 },
     { k: 'H', x: 60, y: 46 }, { k: 'M', x: 76, y: 46 }, { k: '⏸', x: 92, y: 46 },
@@ -710,7 +909,8 @@ export function KeyboardIcon({ title = 'Keyboard shortcuts during a ride', ...pr
 }
 
 // ── Route library / GPX upload ──────────────────────────────────────────────
-export function RouteLibraryIcon({ title = 'GPX route library — 19 iconic climbs', ...props }: IconProps) {
+export function RouteLibraryIcon({ title = 'GPX route library — 19 iconic climbs', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>
@@ -744,7 +944,8 @@ export function RouteLibraryIcon({ title = 'GPX route library — 19 iconic clim
 }
 
 // ── Cycling power physics ───────────────────────────────────────────────────
-export function PhysicsIcon({ title = 'Real-time cycling power physics', ...props }: IconProps) {
+export function PhysicsIcon({ title = 'Real-time cycling power physics', animate = false, ...props }: IconProps) {
+  if (animate) ensureStyles();
   return (
     <svg {...base} {...props}>
       <title>{title}</title>

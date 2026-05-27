@@ -7,6 +7,7 @@
  */
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useScrollReveal } from '@/lib/landing/useScrollReveal';
 import {
   MortiroloSunsetScene,
   FjordRainScene,
@@ -129,7 +130,7 @@ const SCENES: SceneCard[] = [
 
 // ── Scene Card ──────────────────────────────────────────────────────────────
 
-function SceneCardItem({ card, index }: { card: SceneCard; index: number }) {
+function SceneCardItem({ card }: { card: SceneCard }) {
   const navigate = useNavigate();
   const accent = card.accentColor;
 
@@ -139,22 +140,28 @@ function SceneCardItem({ card, index }: { card: SceneCard; index: number }) {
 
   return (
     <article
-      className="group relative flex-none w-72 sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer animate-fadeUp"
-      style={{
-        background: 'hsl(220 42% 6%)',
-        border: `1px solid ${accent}28`,
-        animationDelay: `${Math.min(index * 80, 480)}ms`,
-      }}
+      className="group relative flex-none w-72 sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer landing-card-glass landing-card-hover"
+      style={{ border: `1px solid ${accent}28` }}
       onClick={handleLaunch}
       onKeyDown={e => e.key === 'Enter' && handleLaunch()}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = `${accent}55`;
+        el.style.boxShadow = `0 0 0 1px ${accent}18, 0 20px 48px -16px ${accent}22`;
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLElement;
+        el.style.borderColor = `${accent}28`;
+        el.style.boxShadow = '';
+      }}
       role="button"
       tabIndex={0}
       aria-label={`Ride ${card.name} — ${card.mood}`}
     >
-      {/* Border glow on hover */}
+      {/* Inner inset glow on hover */}
       <div
         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{ boxShadow: `0 0 0 1px ${accent}55, inset 0 0 40px ${accent}06` }}
+        style={{ boxShadow: `inset 0 0 40px ${accent}06` }}
         aria-hidden
       />
 
@@ -229,6 +236,13 @@ function SceneCardItem({ card, index }: { card: SceneCard; index: number }) {
 
 export function GallerySection() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const headerRef = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+  const desktopGridRef = useScrollReveal<HTMLDivElement>({
+    childSelector: '.gallery-reveal-child',
+    delayStep: 80,
+    rootMargin: '0px 0px -60px 0px',
+    threshold: 0.08,
+  });
 
   return (
     <section className="relative py-20 sm:py-28 overflow-hidden" aria-labelledby="gallery-heading">
@@ -244,7 +258,7 @@ export function GallerySection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* Section header */}
-        <div className="text-center mb-12">
+        <div ref={headerRef} className="text-center mb-12 landing-section-reveal">
           <div
             className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{
@@ -289,9 +303,9 @@ export function GallerySection() {
           className="flex gap-4 overflow-x-auto px-4 sm:px-6 pb-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {SCENES.map((card, i) => (
+          {SCENES.map((card) => (
             <div key={card.id} className="snap-start">
-              <SceneCardItem card={card} index={i} />
+              <SceneCardItem card={card} />
             </div>
           ))}
         </div>
@@ -303,10 +317,15 @@ export function GallerySection() {
         />
       </div>
 
-      {/* Desktop: grid */}
-      <div className="hidden lg:grid max-w-7xl mx-auto px-10 gap-5 grid-cols-3">
-        {SCENES.map((card, i) => (
-          <SceneCardItem key={card.id} card={card} index={i} />
+      {/* Desktop: grid with scroll-reveal stagger */}
+      <div
+        ref={desktopGridRef}
+        className="hidden lg:grid max-w-7xl mx-auto px-10 gap-5 grid-cols-3"
+      >
+        {SCENES.map((card) => (
+          <div key={card.id} className="gallery-reveal-child landing-fade-in-up">
+            <SceneCardItem card={card} />
+          </div>
         ))}
       </div>
 

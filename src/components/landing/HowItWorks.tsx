@@ -1,5 +1,6 @@
 import { Upload, Bluetooth, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useScrollReveal } from '@/lib/landing/useScrollReveal';
 
 interface Step {
   n: string;
@@ -34,6 +35,14 @@ const STEPS: Step[] = [
 ];
 
 export function HowItWorks() {
+  const headerRef = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+  const stepsRef = useScrollReveal<HTMLDivElement>({
+    childSelector: '.step-reveal-child',
+    delayStep: 100,
+    rootMargin: '0px 0px -60px 0px',
+    threshold: 0.12,
+  });
+
   return (
     <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
@@ -44,7 +53,10 @@ export function HowItWorks() {
       </div>
 
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+        <div
+          ref={headerRef}
+          className="text-center mb-16 landing-section-reveal"
+        >
           <div
             className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{ background: 'hsl(195 92% 56% / 0.06)', border: '1px solid hsl(195 92% 56% / 0.18)', color: 'hsl(195 92% 56%)' }}
@@ -53,7 +65,7 @@ export function HowItWorks() {
           </div>
           <h2
             className="font-extrabold text-white"
-            style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             Zero friction from{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -65,7 +77,10 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3">
+        <div
+          ref={stepsRef}
+          className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3"
+        >
           {/* Connector line — desktop */}
           <div
             aria-hidden
@@ -80,14 +95,12 @@ export function HowItWorks() {
           {STEPS.map((step, i) => (
             <div
               key={step.n}
-              className="relative flex flex-col md:items-center md:text-center items-start text-left group animate-fadeUp"
-              style={{ animationDelay: `${i * 100}ms` }}
+              className="step-reveal-child landing-fade-in-up relative flex flex-col md:items-center md:text-center items-start text-left group"
             >
-              {/* Step bubble */}
+              {/* Step bubble — glass treatment */}
               <div
-                className="relative mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0"
+                className="relative mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0 landing-card-glass"
                 style={{
-                  background: 'hsl(220 42% 7%)',
                   border: `1px solid ${step.accent}30`,
                   boxShadow: `0 8px 32px -12px ${step.accent}25`,
                 }}

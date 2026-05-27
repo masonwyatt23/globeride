@@ -1,13 +1,14 @@
 /**
  * FeatureGrid — comprehensive feature showcase for GlobeRide.
  * Each card has a bespoke SVG illustration communicating the feature visually.
- * Layout: 3-col desktop / 2-col tablet / 1-col mobile.
+ * Wave 40.D: glass cards, scroll-reveal stagger, tier-based prominence, mobile-first grid.
  */
 import type { ReactNode } from 'react';
+import { FeatureGlobePreview } from './FeatureGlobePreview';
+import { FeatureAvatarPreview } from './FeatureAvatarPreview';
+import { useScrollReveal } from '@/lib/landing/useScrollReveal';
 import {
-  GlobeIcon,
   FTMSIcon,
-  AvatarIcon,
   CamerasIcon,
   FITExportIcon,
   WorkoutsIcon,
@@ -29,6 +30,8 @@ import {
   PhysicsIcon,
 } from './FeatureIcons';
 
+type Tier = 'flagship' | 'standard';
+
 interface Feature {
   id: string;
   illustration: ReactNode;
@@ -36,16 +39,18 @@ interface Feature {
   description: string;
   badge?: string;
   accentColor?: string;
+  tier?: Tier;
 }
 
 const FEATURES: Feature[] = [
   {
     id: 'globe',
-    illustration: <GlobeIcon aria-hidden />,
+    illustration: <FeatureGlobePreview />,
     title: '3D photoreal world',
     description:
       'Cesium ion + Google Photorealistic 3D Tiles render the entire Earth — real terrain, real buildings, real streets. Your route lives exactly where it belongs.',
     badge: 'Flagship',
+    tier: 'flagship',
   },
   {
     id: 'ftms',
@@ -53,13 +58,17 @@ const FEATURES: Feature[] = [
     title: 'Real gradient → real resistance',
     description:
       'FTMS Simulation Mode streams live road grade to your Kickr Core, Tacx Neo, Saris H3, or any FTMS trainer via Web Bluetooth. Every climb is felt in your legs.',
+    badge: 'Flagship',
+    tier: 'flagship',
   },
   {
     id: 'avatar',
-    illustration: <AvatarIcon aria-hidden />,
+    illustration: <FeatureAvatarPreview />,
     title: 'Animated 45-part 3D avatar',
     description:
       'A fully articulated cyclist avatar follows your route — leaning into curves, spinning on flats, grinding through climbs. Procedurally animated, no motion-capture needed.',
+    badge: 'Flagship',
+    tier: 'flagship',
   },
   {
     id: 'cameras',
@@ -198,31 +207,32 @@ const FEATURES: Feature[] = [
 
 // ── Card ────────────────────────────────────────────────────────────────────
 
-function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
+function FeatureCard({ feature }: { feature: Feature }) {
   const accent = feature.accentColor ?? '#22d3ee';
+  const isFlagship = feature.tier === 'flagship';
+
   return (
     <article
-      className="group relative overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1.5 animate-fadeUp"
-      style={{
-        background: 'hsl(220 42% 6%)',
-        border: '1px solid hsl(215 26% 14%)',
-        animationDelay: `${Math.min(index * 40, 400)}ms`,
-      }}
+      className={[
+        'group relative overflow-hidden rounded-2xl h-full',
+        'landing-card-glass landing-card-hover',
+        isFlagship ? 'landing-flagship-card' : '',
+      ].filter(Boolean).join(' ')}
       onMouseEnter={e => {
         const el = e.currentTarget as HTMLElement;
         el.style.borderColor = `${accent}44`;
-        el.style.boxShadow = `0 20px 48px -16px ${accent}20`;
+        el.style.boxShadow = `0 0 0 1px ${accent}14, 0 ${isFlagship ? 28 : 20}px ${isFlagship ? 64 : 48}px -${isFlagship ? 20 : 16}px ${accent}26`;
       }}
       onMouseLeave={e => {
         const el = e.currentTarget as HTMLElement;
-        el.style.borderColor = 'hsl(215 26% 14%)';
-        el.style.boxShadow = 'none';
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
       }}
     >
-      {/* Corner glow */}
+      {/* Corner ambient glow */}
       <div
         className="pointer-events-none absolute -top-16 -right-16 h-32 w-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: `radial-gradient(circle, ${accent}12, transparent 70%)` }}
+        style={{ background: `radial-gradient(circle, ${accent}14, transparent 70%)` }}
         aria-hidden
       />
 
@@ -230,13 +240,17 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
       {feature.badge && (
         <div
           className="absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full z-10"
-          style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}30` }}
+          style={{
+            background: isFlagship ? `${accent}22` : `${accent}16`,
+            color: accent,
+            border: `1px solid ${accent}${isFlagship ? '40' : '28'}`,
+          }}
         >
           {feature.badge}
         </div>
       )}
 
-      {/* SVG illustration */}
+      {/* Illustration */}
       <div
         className="mx-3 mt-3 rounded-xl overflow-hidden transition-transform duration-300 group-hover:scale-[1.02]"
         style={{ background: 'hsl(215 50% 5%)' }}
@@ -245,16 +259,21 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
       </div>
 
       {/* Text */}
-      <div className="p-4 pt-3">
-        <h3 className="text-sm font-bold text-white tracking-tight mb-1.5 group-hover:text-cyan-300 transition-colors duration-300">
+      <div className={`p-4 pt-3 ${isFlagship ? 'pb-5' : ''}`}>
+        <h3
+          className={`font-bold text-white tracking-tight mb-1.5 group-hover:text-cyan-300 transition-colors duration-300 ${isFlagship ? 'text-base' : 'text-sm'}`}
+        >
           {feature.title}
         </h3>
-        <p className="text-xs leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>
+        <p
+          className={`leading-relaxed ${isFlagship ? 'text-[0.8rem]' : 'text-xs'}`}
+          style={{ color: 'hsl(215 18% 50%)' }}
+        >
           {feature.description}
         </p>
       </div>
 
-      {/* Bottom accent line on hover */}
+      {/* Bottom accent sweep */}
       <div
         className="h-px w-0 group-hover:w-full transition-all duration-500"
         style={{ background: `linear-gradient(90deg, transparent, ${accent}80, transparent)` }}
@@ -267,6 +286,15 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
 // ── Section ─────────────────────────────────────────────────────────────────
 
 export function FeatureGrid() {
+  // One shared IntersectionObserver for the grid — stagger delay set per child via --reveal-delay.
+  const gridRef = useScrollReveal<HTMLDivElement>({
+    childSelector: '.reveal-child',
+    delayStep: 50,
+    rootMargin: '0px 0px -60px 0px',
+    threshold: 0.08,
+  });
+  const headerRef = useScrollReveal<HTMLDivElement>({ threshold: 0.2 });
+
   return (
     <section
       className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28"
@@ -284,7 +312,7 @@ export function FeatureGrid() {
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-14">
+        <div ref={headerRef} className="text-center mb-14 landing-section-reveal">
           <div
             className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
             style={{
@@ -298,7 +326,7 @@ export function FeatureGrid() {
           <h2
             id="features-heading"
             className="font-extrabold text-white"
-            style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             Built for serious cyclists.
           </h2>
@@ -311,10 +339,22 @@ export function FeatureGrid() {
           </p>
         </div>
 
-        {/* Grid */}
-        <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <FeatureCard key={f.id} feature={f} index={i} />
+        {/* Grid — 1 col mobile / 2 col tablet / 3 col desktop.
+            Flagship cards span lg:col-span-2 to anchor each desktop row. */}
+        <div
+          ref={gridRef}
+          className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {FEATURES.map((f) => (
+            <div
+              key={f.id}
+              className={[
+                'reveal-child landing-fade-in-up',
+                f.tier === 'flagship' ? 'lg:col-span-2' : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <FeatureCard feature={f} />
+            </div>
           ))}
         </div>
       </div>
