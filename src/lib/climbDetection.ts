@@ -5,7 +5,7 @@
  * Two APIs live here:
  *
  *   1. `findClimbs(route)` — pre-ride static scan over the full route. Unchanged
- *      contract from the Wave 18 stub so RideHUD keeps working.
+ *      contract from the original stub so RideHUD keeps working.
  *
  *   2. `createClimbDetectorState()` / `updateClimbDetection(...)` — per-frame
  *      live state machine used in useRideLoop to detect climbs in real time
@@ -28,7 +28,7 @@ import type { Route } from '@/types';
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// Public types — original Wave 18 contract (unchanged)
+// Public types — original original contract (unchanged)
 // ---------------------------------------------------------------------------
 
 export interface DetectedClimb {

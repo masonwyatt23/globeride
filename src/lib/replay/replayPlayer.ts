@@ -1,5 +1,5 @@
 /**
- * replayPlayer.ts — Wave 35.A: Pure replay engine.
+ * replayPlayer.ts: Pure replay engine.
  *
  * Allocation-free per-frame: tickReplay returns a new state object but
  * does not allocate inside hot paths (binary-search index only).

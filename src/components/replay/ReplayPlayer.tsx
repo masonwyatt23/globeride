@@ -1,5 +1,5 @@
 /**
- * ReplayPlayer.tsx — Wave 35.A: Cinematic replay UI.
+ * ReplayPlayer.tsx: Cinematic replay UI.
  *
  * Scrubbable timeline · play/pause · variable speed · camera selector
  * · auto-cut highlight reel · optional MP4 export via WebCodecs.

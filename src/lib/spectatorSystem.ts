@@ -1,5 +1,5 @@
 /**
- * Spectator crowd system for iconic World Tour climbs (Wave 30.D).
+ * Spectator crowd system for iconic World Tour climbs.
  *
  * When a route matches a World Tour stage that has `spectatorClimbs` defined,
  * this module places billboard sprites along the final km of named climbs —

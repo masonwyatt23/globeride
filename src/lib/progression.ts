@@ -23,7 +23,7 @@ export interface RideXpInput {
   distanceM: number;
   ascentM: number;
   workoutCompleted: boolean;
-  // ── Wave 17-23 feature fields (all optional for backwards-compat) ─────────
+  // ── later waves feature fields (all optional for backwards-compat) ─────────
   /** True when this ride finished a P2P race (any manifest). */
   raceFinished?: boolean;
   /** Finishing position in the race (1 = first). 0 or undefined = no race. */

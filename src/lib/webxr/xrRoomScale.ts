@@ -1,5 +1,5 @@
 /**
- * xrRoomScale.ts — Wave 35.C WebXR Phase 3: 6DOF room-scale head tracking.
+ * xrRoomScale.ts WebXR Phase 3: 6DOF room-scale head tracking.
  *
  * Problem:
  *   Phase 2 only applied a per-eye IPD translation offset. The chase-cam's

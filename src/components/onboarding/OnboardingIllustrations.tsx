@@ -8,7 +8,7 @@
  *   CoachScene        — CTL/ATL fitness chart + AI neural motif
  *   CompanionScene    — phone mirror + broadcast waves
  *
- * Style matches Wave 33 (SceneIllustrations.tsx):
+ * Style matches SceneIllustrations.tsx:
  *   viewBox 280×160 · dark hsl(220 55% 4-8%) backgrounds · #22d3ee accents
  *   hsl(158 80% 42%) start-dot · monospace badge overlays · inline <title>
  *

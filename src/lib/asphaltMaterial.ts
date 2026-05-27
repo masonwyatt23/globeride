@@ -1,6 +1,6 @@
 /**
  * asphaltMaterial.ts — Cesium custom materials for a road-surface appearance
- * (Wave 37.B).
+ *.
  *
  * Two variants:
  *   createAsphaltMaterial()              — flat noise-based dark-grey asphalt

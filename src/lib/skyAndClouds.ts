@@ -1,5 +1,5 @@
 /**
- * skyAndClouds.ts — Wave 30.C
+ * skyAndClouds.ts
  *
  * Sky, cloud, real-sun, and atmosphere helpers. Kept pure where possible so
  * the solar-position math can be unit-tested without a Cesium environment.

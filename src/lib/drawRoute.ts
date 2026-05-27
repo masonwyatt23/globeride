@@ -10,7 +10,7 @@
  * is unreachable (rate-limited / offline / firewalled) we fall back to
  * the raw click polyline — the user always gets a route.
  *
- * ## Higher-level API (Wave 39.B)
+ * ## Higher-level API
  *
  * DrawnWaypoint          — waypoint with optional elevation (lat/lon/ele|null)
  * pointsToWaypoints      — convert plain {lat,lon,ele?} objects → DrawnWaypoints
@@ -122,7 +122,7 @@ export async function buildDrawnRoute(
 }
 
 // ---------------------------------------------------------------------------
-// Wave 39.B — higher-level drawing API
+// Higher-level drawing API
 // ---------------------------------------------------------------------------
 
 /**

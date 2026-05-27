@@ -1,5 +1,5 @@
 /**
- * ProPelotonSetup — Wave 34.C
+ * ProPelotonSetup
  *
  * Pre-ride UI card that allows the user to opt into riding alongside the
  * actual historical finishers of the loaded World Tour stage. Only renders

@@ -1,5 +1,5 @@
 /**
- * Gear Garage — Wave 38.A overhaul.
+ * Gear Garage overhaul.
  *
  * Rebuilt for 125 items across 6 categories. Features:
  *  - Tab navigation across Bikes / Helmets / Kits / Glasses / Shoes / Bottles

@@ -1,5 +1,5 @@
 /**
- * cesiumCameras.ts — Wave 30.A: Multi-camera mode positioning utilities.
+ * cesiumCameras.ts: Multi-camera mode positioning utilities.
  *
  * Pure functions: no side effects, no imports from Cesium so the math is
  * testable in the node vitest environment. The CesiumViewer preRender handler

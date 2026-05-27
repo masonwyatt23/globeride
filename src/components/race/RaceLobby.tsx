@@ -5,8 +5,8 @@
  * see leaderboards, create new races, and import races from a .race.json file
  * or a shared URL.
  *
- * Intentionally avoids touching src/lib/race/* (Wave 21.A) or RaceResultCard
- * (Wave 21.C).  Everything here calls the protocol helpers + raceStore
+ * Intentionally avoids touching src/lib/race/* or RaceResultCard
+ *.  Everything here calls the protocol helpers + raceStore
  * through the documented public contract.
  */
 

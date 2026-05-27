@@ -215,7 +215,7 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
   return (
     <div className={cn('flex flex-col gap-3', className)}>
 
-      {/* Create custom workout CTA — Wave 39.C */}
+      {/* Create custom workout CTA */}
       <button
         type="button"
         onClick={() => navigate('/workouts/new')}

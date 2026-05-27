@@ -4,7 +4,7 @@
  * Each item maps to an AvatarColors preset that, when "equipped", is written
  * into settingsStore's avatar field so CesiumViewer picks it up immediately.
  *
- * Wave 37.C: expanded to 120+ items across 6 categories matching Zwift breadth.
+ * expanded to 120+ items across 6 categories matching Zwift breadth.
  * Levels span 1–50 giving meaningful rewards throughout the progression curve.
  */
 

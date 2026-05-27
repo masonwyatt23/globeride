@@ -1,5 +1,5 @@
 /**
- * xrDomOverlay.ts — Wave 35.C WebXR Phase 3: DOM overlay for in-headset HUD.
+ * xrDomOverlay.ts WebXR Phase 3: DOM overlay for in-headset HUD.
  *
  * WebXR DOM Overlays feature (W3C spec):
  *   https://immersive-web.github.io/dom-overlays/

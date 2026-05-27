@@ -239,7 +239,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     predicate: (p) => levelForXp(p.xp) >= 50,
   },
 
-  // ── Wave 17-23: Racing ───────────────────────────────────────────────────
+  // ── later waves: Racing ───────────────────────────────────────────────────
   {
     id: 'race_first_finish',
     name: 'First Race Finished',
@@ -269,7 +269,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     predicate: (p) => (p.totalManifestsCreated ?? 0) >= 1,
   },
 
-  // ── Wave 17-23: Drafting ─────────────────────────────────────────────────
+  // ── later waves: Drafting ─────────────────────────────────────────────────
   {
     id: 'draft_60s',
     name: 'Drafted 60 Seconds',
@@ -295,7 +295,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     predicate: (_p, ride) => ride.beatAllBots === true,
   },
 
-  // ── Wave 17-23: Atmosphere / Moods ───────────────────────────────────────
+  // ── later waves: Atmosphere / Moods ───────────────────────────────────────
   {
     id: 'golden_hour',
     name: 'Golden Hour',
@@ -305,7 +305,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     predicate: (_p, ride) => ride.mood === 'golden-hour',
   },
 
-  // ── Wave 17-23: Globe exploration ────────────────────────────────────────
+  // ── later waves: Globe exploration ────────────────────────────────────────
   {
     id: 'globe_explorer',
     name: 'Globe Explorer',
@@ -323,7 +323,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     predicate: (p) => (p.totalWorldTourStages ?? 0) >= 1,
   },
 
-  // ── Wave 17-23: Companion ────────────────────────────────────────────────
+  // ── later waves: Companion ────────────────────────────────────────────────
   {
     id: 'companion_user',
     name: 'Companion User',

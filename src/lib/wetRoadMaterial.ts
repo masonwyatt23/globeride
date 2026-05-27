@@ -1,5 +1,5 @@
 /**
- * Wet road material for rain-themed moods (Wave 30.D).
+ * Wet road material for rain-themed moods.
  *
  * Produces a Cesium custom PolylineMaterial that simulates a wet road:
  * - Blue-grey sky colour reflected in the asphalt surface

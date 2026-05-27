@@ -104,7 +104,7 @@ export function useRideHistoryRecorder(): void {
           workoutElapsedSec > 0 &&
           workoutElapsedSec >= totalDurationSec(activeWorkout);
 
-        // ── Wave 17-23 extra ride metadata ──────────────────────────────────
+        // ── later waves extra ride metadata ──────────────────────────────────
         // Draft seconds: accumulated via _rideDraftSec on the ride store when
         // the draft-accumulator extension is present; otherwise 0.
         const draftSec: number = (s as { _rideDraftSec?: number })._rideDraftSec ?? 0;

@@ -10,7 +10,7 @@
  * The toast stack is driven by `pendingToasts` in achievementStore. It auto-
  * dismisses after TOAST_DURATION_MS. Multiple achievements stack sequentially.
  *
- * Enhancements (Wave 18.C):
+ * Enhancements:
  *   - CSS-only confetti burst (~20 particles, SVG-free, 2s fade)
  *   - Larger badge icon with animate-popIn entrance
  *   - "ACHIEVEMENT UNLOCKED" overline in uppercase tracking-widest

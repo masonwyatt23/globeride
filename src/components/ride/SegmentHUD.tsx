@@ -10,7 +10,7 @@
  *
  * State is read from the ride store's strava-segment slice.
  *
- * Wave 33.B — no VR / WebXR code modified.
+ * no VR / WebXR code modified.
  */
 
 import { useEffect, useRef, useState } from 'react';

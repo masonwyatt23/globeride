@@ -237,7 +237,7 @@ interface RideStoreState {
   /** Remove all bots (called on route clear or explicit disable). */
   clearPaceBots: () => void;
 
-  // ---- ADDITIVE: Pro Peloton Ghosts (Wave 34.C) ----
+  // ---- ADDITIVE: Pro Peloton Ghosts ----
   /**
    * Active pro peloton simulation state. Non-null when the user has opted into
    * the pro peloton overlay for the current World Tour stage.
@@ -249,7 +249,7 @@ interface RideStoreState {
   /** Deactivate and clear the pro peloton. */
   clearProPeloton: () => void;
 
-  // ---- ADDITIVE: Strava Live Segments (Wave 33.B) ----
+  // ---- ADDITIVE: Strava Live Segments ----
   /**
    * RouteSegment objects mapped onto the loaded route. Populated after
    * fetchSegmentsNearRoute resolves when Strava is connected.
@@ -431,10 +431,10 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   workoutElapsedSec: 0,
   workoutTargetWatts: null,
 
-  // ---- ADDITIVE: Pro Peloton initial state (Wave 34.C) ----
+  // ---- ADDITIVE: Pro Peloton initial state ----
   proPeloton: null,
 
-  // ---- ADDITIVE: Strava Live Segments initial state (Wave 33.B) ----
+  // ---- ADDITIVE: Strava Live Segments initial state ----
   loadedSegments: [],
   activeSegment: null,
   segmentDistanceStarted: 0,
@@ -467,7 +467,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   // ---- ADDITIVE: Multi-rider actions ----
   setMultiriderId: (id) => set({ multiriderId: id ?? undefined }),
 
-  // ---- ADDITIVE: Pro Peloton actions (Wave 34.C) ----
+  // ---- ADDITIVE: Pro Peloton actions ----
   setProPeloton: (state) => set({ proPeloton: state }),
   clearProPeloton: () => set({ proPeloton: null }),
 
@@ -475,7 +475,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   setPaceBots: (bots) => set({ paceBots: bots }),
   clearPaceBots: () => set({ paceBots: [] }),
 
-  // ---- ADDITIVE: Strava Live Segment actions (Wave 33.B) ----
+  // ---- ADDITIVE: Strava Live Segment actions ----
   setLoadedSegments: (segments) => set({ loadedSegments: segments }),
 
   enterSegment: (rs, distanceNow) =>
@@ -507,7 +507,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
           })
         : st.paceBots;
 
-      // ---- Pro peloton ghosts (Wave 34.C) ----
+      // ---- Pro peloton ghosts ----
       const nextProPeloton = st.proPeloton
         ? tickProPeloton(st.proPeloton, dt, route.totalDistance)
         : st.proPeloton;

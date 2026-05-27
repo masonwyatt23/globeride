@@ -1,5 +1,5 @@
 /**
- * videoExport.ts — Wave 35.A: MP4 export via WebCodecs.
+ * videoExport.ts: MP4 export via WebCodecs.
  *
  * Uses VideoEncoder + VideoFrame to produce an H.264 MP4-ish blob.
  * Because WebCodecs only gives raw encoded chunks (not a full MP4 container),

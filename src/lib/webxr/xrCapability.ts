@@ -1,5 +1,5 @@
 /**
- * xrCapability.ts — Wave 33.A WebXR capability detection.
+ * xrCapability.ts WebXR capability detection.
  *
  * Safe on all browsers: returns false-false if navigator.xr is absent.
  * Caches the result after the first call so repeated queries are free.

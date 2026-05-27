@@ -1,5 +1,5 @@
 /**
- * CameraSwitcher — Wave 30.A
+ * CameraSwitcher
  *
  * Floating HUD button (bottom area of the top-right corner of the ride view)
  * that cycles through the 5 cinematic camera modes. Reads + writes

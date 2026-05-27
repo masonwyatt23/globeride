@@ -175,7 +175,7 @@ export function CesiumViewer({
 }: {
   ionToken: string | null;
   /**
-   * Wave 33.A: called once the Cesium.Viewer is fully constructed.
+   * called once the Cesium.Viewer is fully constructed.
    * Ride.tsx uses this to pass the viewer to EnterVRButton / VRHud.
    */
   onViewerReady?: (viewer: Cesium.Viewer) => void;
@@ -216,7 +216,7 @@ export function CesiumViewer({
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
   const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
-  // ---- Road surface (Wave 37.B) ----
+  // ---- Road surface ----
   const roadEntityRef = useRef<RoadEntityHandle | null>(null);
   const roadEdgeStripesRef = useRef<EdgeStripesHandle | null>(null);
   const kmMarkersRef = useRef<KmMarkersHandle | null>(null);
@@ -428,7 +428,7 @@ export function CesiumViewer({
       wetMaterialRef.current = null;
       segmentPortalHandleRef.current?.destroy();
       segmentPortalHandleRef.current = null;
-      // ---- Road surface (Wave 37.B) cleanup ----
+      // ---- Road surface cleanup ----
       roadEntityRef.current?.destroy();
       roadEntityRef.current = null;
       roadEdgeStripesRef.current?.destroy();
@@ -544,7 +544,7 @@ export function CesiumViewer({
     segmentPortalHandleRef.current?.destroy();
     segmentPortalHandleRef.current = null;
 
-    // ---- Road surface (Wave 37.B) — tear down previous surface ----
+    // ---- Road surface — tear down previous surface ----
     roadEntityRef.current?.destroy();
     roadEntityRef.current = null;
     roadEdgeStripesRef.current?.destroy();
@@ -576,7 +576,7 @@ export function CesiumViewer({
     applySceneMood(viewer, resolvedMood);
 
     // resolveWeatherKind handles both the current string SceneMood and the
-    // extended object form that Wave 20.A adds (weather?: WeatherKind field).
+    // extended object form that adds (weather?: WeatherKind field).
     const weatherKind = resolveWeatherKind(resolvedMood);
     const currentQuality = useSettingsStore.getState().graphicsQuality;
     weatherSystemRef.current = createWeatherSystem(viewer, weatherKind, currentQuality);
@@ -605,7 +605,7 @@ export function CesiumViewer({
     // Build start / finish / km markers.
     routeMarkersRef.current = buildRouteMarkers(viewer, route, positions);
 
-    // ---- Road surface (Wave 37.B) ----
+    // ---- Road surface ----
     // Build corridor + edge stripes + km markers + climb arches once per route.
     // The corridor replaces the thin polyline visually; gradient polylines remain
     // for the elevation-profile colour data but are now underlaid by the surface.
@@ -1119,7 +1119,7 @@ export function CesiumViewer({
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <MultiRiderPeers viewer={viewerRef.current} />
       )}
-      {/* ---- Pro peloton ghosts (Wave 34.C) ---- */}
+      {/* ---- Pro peloton ghosts ---- */}
       {viewerReady && viewerRef.current && !viewerRef.current.isDestroyed() && (
         <ProPelotonAvatars viewer={viewerRef.current} />
       )}

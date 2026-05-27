@@ -1,5 +1,5 @@
 /**
- * EnterARButton — Wave 35.D
+ * EnterARButton
  *
  * Floating button that appears only when the browser supports immersive-ar.
  * On non-AR browsers (most desktop browsers, iOS Safari) renders nothing —

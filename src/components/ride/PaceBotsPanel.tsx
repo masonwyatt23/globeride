@@ -154,7 +154,7 @@ export function PaceBotsPanel({ className }: PaceBotsPanelProps) {
   // Write to the store whenever selection changes.
   const syncStore = useCallback((names: Set<string>) => {
     const bots = BOT_PRESETS.filter((b) => names.has(b.name));
-    // setPaceBots is added by the Wave 17.A store agent; guard in case it's
+    // setPaceBots is added by the original store agent; guard in case it's
     // not landed yet so nothing throws during the transition period.
     const store = useRideStore.getState() as unknown as Record<string, unknown>;
     if (typeof store.setPaceBots === 'function') {

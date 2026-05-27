@@ -50,7 +50,7 @@ export interface RiderSettings {
   bottleId: string;
   /** Free-form training goal persisted for the AI coach (e.g. "build base for a century"). */
   coachGoal: string;
-  // ---- Live AI commentary (Wave 28) ----
+  // ---- Live AI commentary ----
   /** Whether live AI race commentary is enabled. */
   liveCommentaryEnabled: boolean;
   /** Commentary volume, 0-100. */
@@ -59,7 +59,7 @@ export interface RiderSettings {
   commentaryRate: number;
   /** Minimum seconds between commentary lines, 30-90. */
   commentaryThrottleSec: number;
-  // ---- Display & Gestures (Wave 29.B) ----
+  // ---- Display & Gestures ----
   /**
    * Low-light HUD mode.
    *   'auto' — enable automatically between 18:00–06:00 local time.
@@ -69,18 +69,18 @@ export interface RiderSettings {
   lowLightHud: LowLightSetting;
   /** Whether handlebar gesture controls are active during a ride. */
   gestureControlsEnabled: boolean;
-  // ---- Voice cues (Wave 29.C) ----
+  // ---- Voice cues ----
   /** Whether spoken workout segment transition cues are enabled. */
   workoutVoiceCuesEnabled: boolean;
   /** Whether spoken climb detection announcements are enabled. */
   climbAnnouncementsEnabled: boolean;
-  // ---- Camera mode (Wave 30.A) ----
+  // ---- Camera mode ----
   /** Active cinematic camera mode — persisted between rides. */
   cameraMode: CameraMode;
-  // ---- Voice control (Wave 34.D) ----
+  // ---- Voice control ----
   /** Whether hands-free voice command recognition is enabled during rides. */
   voiceControlEnabled: boolean;
-  // ---- Procedural ride audio (Wave 39.D) ----
+  // ---- Procedural ride audio ----
   /** Whether the procedural cycling-sound engine is enabled during rides. */
   rideAudioEnabled: boolean;
   /** Procedural ride audio master volume, 0-100. */
@@ -141,25 +141,25 @@ interface SettingsStoreState extends RiderSettings {
   setLowLightHud: (mode: LowLightSetting) => void;
   /** Toggle handlebar gesture controls on/off. */
   setGestureControlsEnabled: (enabled: boolean) => void;
-  /** Set the active camera mode (Wave 30.A). */
+  /** Set the active camera mode. */
   setCameraMode: (mode: CameraMode) => void;
-  /** Toggle hands-free voice control on/off (Wave 34.D). */
+  /** Toggle hands-free voice control on/off. */
   setVoiceControlEnabled: (enabled: boolean) => void;
-  /** Set the equipped bike gear id (Wave 37.E). */
+  /** Set the equipped bike gear id. */
   setBikeId: (id: string) => void;
-  /** Set the equipped kit gear id (Wave 37.E). */
+  /** Set the equipped kit gear id. */
   setKitId: (id: string) => void;
-  /** Set the equipped helmet gear id (Wave 37.E). */
+  /** Set the equipped helmet gear id. */
   setHelmetId: (id: string) => void;
-  /** Set the equipped glasses gear id — empty string means none (Wave 37.E). */
+  /** Set the equipped glasses gear id — empty string means none. */
   setGlassesId: (id: string) => void;
-  /** Set the equipped shoes gear id — empty string means none (Wave 37.E). */
+  /** Set the equipped shoes gear id — empty string means none. */
   setShoesId: (id: string) => void;
-  /** Set the equipped bottle gear id — empty string means none (Wave 37.E). */
+  /** Set the equipped bottle gear id — empty string means none. */
   setBottleId: (id: string) => void;
-  /** Toggle procedural ride audio on/off (Wave 39.D). */
+  /** Toggle procedural ride audio on/off. */
   setRideAudioEnabled: (enabled: boolean) => void;
-  /** Set procedural ride audio volume 0-100 (Wave 39.D). */
+  /** Set procedural ride audio volume 0-100. */
   setRideAudioVolume: (volume: number) => void;
   reset: () => void;
 }
@@ -205,38 +205,38 @@ export const useSettingsStore = create<SettingsStoreState>()(
         commentaryThrottleSec:
           (persisted as Partial<RiderSettings>).commentaryThrottleSec ??
           DEFAULT_SETTINGS.commentaryThrottleSec,
-        // Ensure Wave-29.B fields default when upgrading from pre-Wave-29.B saves.
+        // Ensure upgraded fields default when upgrading from pre-Wave-29.B saves.
         lowLightHud:
           (persisted as Partial<RiderSettings>).lowLightHud ??
           DEFAULT_SETTINGS.lowLightHud,
         gestureControlsEnabled:
           (persisted as Partial<RiderSettings>).gestureControlsEnabled ??
           DEFAULT_SETTINGS.gestureControlsEnabled,
-        // Graceful migration for Wave 29.C fields.
+        // Graceful migration for upgraded fields.
         workoutVoiceCuesEnabled:
           (persisted as Partial<RiderSettings>).workoutVoiceCuesEnabled ??
           DEFAULT_SETTINGS.workoutVoiceCuesEnabled,
         climbAnnouncementsEnabled:
           (persisted as Partial<RiderSettings>).climbAnnouncementsEnabled ??
           DEFAULT_SETTINGS.climbAnnouncementsEnabled,
-        // Graceful migration for Wave 30.A camera mode. Validate against the
+        // Graceful migration for camera mode. Validate against the
         // CameraMode union so a corrupted localStorage value can't slip through
         // and cause computeCameraPose() to return undefined.
         cameraMode: isCameraMode((persisted as Partial<RiderSettings>).cameraMode)
           ? (persisted as Partial<RiderSettings>).cameraMode!
           : DEFAULT_SETTINGS.cameraMode,
-        // Graceful migration for Wave 34.D voice control setting.
+        // Graceful migration for voice control setting.
         voiceControlEnabled:
           (persisted as Partial<RiderSettings>).voiceControlEnabled ??
           DEFAULT_SETTINGS.voiceControlEnabled,
-        // Graceful migration for Wave 39.D procedural ride audio.
+        // Graceful migration for procedural ride audio.
         rideAudioEnabled:
           (persisted as Partial<RiderSettings>).rideAudioEnabled ??
           DEFAULT_SETTINGS.rideAudioEnabled,
         rideAudioVolume:
           (persisted as Partial<RiderSettings>).rideAudioVolume ??
           DEFAULT_SETTINGS.rideAudioVolume,
-        // Graceful migration for Wave 37.E equipped gear IDs.
+        // Graceful migration for equipped gear IDs.
         bikeId:
           (persisted as Partial<RiderSettings>).bikeId ??
           DEFAULT_SETTINGS.bikeId,

@@ -1,5 +1,5 @@
 /**
- * Minimal WebXR ambient type declarations — Wave 33.A / Phase 2 / Phase 3.
+ * Minimal WebXR ambient type declarations / Phase 2 / Phase 3.
  *
  * TypeScript 5.x / lib.dom.d.ts does not yet include WebXR Device API types.
  * This file provides the subset of the WebXR spec we actually reference so
@@ -8,7 +8,7 @@
  * Phase 2 additions: XRWebGLLayer, XRViewport, XRRenderState,
  * XRWebGLRenderingContext union, and session.updateRenderState().
  *
- * Phase 3 additions (Wave 35.C):
+ * Phase 3 additions:
  *   - XRHandedness: input source hand identifier.
  *   - XRInputSource: controller / hand-tracking input source.
  *   - XRDOMOverlayState: compositor overlay state reported after session creation.
@@ -56,7 +56,7 @@ interface XRRenderState {
 
 
 // ---------------------------------------------------------------------------
-// Phase 3: input sources — controllers and hand tracking. (Wave 35.C)
+// Phase 3: input sources — controllers and hand tracking.
 // https://www.w3.org/TR/webxr/#xrinputsource-interface
 // ---------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ interface XRInputSource {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 3: DOM overlay state — reported after session creation. (Wave 35.C)
+// Phase 3: DOM overlay state — reported after session creation.
 // https://immersive-web.github.io/dom-overlays/#xrdomoverlaystate
 // ---------------------------------------------------------------------------
 
@@ -135,7 +135,7 @@ interface XRSession extends EventTarget {
   readonly domOverlayState?: XRDOMOverlayState;
 
   /**
-   * Wave 35.D: how the XR compositor blends the rendered output with the real
+   * how the XR compositor blends the rendered output with the real
    * world. 'opaque' for VR; 'alpha-blend' for video-passthrough AR (Quest 3,
    * Vision Pro); 'additive' for optical AR (HoloLens).
    * Undefined on browsers that predate the AR module spec.

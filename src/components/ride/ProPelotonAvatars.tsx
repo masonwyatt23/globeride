@@ -1,5 +1,5 @@
 /**
- * ProPelotonAvatars — Wave 34.C
+ * ProPelotonAvatars
  *
  * Mounts one animated cyclist avatar per active pro-peloton ghost into the
  * live Cesium viewer. Each avatar uses the same procedural Avatar API as pace

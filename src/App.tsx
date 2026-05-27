@@ -49,9 +49,9 @@ export default function App() {
           <Route path="/companion" element={<Companion />} />
           {/* Draw a route on the globe — redirects to /explore with draw mode ready */}
           <Route path="/draw" element={<DrawRoute />} />
-          {/* Cinematic replay — Wave 35.A */}
+          {/* Cinematic replay */}
           <Route path="/replay/:rideId" element={<Replay />} />
-          {/* Custom workout builder — Wave 39.C */}
+          {/* Custom workout builder */}
           <Route path="/workouts/new" element={<WorkoutBuilderRoute />} />
           <Route path="/workouts/:id/edit" element={<WorkoutBuilderRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />

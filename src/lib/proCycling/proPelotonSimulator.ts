@@ -1,5 +1,5 @@
 /**
- * Pro Peloton Simulator — Wave 34.C
+ * Pro Peloton Simulator
  *
  * Pure functions — no Cesium, no React, no stores. Advances ghost pro-rider
  * positions based on their official finish time and route total distance,

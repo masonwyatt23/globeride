@@ -1,5 +1,5 @@
 /**
- * xrSession.ts — Wave 34.B / Wave 35.C WebXR Phase 2 + Phase 3.
+ * xrSession.ts WebXR Phase 2 + Phase 3.
  *
  * Integration status: PHASE 3 — 6DOF room-scale + DOM overlay HUD.
  *
@@ -14,7 +14,7 @@
  *     budget recommended by the Cesium VR/AR performance guide.
  *   - On exit the scale and frustum are restored; the default render loop resumes.
  *
- * What Phase 3 adds (Wave 35.C):
+ * What Phase 3 adds:
  *   - 'dom-overlay' optional feature: pass domOverlayRoot to enterVR() to
  *     enable in-headset DOM HUD rendering (Quest 3 / Chrome).
  *   - 6DOF room-scale: a RoomScaleAnchor is captured at session start; each
@@ -27,9 +27,9 @@
  * a single @ts-expect-error annotation — one place to update if Cesium adds a
  * public equivalent.
  *
- * Wave 35.D additions:
+ * Shared exports for AR reuse:
  *   - getCesiumWebGLContext, createXRWebGLLayer, requestXRReferenceSpace, and
- *     runXRFrameLoop are now exported so xrAR.ts can reuse the same rendering
+ *     runXRFrameLoop are exported so xrAR.ts can reuse the same rendering
  *     infrastructure without copy-paste.
  *
  * Remaining out of scope (Phase 4+):
@@ -65,7 +65,7 @@ import { getDomOverlayInit } from './xrDomOverlay';
  * with:
  *   `(viewer.scene.context as { gl: WebGL2RenderingContext }).gl`
  *
- * Exported for reuse by xrAR.ts (Wave 35.D).
+ * Exported for reuse by xrAR.ts.
  */
 export function getCesiumWebGLContext(viewer: CesiumType.Viewer): WebGL2RenderingContext {
   // @ts-expect-error accessing private Cesium Scene.Context._gl
@@ -73,7 +73,7 @@ export function getCesiumWebGLContext(viewer: CesiumType.Viewer): WebGL2Renderin
 }
 
 // ---------------------------------------------------------------------------
-// Shared helpers — exported for xrAR.ts (Wave 35.D)
+// Shared helpers — exported for xrAR.ts
 // ---------------------------------------------------------------------------
 
 /**
@@ -103,7 +103,7 @@ export function createXRWebGLLayer(
  *
  * Returns null if both attempts fail (e.g. tracking unavailable).
  *
- * Exported for reuse by xrAR.ts (Wave 35.D).
+ * Exported for reuse by xrAR.ts.
  */
 export async function requestXRReferenceSpace(
   session: XRSession,
@@ -386,8 +386,8 @@ export async function enterVR(
   }
 
   // makeXRCompatible() is a no-op when the context was created with
-  // { xrCompatible: true } (Wave 33.A in CesiumViewer.tsx), but is
-  // spec-required before constructing an XRWebGLLayer.
+  // { xrCompatible: true } in CesiumViewer.tsx, but the call is
+  // still spec-required before constructing an XRWebGLLayer.
   await (gl as WebGL2RenderingContext & { makeXRCompatible?: () => Promise<void> })
     .makeXRCompatible?.();
 

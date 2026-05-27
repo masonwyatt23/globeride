@@ -16,7 +16,7 @@ import type { MoodId } from '@/lib/cesiumUtils';
 // Extra metadata
 // ---------------------------------------------------------------------------
 
-/** One crowd zone on an iconic climb — used by the spectator system (Wave 30.D). */
+/** One crowd zone on an iconic climb — used by the spectator system. */
 export interface SpectatorClimb {
   /** Distance from route start where the crowd section begins, meters. */
   startDistance: number;
@@ -59,7 +59,7 @@ export interface WorldTourStageInfo {
      */
     mood?: MoodId;
     /**
-     * Sections of the route where spectator crowds line the road (Wave 30.D).
+     * Sections of the route where spectator crowds line the road.
      * Defined only for stages with famous climbs where crowds are expected.
      * Absent = no crowd rendering for this stage.
      */

@@ -195,7 +195,7 @@
   }
 
   /* -----------------------------------------------------------------------
-     Low-light HUD — Wave 29.B
+     Low-light HUD
      Applied as `hud-low-light` on the RideHUD container when the user
      setting resolves to on (manually or auto between 18:00–06:00).
 
@@ -396,7 +396,7 @@ html:not(.dark) .cesium-viewer {
   100% { transform: translateX(-50%) translateY(calc(-1 * var(--dist, 60px))) rotate(var(--rotate, 180deg)); opacity: 0; }
 }
 
-/* Segment celebration confetti burst (Wave 33.B) */
+/* Segment celebration confetti burst */
 @keyframes confettiPop {
   0%   { transform: translate(calc(-50% + 0px), calc(-50% + 0px)) scale(1); opacity: 1; }
   80%  { opacity: 0.7; }
@@ -408,7 +408,7 @@ html:not(.dark) .cesium-viewer {
   display: none;
 }
 
-/* Voice control button — pulsing green glow when mic is active (Wave 34.D) */
+/* Voice control button — pulsing green glow when mic is active */
 @keyframes voicePulse {
   0%, 100% { box-shadow: 0 0 8px 1px rgba(74, 222, 128, 0.3); }
   50%       { box-shadow: 0 0 18px 4px rgba(74, 222, 128, 0.6); }

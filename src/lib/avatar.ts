@@ -24,7 +24,7 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  *   6. Climb-mode (grade > 8 %): body tilts forward 5° and hips sway at cadence.
  * All driven from `update()` once per frame; zero Cesium-primitive allocations.
  *
- * Wave 37.A: raised geometry fidelity — segmented limbs, multi-style helmets,
+ * raised geometry fidelity — segmented limbs, multi-style helmets,
  * glasses, water bottle, 4-cross spoke pattern, brake rotors, PBR-like materials,
  * and sweat/effort shading via setAvatarEffortLevel().
  */
@@ -38,7 +38,7 @@ export type HelmetStyle = 'road' | 'aero' | 'climbing';
 
 /**
  * Bike frame geometry variants.
- * Wave 38.B: drives wheel depth, tyre width, handlebar geometry, frame details.
+ * drives wheel depth, tyre width, handlebar geometry, frame details.
  */
 export type BikeShape =
   | 'roadAero'       // deep rims, aero bars, thick top tube
@@ -54,7 +54,7 @@ export type BikeShape =
 
 /**
  * Jersey / kit colour pattern.
- * Wave 38.B: changes jersey primitives to show bands, dots, or splits.
+ * changes jersey primitives to show bands, dots, or splits.
  */
 export type KitPattern =
   | 'solid'          // current behaviour (default)
@@ -75,7 +75,7 @@ export interface KitAccent {
 
 /**
  * Shoe geometry style.
- * Wave 38.B: alters sole width, cleat hint, and colour accent.
+ * alters sole width, cleat hint, and colour accent.
  */
 export type ShoeStyle = 'roadClip' | 'gravel' | 'mtbClip' | 'vintage' | 'fluoro';
 
@@ -95,22 +95,22 @@ export interface AvatarOptions {
   /** Whether to render a water bottle on the down tube. */
   hasBottle?: boolean;
   /**
-   * Bike frame geometry variant. Wave 38.B.
+   * Bike frame geometry variant
    * Defaults to 'roadAllRounder' when omitted.
    */
   bikeShape?: BikeShape;
   /**
-   * Jersey / kit colour pattern. Wave 38.B.
+   * Jersey / kit colour pattern
    * Defaults to 'solid' when omitted.
    */
   kitPattern?: KitPattern;
   /**
-   * Accent colours for multi-colour kit patterns. Wave 38.B.
+   * Accent colours for multi-colour kit patterns
    * When omitted, the base accent colour is reused.
    */
   kitAccent?: KitAccent;
   /**
-   * Shoe geometry style. Wave 38.B.
+   * Shoe geometry style
    * Defaults to 'roadClip' when omitted.
    */
   shoeStyle?: ShoeStyle;
@@ -773,7 +773,7 @@ function hipsPart(): PartSpec {
   };
 }
 
-// ---- Bike shape geometry helpers (Wave 38.B) ------------------------------
+// ---- Bike shape geometry helpers ------------------------------
 
 /** Rim depth multiplier and tyre width by bike shape. */
 const BIKE_WHEEL_PROFILE: Record<BikeShape, { rimDepth: number; tyreWidth: number }> = {
@@ -864,7 +864,7 @@ function ebikeBatteryPart(): PartSpec {
   };
 }
 
-// ---- Kit pattern helpers (Wave 38.B) --------------------------------------
+// ---- Kit pattern helpers --------------------------------------
 
 /** Horizontal jersey band — thin box across the torso at a given Z height. */
 function jerseyBandPart(name: string, zPos: number, role: ColorRole): PartSpec {
@@ -895,7 +895,7 @@ function polkaDotPart(name: string, x: number, z: number): PartSpec {
  * Options control accessory geometry so different riders can have
  * different gear without global PARTS contamination.
  *
- * Wave 38.B: branches on bikeShape (wheels/bars/frame/accessories),
+ * branches on bikeShape (wheels/bars/frame/accessories),
  * kitPattern (jersey overlays), and shoeStyle (sole geometry + colour role).
  */
 type ResolvedAvatarOptions = Omit<Required<AvatarOptions>, 'kitAccent'> & { kitAccent: KitAccent | undefined };
@@ -1248,7 +1248,7 @@ export function effortSkinColor(baseCss: string, level01: number): Cesium.Color 
  * Zero Cesium-primitive allocations inside `update()` — all entities are
  * created once here and mutated in-place via CallbackProperty reads each frame.
  *
- * Wave 37.A: accepts optional AvatarOptions so callers can specify helmet
+ * accepts optional AvatarOptions so callers can specify helmet
  * style, glasses, and bottle. Existing call sites passing only a viewer
  * continue to work unchanged.
  */
@@ -1454,7 +1454,7 @@ export function setAvatarEffortLevel(avatar: Avatar, level01: number): void {
   avatar._effortLevel = clampEffortLevel(level01);
 }
 
-// ---- Test-surface export (Wave 38.B) --------------------------------------
+// ---- Test-surface export --------------------------------------
 
 /**
  * Returns the number of primitives that would be built for a given set of

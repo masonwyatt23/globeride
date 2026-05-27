@@ -6,7 +6,7 @@
  * segment name. Gates are added as a single PrimitiveCollection for efficient
  * bulk teardown.
  *
- * Wave 33.B — no WebXR / cesiumCameras.ts code modified.
+ * no WebXR / cesiumCameras.ts code modified.
  */
 
 import * as Cesium from 'cesium';

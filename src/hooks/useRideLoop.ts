@@ -230,7 +230,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         riderHeading: s.route ? headingAt(s.route, distanceNow) : 0,
       });
 
-      // ---- Strava Live Segment crossing detection (Wave 33.B) ----
+      // ---- Strava Live Segment crossing detection ----
       // Zero-allocation: only arithmetic, no object creation.
       {
         const lastDist = lastDistanceRef.current;

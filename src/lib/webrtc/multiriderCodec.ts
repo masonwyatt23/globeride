@@ -7,7 +7,7 @@
  *   0x03  ROOM_ANNOUNCE — host broadcasts when a new peer joins the mesh
  *
  * v2 framing: a 1-byte MESSAGE_TYPE + 16-byte senderPeerId header prefix is
- * prepended to every frame. Legacy v1 receivers (Wave 29.A) will read the
+ * prepended to every frame. Legacy v1 receivers will read the
  * MESSAGE_TYPE as the opcode — values 0x01 and 0x02 are unchanged, so a v1
  * decoder still dispatches correctly on the first byte. v2 decoders skip the
  * 17-byte header before reading the payload.
@@ -225,7 +225,7 @@ export function decodeRoomAnnounce(buf: Uint8Array): RoomAnnounceMsg | null {
 }
 
 // ---------------------------------------------------------------------------
-// v1 Encoding (preserved — backward-compatible with Wave 29.A)
+// v1 Encoding (preserved — backward-compatible with the original 1:1 codec)
 // ---------------------------------------------------------------------------
 
 /**

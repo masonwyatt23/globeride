@@ -1,5 +1,5 @@
 /**
- * cinematicSequencer.ts — Wave 35.A: Camera selection for highlight reel.
+ * cinematicSequencer.ts: Camera selection for highlight reel.
  *
  * Pure functions — no side effects, no DOM, fully testable.
  */

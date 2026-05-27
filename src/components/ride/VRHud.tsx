@@ -1,5 +1,5 @@
 /**
- * VRHud — Wave 33.A / Wave 35.C (Phase 3: DOM overlay HUD)
+ * VRHud (Phase 3: DOM overlay HUD)
  *
  * Exports two components:
  *

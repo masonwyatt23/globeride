@@ -1,5 +1,5 @@
 /**
- * EnterVRButton — Wave 33.A / Wave 35.C (Phase 3: dom-overlay HUD)
+ * EnterVRButton (Phase 3: dom-overlay HUD)
  *
  * Floating button that appears only when the browser supports immersive-vr.
  * On non-XR browsers (Safari, Firefox, etc.) renders nothing — invisible and

@@ -1,5 +1,5 @@
 /**
- * routeSurface.ts — Zwift-grade road surface rendering (Wave 37.B).
+ * routeSurface.ts — Zwift-grade road surface rendering.
  *
  * Replaces the thin aqua glow polyline with a physically-recognisable road:
  *   • CorridorGraphics corridor clamped to terrain (4–8 m wide asphalt surface)

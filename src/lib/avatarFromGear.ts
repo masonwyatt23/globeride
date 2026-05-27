@@ -1,7 +1,7 @@
 /**
  * avatarFromGear — pure wiring layer between equipped gear IDs and createAvatar() params.
  *
- * Wave 37.E: resolves the user's equipped gear IDs (from settingsStore) into the
+ * resolves the user's equipped gear IDs (from settingsStore) into the
  * avatar creation parameters that 37.A's expanded createAvatar() signature expects.
  *
  * This module is deliberately Cesium-free and side-effect-free so it can be
@@ -28,7 +28,7 @@ export interface EquippedGear {
 
 /**
  * The avatar params derived from equipped gear. These map 1-to-1 onto the
- * extended `createAvatar()` signature that Wave 37.A adds.
+ * extended `createAvatar()` signature that adds.
  *
  * Until 37.A lands, callers should spread these safely into createAvatar()
  * — unknown keys are ignored by the current implementation.
@@ -146,7 +146,7 @@ export function avatarParamsFromGear(
   // helmetStyle — forward the HelmetItem.id so 37.A can vary geometry.
   const helmetStyle = equipped.helmet?.id ?? 'helmet-starter';
 
-  // bikeShape — derive from the equipped bike's shape field (Wave 38.B).
+  // bikeShape — derive from the equipped bike's shape field.
   const bikeShape = deriveBikeShape(equipped.bike);
 
   // kitPattern + kitAccent — derive from the equipped kit's subCategory.

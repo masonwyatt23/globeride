@@ -1,5 +1,5 @@
 /**
- * dynamicShadow.ts — Wave 30.C
+ * dynamicShadow.ts
  *
  * Ground shadow under the rider avatar: a flat dark ellipse positioned just
  * below the rider, sized and oriented by the sun's current azimuth/altitude.

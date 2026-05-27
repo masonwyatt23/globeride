@@ -1,7 +1,7 @@
 /**
  * useRaceResultCardAutoToast
  *
- * Watches `useRaceStore.localResults` (from Wave 21.A's raceStore.ts) for new
+ * Watches `useRaceStore.localResults` (from the raceStore.ts) for new
  * race results. When a fresh result is detected, surfaces a sticky toast with
  * a "Download result card" action that triggers the PNG download inline.
  *

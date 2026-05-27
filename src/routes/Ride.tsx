@@ -58,13 +58,11 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  * A global click handler cancels any in-progress commentary speech so the
  * user can dismiss the commentator by tapping anywhere.
  *
- * Wave 29.B additions:
+ * HUD overlays mounted:
  *   - Handlebar gesture detection on the main ride container (double-tap,
  *     long-press, two-finger swipe) — gated by settings.gestureControlsEnabled.
  *   - GestureLegend overlay (the "?" chip in the top-right corner of the
  *     ride canvas).
- *
- * Wave 30.A additions:
  *   - CameraSwitcher overlay (top-right, below gesture legend) — always shown.
  */
 export function Ride() {
@@ -108,11 +106,11 @@ export function Ride() {
   useFtpTestSuggestion();
   useWakeLock(rideState === 'running');
 
-  // ---- Handlebar gestures (Wave 29.B) ----
+  // ---- Handlebar gestures ----
   // Always called — the hook is a no-op when gestureControlsEnabled=false.
   useHandlebarGestures(rideCanvasRef, { enabled: gestureControlsEnabled });
 
-  // ---- Voice control (Wave 34.D) ----
+  // ---- Voice control ----
   // Always called (Rules of Hooks). No-op when unsupported or setting is off.
   const { isListening, startListening, stopListening } = useVoiceControl();
 
@@ -131,7 +129,7 @@ export function Ride() {
     if (!route && rideMode !== 'outdoor') navigate('/');
   }, [route, rideMode, navigate]);
 
-  // ---- Strava segment fetch (Wave 33.B) ----
+  // ---- Strava segment fetch ----
   // Fire once per route load, in the background. Ride continues on failure.
   useEffect(() => {
     if (!route || !stravaCredsPresent()) return;
@@ -280,7 +278,7 @@ export function Ride() {
         >
           <RideHUD />
           {activeWorkout && <WorkoutHUD />}
-          {/* Strava Live Segments HUD (Wave 33.B) */}
+          {/* Strava Live Segments HUD */}
           <SegmentHUD />
         </div>
       </div>
@@ -300,7 +298,7 @@ export function Ride() {
             <WorkoutHUD />
           </div>
         )}
-        {/* Strava Live Segments HUD — mobile (Wave 33.B) */}
+        {/* Strava Live Segments HUD — mobile */}
         <div className="mt-2">
           <SegmentHUD />
         </div>
@@ -331,7 +329,7 @@ export function Ride() {
         <RideControls />
       </div>
 
-      {/* -- Gesture legend "?" chip + overlay (Wave 29.B) ------------------- */}
+      {/* -- Gesture legend "?" chip + overlay ------------------- */}
       {gestureControlsEnabled && (
         <div className="absolute inset-0 pointer-events-none z-[4]">
           {/* GestureLegend positions itself absolutely within this container */}
@@ -341,7 +339,7 @@ export function Ride() {
         </div>
       )}
 
-      {/* -- Camera switcher (Wave 30.A) — top-right, below gesture chip ----- */}
+      {/* -- Camera switcher — top-right, below gesture chip ----- */}
       <div
         className="absolute pointer-events-auto z-[4]"
         style={{
@@ -352,7 +350,7 @@ export function Ride() {
         <CameraSwitcher />
       </div>
 
-      {/* -- Enter VR button (Wave 33.A) — top-right, below camera switcher -- */}
+      {/* -- Enter VR button — top-right, below camera switcher -- */}
       {/* Invisible on non-XR browsers (EnterVRButton returns null). */}
       <div
         className="absolute pointer-events-auto z-[4]"
@@ -364,7 +362,7 @@ export function Ride() {
         <EnterVRButton viewer={cesiumViewer} />
       </div>
 
-      {/* -- Enter AR button (Wave 35.D) — top-right, below VR button -------- */}
+      {/* -- Enter AR button — top-right, below VR button -------- */}
       {/* Invisible on non-AR browsers (EnterARButton returns null). */}
       <div
         className="absolute pointer-events-auto z-[4]"
@@ -376,7 +374,7 @@ export function Ride() {
         <EnterARButton viewer={cesiumViewer} />
       </div>
 
-      {/* -- Voice control button (Wave 34.D) — top-right, below AR button -- */}
+      {/* -- Voice control button — top-right, below AR button -- */}
       {/* Invisible on Firefox / unsupported browsers (returns null). */}
       <div
         className="absolute pointer-events-auto z-[4]"
@@ -391,7 +389,7 @@ export function Ride() {
         />
       </div>
 
-      {/* -- VR HUD overlay (Wave 33.A) — visible only during XR session ------ */}
+      {/* -- VR HUD overlay — visible only during XR session ------ */}
       <VRHud />
 
       {/* -- Finish overlay ------------------------------------------------- */}

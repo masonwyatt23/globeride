@@ -47,7 +47,7 @@ interface MultiRiderStoreState {
   /** Map of peerId → PeerEntry. Stored as Record for Zustand reactivity. */
   peers: Record<string, PeerEntry>;
 
-  // ---- Mesh peloton (Wave 35.B) ----
+  // ---- Mesh peloton ----
   /** True if this client created the room (acts as SDP relay for joiners). */
   meshHost: boolean;
   /** 6-char room code shared with friends. Null when not in a peloton. */

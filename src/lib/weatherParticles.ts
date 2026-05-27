@@ -2,7 +2,7 @@ import * as Cesium from 'cesium';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 
 /**
- * Supported weather kinds — matches the optional `weather` field that Wave 20.A
+ * Supported weather kinds — matches the optional `weather` field that the mood
  * is adding to SceneMood MOODS entries in cesiumUtils.ts. Import-safe: this
  * module defines the canonical type so the parallel agent only needs to
  * reference it (or declare the same string union).

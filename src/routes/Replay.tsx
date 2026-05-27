@@ -1,5 +1,5 @@
 /**
- * Replay.tsx — Wave 35.A: /replay/:rideId route.
+ * Replay.tsx: /replay/:rideId route.
  *
  * Loads the ride from rideHistory (IndexedDB) and mounts the ReplayPlayer
  * floating over the existing Cesium globe. The replay is driven by the

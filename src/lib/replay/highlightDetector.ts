@@ -1,5 +1,5 @@
 /**
- * highlightDetector.ts — Wave 35.A: Find the most cinematic moments.
+ * highlightDetector.ts: Find the most cinematic moments.
  *
  * Pure functions, no side effects. All time values are in seconds from
  * the first sample.

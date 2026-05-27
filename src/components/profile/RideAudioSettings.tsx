@@ -1,7 +1,7 @@
 /**
  * RideAudioSettings — Settings section for the procedural ride audio engine.
  *
- * Renders inside SettingsPanel as an additional Section (Wave 39.D).
+ * Renders inside SettingsPanel as an additional Section.
  * Controls:
  *   - Enable/disable toggle
  *   - Master volume slider (0-100)

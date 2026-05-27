@@ -1,5 +1,5 @@
 /**
- * xrAR.ts — Wave 35.D AR (immersive-ar) session management.
+ * xrAR.ts AR (immersive-ar) session management.
  *
  * Adds the passthrough AR variant to the GlobeRide WebXR pipeline.
  * AR mode renders the Cesium scene as a transparent overlay through

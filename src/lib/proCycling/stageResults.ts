@@ -1,5 +1,5 @@
 /**
- * Pro Peloton Stage Results — Wave 34.C
+ * Pro Peloton Stage Results
  *
  * Hand-curated historical finishing data for World Tour stages. All results
  * are derived from widely-known public race records and are used for
