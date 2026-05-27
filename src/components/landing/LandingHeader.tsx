@@ -32,7 +32,7 @@ export function LandingHeader() {
           <Globe2 className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: '#22d3ee', filter: 'drop-shadow(0 0 6px hsl(195 92% 56% / 0.6))' }} />
         </span>
         <div className="min-w-0">
-          <div className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight">GlobeRide</div>
+          <div className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight truncate">GlobeRide</div>
           <div className="hidden sm:block text-[10px] leading-tight tracking-wide" style={{ color: 'hsl(215 18% 42%)' }}>Virtual cycling · open source</div>
         </div>
       </button>

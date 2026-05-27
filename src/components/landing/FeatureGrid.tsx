@@ -216,6 +216,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
       className={[
         'group relative overflow-hidden rounded-2xl h-full',
         'landing-card-glass landing-card-hover',
+        'active:scale-[0.98] transition-transform',
         isFlagship ? 'landing-flagship-card' : '',
       ].filter(Boolean).join(' ')}
       onMouseEnter={e => {
@@ -259,14 +260,14 @@ function FeatureCard({ feature }: { feature: Feature }) {
       </div>
 
       {/* Text */}
-      <div className={`p-4 pt-3 ${isFlagship ? 'pb-5' : ''}`}>
+      <div className={`p-4 sm:p-5 lg:p-6 pt-3 ${isFlagship ? 'pb-5' : ''}`}>
         <h3
-          className={`font-bold text-white tracking-tight mb-1.5 group-hover:text-cyan-300 transition-colors duration-300 ${isFlagship ? 'text-base' : 'text-sm'}`}
+          className={`font-bold text-white tracking-tight mb-1.5 group-hover:text-cyan-300 transition-colors duration-300 ${isFlagship ? 'text-xl sm:text-xl lg:text-2xl' : 'text-base sm:text-lg'}`}
         >
           {feature.title}
         </h3>
         <p
-          className={`leading-relaxed ${isFlagship ? 'text-[0.8rem]' : 'text-xs'}`}
+          className="text-sm leading-relaxed"
           style={{ color: 'hsl(215 18% 50%)' }}
         >
           {feature.description}
@@ -325,13 +326,12 @@ export function FeatureGrid() {
           </div>
           <h2
             id="features-heading"
-            className="font-extrabold text-white"
-            style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-[1.05] tracking-tight"
           >
             Built for serious cyclists.
           </h2>
           <p
-            className="mt-4 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed"
+            className="mt-4 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg leading-relaxed line-clamp-2 sm:line-clamp-none"
             style={{ color: 'hsl(215 18% 52%)' }}
           >
             22 features across photoreal graphics, AI coaching, smart trainer integration, social

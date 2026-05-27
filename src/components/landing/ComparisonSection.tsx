@@ -62,30 +62,87 @@ export function ComparisonSection() {
           </p>
         </div>
 
-        {/* Mobile: stacked cards (one per row) */}
-        <div className="sm:hidden flex flex-col gap-2">
+        {/* Mobile: polished mini-cards (one per row) */}
+        <div className="sm:hidden flex flex-col gap-3">
           {ROWS.map((row) => (
             <div
               key={row.axis}
-              className="rounded-xl px-4 py-3"
-              style={{ background: 'hsl(215 32% 6%)', border: '1px solid hsl(215 26% 12%)' }}
+              className="landing-card-glass rounded-2xl px-4 pt-3 pb-4"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'hsl(215 18% 40%)' }}>{row.axis}</p>
-              <div className="flex gap-3">
-                <div className="flex-1 rounded-lg px-3 py-2" style={{ background: 'hsl(195 92% 56% / 0.06)', border: '1px solid hsl(195 92% 56% / 0.18)' }}>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#22d3ee' }}>GlobeRide</p>
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'hsl(195 80% 80%)' }}>
+              {/* Row label — card header */}
+              <p
+                className="text-[11px] font-semibold uppercase tracking-widest mb-3 pb-2"
+                style={{
+                  color: 'hsl(215 18% 55%)',
+                  borderBottom: '1px solid hsl(215 26% 12%)',
+                }}
+              >
+                {row.axis}
+              </p>
+
+              {/* Two-column comparison with VS divider */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+                {/* GlobeRide — aqua highlight, larger text */}
+                <div
+                  className="rounded-xl px-3 py-2.5"
+                  style={{
+                    background: 'hsl(195 92% 56% / 0.08)',
+                    border: '1px solid hsl(195 92% 56% / 0.22)',
+                  }}
+                >
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#22d3ee' }}>
+                    GlobeRide
+                  </p>
+                  <span className="flex items-start gap-1 text-xs leading-snug font-medium" style={{ color: 'hsl(195 80% 82%)' }}>
                     <Tick />
                     {row.globeride}
                   </span>
                 </div>
-                <div className="flex-1 rounded-lg px-3 py-2" style={{ background: 'hsl(215 32% 5%)', border: '1px solid hsl(215 26% 12%)' }}>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'hsl(215 18% 40%)' }}>Zwift</p>
-                  <span className="text-xs" style={{ color: 'hsl(215 18% 50%)' }}>{row.zwift}</span>
+
+                {/* VS divider */}
+                <div className="flex flex-col items-center justify-center px-0.5">
+                  <div className="flex-1 w-px" style={{ background: 'hsl(215 26% 14%)' }} />
+                  <span
+                    className="text-[9px] font-bold my-1 leading-none"
+                    style={{ color: 'hsl(215 18% 35%)' }}
+                  >
+                    vs
+                  </span>
+                  <div className="flex-1 w-px" style={{ background: 'hsl(215 26% 14%)' }} />
+                </div>
+
+                {/* Zwift — muted, smaller */}
+                <div
+                  className="rounded-xl px-3 py-2.5"
+                  style={{
+                    background: 'hsl(215 32% 5%)',
+                    border: '1px solid hsl(215 26% 11%)',
+                  }}
+                >
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(215 18% 38%)' }}>
+                    Zwift
+                  </p>
+                  <span className="text-xs leading-snug" style={{ color: 'hsl(215 18% 48%)' }}>
+                    {row.zwift}
+                  </span>
                 </div>
               </div>
             </div>
           ))}
+
+          {/* Mobile "different philosophy" summary */}
+          <div
+            className="rounded-2xl px-4 py-4 text-center mt-1"
+            style={{
+              background: 'hsl(195 92% 56% / 0.05)',
+              border: '1px solid hsl(195 92% 56% / 0.15)',
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: '#22d3ee' }}>Different philosophy.</p>
+            <p className="text-xs mt-0.5" style={{ color: 'hsl(215 18% 46%)' }}>
+              Open source, local-first, free forever.
+            </p>
+          </div>
         </div>
 
         {/* Desktop: full table */}

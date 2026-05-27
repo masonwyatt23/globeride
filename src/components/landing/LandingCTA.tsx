@@ -16,7 +16,7 @@ export function LandingCTA() {
   }
 
   return (
-    <section className="relative px-4 sm:px-6 lg:px-10 py-24 sm:py-32 overflow-hidden">
+    <section role="region" aria-label="Start riding" className="relative px-4 sm:px-6 lg:px-10 py-24 sm:py-32 overflow-hidden">
       {/* Ambient background */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         {/* Top separator line */}
@@ -52,7 +52,7 @@ export function LandingCTA() {
         {/* Headline */}
         <h2
           className="font-extrabold text-white mb-5"
-          style={{ fontSize: 'clamp(2.25rem, 5.5vw, 4rem)', lineHeight: '1.0', letterSpacing: '-0.038em' }}
+          style={{ fontSize: 'clamp(1.875rem, 8vw, 4rem)', lineHeight: '1.0', letterSpacing: '-0.038em' }}
         >
           Start riding in{' '}
           <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -60,7 +60,7 @@ export function LandingCTA() {
           </span>
         </h2>
 
-        <p className="text-base sm:text-lg leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'hsl(215 18% 52%)' }}>
+        <p className="text-sm sm:text-base lg:text-lg leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'hsl(215 18% 52%)' }}>
           No account. No server. No subscription. Open Chrome, drop a GPX, and feel the gradient.
         </p>
 
@@ -112,7 +112,7 @@ export function LandingCTA() {
         >
           {['Open source', 'MIT licensed', 'No account', 'Chrome & Edge desktop + Android'].map((t, i) => (
             <span key={t} className="flex items-center gap-2">
-              {i > 0 && <span className="h-1 w-1 rounded-full" style={{ background: 'hsl(215 26% 20%)' }} aria-hidden />}
+              {i > 0 && <span className="hidden sm:inline-block h-1 w-1 rounded-full" style={{ background: 'hsl(215 26% 20%)' }} aria-hidden />}
               {t}
             </span>
           ))}

@@ -233,29 +233,33 @@ export function RidersSection() {
           </p>
         </div>
 
-        {/* Cards */}
+        {/* Cards — 1-col mobile, 2-col tablet, 3-col desktop */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {RIDER_CARDS.map(({ id, heading, body, Scene, sceneTitleId, sceneTitle }) => (
             <div
               key={id}
-              className="flex flex-col rounded-2xl overflow-hidden transition-colors duration-300"
-              style={{
-                background: 'hsl(215 32% 6%)',
-                border: '1px solid hsl(215 26% 12%)',
-              }}
+              className="landing-card-glass landing-card-hover flex flex-col rounded-2xl overflow-hidden group"
             >
-              {/* Scene illustration */}
+              {/* Scene illustration — aspect-video fills full card width on all breakpoints */}
               <div
                 className="w-full overflow-hidden"
                 style={{ aspectRatio: '16/9', background: 'hsl(220 42% 4%)' }}
               >
-                <Scene titleId={sceneTitleId} title={sceneTitle} />
+                <Scene
+                  titleId={sceneTitleId}
+                  title={sceneTitle}
+                  className="w-full h-full transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                />
               </div>
 
-              {/* Text */}
-              <div className="flex flex-col flex-1 p-6">
-                <h3 className="text-base font-bold text-white tracking-tight mb-2">{heading}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>{body}</p>
+              {/* Text — clear hierarchy: heading large, body muted */}
+              <div className="flex flex-col flex-1 p-5 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-2 leading-snug">
+                  {heading}
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>
+                  {body}
+                </p>
               </div>
             </div>
           ))}

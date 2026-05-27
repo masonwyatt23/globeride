@@ -106,7 +106,7 @@ export function HeroVisual({
   // positioned ancestor with explicit dimensions. Without this wrapper the
   // Cesium canvas collapses to height:0 and renders as a black void.
   return (
-    <div className="relative h-full w-full min-h-[420px]">
+    <div className="relative h-full w-full min-h-[240px] sm:min-h-[420px]">
       <Suspense fallback={<HeroGlobeFallback />}>
         <LazyHeroGlobe ionToken={token} />
       </Suspense>

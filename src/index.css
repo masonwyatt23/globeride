@@ -6,6 +6,18 @@
   /* Offset anchor scroll by the fixed header height so headlines aren't hidden */
   html {
     scroll-padding-top: 64px;
+    /* Prevent iOS auto-resizing text in landscape */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /* Prevent accidental horizontal scroll on mobile */
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 {
+    /* Auto-balance multi-line headlines (modern browsers) */
+    text-wrap: balance;
   }
   :root {
     /* -----------------------------------------------------------------------
@@ -79,6 +91,8 @@
 
   * {
     border-color: hsl(var(--border));
+    /* Disable iOS tap highlight on all elements */
+    -webkit-tap-highlight-color: transparent;
   }
 
   html,

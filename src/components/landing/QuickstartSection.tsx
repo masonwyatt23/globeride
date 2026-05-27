@@ -225,33 +225,70 @@ export function QuickstartSection() {
           </p>
         </div>
 
-        {/* Steps grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Steps grid — desktop: 4-col; tablet: 2×2; mobile: vertical timeline */}
+        <div className="relative grid gap-0 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Mobile-only vertical connecting line — dashed aqua running the full height */}
+          <div
+            aria-hidden
+            className="sm:hidden absolute left-[17px] top-[36px] bottom-[36px] w-px"
+            style={{
+              background: 'repeating-linear-gradient(to bottom, hsl(195 92% 56% / 0.3) 0px, hsl(195 92% 56% / 0.3) 6px, transparent 6px, transparent 12px)',
+            }}
+          />
+
           {QUICKSTART_STEPS.map(({ n, title, description, Illustration }) => (
             <div
               key={n}
-              className="relative flex flex-col rounded-2xl p-4 sm:p-6 transition-colors duration-300"
+              className="relative flex sm:flex-col rounded-none sm:rounded-2xl p-4 sm:p-6 gap-4 sm:gap-0 transition-colors duration-300"
               style={{
-                background: 'hsl(215 32% 6%)',
-                border: '1px solid hsl(215 26% 12%)',
+                background: 'transparent',
+                // On sm+ restore card background
               }}
             >
-              {/* Step number */}
+              {/* sm+ card background — can't use responsive inline styles, so use a wrapper */}
               <div
-                className="flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-5 shrink-0"
+                className="hidden sm:block absolute inset-0 rounded-2xl pointer-events-none"
+                style={{ background: 'hsl(215 32% 6%)', border: '1px solid hsl(215 26% 12%)' }}
+                aria-hidden
+              />
+
+              {/* Mobile left column: step circle + line spacer */}
+              <div className="sm:hidden relative flex flex-col items-center shrink-0 z-10" style={{ width: '36px' }}>
+                {/* Step number circle */}
+                <div
+                  className="flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0"
+                  style={{
+                    background: 'hsl(195 92% 56% / 0.15)',
+                    border: '1.5px solid hsl(195 92% 56% / 0.4)',
+                    color: '#22d3ee',
+                  }}
+                >
+                  {n}
+                </div>
+              </div>
+
+              {/* Desktop step number (hidden on mobile, shown inside card) */}
+              <div
+                className="hidden sm:flex relative z-10 items-center justify-center w-9 h-9 rounded-full text-sm font-bold mb-5 shrink-0"
                 style={{ background: 'hsl(195 92% 56% / 0.15)', border: '1.5px solid hsl(195 92% 56% / 0.4)', color: '#22d3ee' }}
               >
                 {n}
               </div>
 
-              {/* Illustration */}
-              <div className="w-full aspect-[4/3] mb-5 rounded-lg overflow-hidden" style={{ background: 'hsl(220 42% 4%)' }}>
-                <Illustration />
-              </div>
+              {/* Mobile right column / desktop: illustration + text */}
+              <div className="flex-1 relative z-10 pb-6 sm:pb-0">
+                {/* Illustration — smaller on mobile */}
+                <div
+                  className="w-full aspect-[4/3] mb-4 rounded-lg overflow-hidden"
+                  style={{ background: 'hsl(220 42% 4%)' }}
+                >
+                  <Illustration />
+                </div>
 
-              {/* Text */}
-              <h3 className="text-base font-bold text-white tracking-tight mb-2">{title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>{description}</p>
+                {/* Text */}
+                <h3 className="text-base font-bold text-white tracking-tight mb-2">{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>{description}</p>
+              </div>
             </div>
           ))}
         </div>

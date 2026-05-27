@@ -140,7 +140,7 @@ function SceneCardItem({ card }: { card: SceneCard }) {
 
   return (
     <article
-      className="group relative flex-none w-72 sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer landing-card-glass landing-card-hover"
+      className="group relative flex-none w-[88vw] sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer landing-card-glass landing-card-hover"
       style={{ border: `1px solid ${accent}28` }}
       onClick={handleLaunch}
       onKeyDown={e => e.key === 'Enter' && handleLaunch()}
@@ -245,7 +245,7 @@ export function GallerySection() {
   });
 
   return (
-    <section className="relative py-20 sm:py-28 overflow-hidden" aria-labelledby="gallery-heading">
+    <section role="region" aria-labelledby="gallery-heading" className="relative py-20 sm:py-28 overflow-hidden">
       {/* Ambient glow */}
       <div
         aria-hidden
@@ -272,7 +272,7 @@ export function GallerySection() {
           <h2
             id="gallery-heading"
             className="font-extrabold tracking-tight text-white"
-            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(1.625rem, 5vw, 3.5rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             The world's greatest climbs.<br />
             <span

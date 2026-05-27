@@ -67,10 +67,17 @@ export function useScrollReveal<T extends Element = Element>(
 
     if (targets.length === 0) return;
 
+    // Reduce stagger by 50% on mobile — content stacks compactly so full
+    // delays feel sluggish. Breakpoint mirrors Tailwind's `md` (768px).
+    const isMobile =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 767px)').matches;
+    const effectiveDelayStep = isMobile ? delayStep * 0.5 : delayStep;
+
     // Set stagger delay variables on children before observing
     if (childSelector) {
       targets.forEach((el, i) => {
-        (el as HTMLElement).style.setProperty('--reveal-delay', `${i * delayStep}ms`);
+        (el as HTMLElement).style.setProperty('--reveal-delay', `${i * effectiveDelayStep}ms`);
       });
     }
 

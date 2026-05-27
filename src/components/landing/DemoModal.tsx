@@ -298,10 +298,8 @@ export function DemoModal({
             ref={closeBtnRef}
             onClick={onClose}
             aria-label="Close demo"
-            className="flex items-center justify-center rounded-full transition-colors duration-150"
+            className="flex items-center justify-center rounded-full transition-colors duration-150 h-12 w-12 sm:h-8 sm:w-8"
             style={{
-              width: '2rem',
-              height: '2rem',
               background: 'hsl(220 42% 10%)',
               border: '1px solid hsl(215 26% 18%)',
               color: 'hsl(215 18% 55%)',
@@ -312,9 +310,9 @@ export function DemoModal({
           </button>
         </div>
 
-        {/* Scene viewport */}
+        {/* Scene viewport — full remaining height on mobile, fixed clamp on desktop */}
         <div
-          className="relative w-full"
+          className="relative w-full flex-1 sm:flex-none"
           style={{ height: 'clamp(280px, 56vw, 480px)' }}
         >
           {/* Fallback always present; scene overlays it */}

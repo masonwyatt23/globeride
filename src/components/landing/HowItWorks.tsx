@@ -44,7 +44,11 @@ export function HowItWorks() {
   });
 
   return (
-    <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
+    <section
+      role="region"
+      aria-label="How GlobeRide works"
+      className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden"
+    >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[60rem] w-[60rem] rounded-full"
@@ -65,14 +69,14 @@ export function HowItWorks() {
           </div>
           <h2
             className="font-extrabold text-white"
-            style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(1.625rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             Zero friction from{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               route to Strava.
             </span>
           </h2>
-          <p className="mt-4 max-w-lg mx-auto text-base sm:text-lg leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+          <p className="mt-4 max-w-lg mx-auto text-sm sm:text-base leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
             Three steps. No account, no backend, no subscription.
           </p>
         </div>
@@ -81,7 +85,7 @@ export function HowItWorks() {
           ref={stepsRef}
           className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3"
         >
-          {/* Connector line — desktop */}
+          {/* Connector line — desktop only */}
           <div
             aria-hidden
             className="hidden md:block absolute top-10 h-px"
@@ -95,11 +99,24 @@ export function HowItWorks() {
           {STEPS.map((step, i) => (
             <div
               key={step.n}
-              className="step-reveal-child landing-fade-in-up relative flex flex-col md:items-center md:text-center items-center text-center md:text-center group"
+              className="step-reveal-child landing-fade-in-up relative flex flex-col items-center text-center group"
             >
+              {/* Dotted vertical connector — mobile only, between steps */}
+              {i < STEPS.length - 1 && (
+                <div
+                  aria-hidden
+                  className="md:hidden absolute left-1/2 -translate-x-1/2 w-px"
+                  style={{
+                    top: 'calc(5rem + 1.25rem)',   /* below the icon bubble */
+                    height: '2rem',
+                    background: `repeating-linear-gradient(to bottom, ${step.accent}50 0px, ${step.accent}50 4px, transparent 4px, transparent 8px)`,
+                  }}
+                />
+              )}
+
               {/* Step bubble — glass treatment */}
               <div
-                className="relative mb-5 inline-flex h-20 w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0 landing-card-glass"
+                className="relative mb-5 inline-flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0 landing-card-glass"
                 style={{
                   border: `1px solid ${step.accent}30`,
                   boxShadow: `0 8px 32px -12px ${step.accent}25`,
@@ -128,8 +145,8 @@ export function HowItWorks() {
                 </div>
               </div>
 
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-2">{step.title}</h3>
-              <p className="text-sm leading-relaxed max-w-xs mx-auto md:mx-0" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
+              <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight mb-2">{step.title}</h3>
+              <p className="text-sm sm:text-base leading-relaxed max-w-xs mx-auto sm:max-w-none" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
             </div>
           ))}
         </div>

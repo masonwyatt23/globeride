@@ -118,7 +118,7 @@ export function FeatureGlobePreview({
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden"
-      style={{ height: 180 }}
+      style={{ height: 'clamp(140px, 35vw, 180px)' }}
       aria-hidden
     >
       {showScene ? (
@@ -137,7 +137,7 @@ function GlobeIconFallback() {
     <div className="flex h-full w-full items-center justify-center">
       <GlobeIcon
         className="h-full w-full"
-        style={{ maxHeight: 180 }}
+        style={{ maxHeight: 'clamp(140px, 35vw, 180px)' }}
         aria-hidden
       />
     </div>
