@@ -20,7 +20,7 @@ export interface RiderProfile {
   totalAscentM: number;
   totalWorkoutsCompleted: number;
   xp: number;
-  // ── Wave 17-23 counters (default 0 for existing profiles) ─────────────────
+  // ── Aggregate counters (default 0 for profiles created before they existed) ─
   /** Total P2P races finished. */
   totalRacesFinished: number;
   /** Number of race manifests created by this rider. */
@@ -130,7 +130,7 @@ export const useProfileStore = create<ProfileStoreState>()(
             totalWorkoutsCompleted:
               profile.totalWorkoutsCompleted + (input.workoutCompleted ? 1 : 0),
             xp: profile.xp + earned,
-            // Wave 17-23 counters — default missing fields to 0 for old profiles.
+            // Aggregate counters — default missing fields to 0 for older profiles.
             totalRacesFinished:
               (profile.totalRacesFinished ?? 0) + (input.raceFinished ? 1 : 0),
             totalDraftSec:

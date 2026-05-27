@@ -98,9 +98,9 @@ const GHOST_COLORS: AvatarColors = {
 };
 
 // ---------------------------------------------------------------------------
-// Heuristic: derive a WeatherKind from the mood name string for when the
-// Wave 20.A MOODS `weather` extension is not yet merged.
-// Maps known weather-associated mood strings; everything else is 'none'.
+// Heuristic: derive a WeatherKind from the mood-name string when the mood
+// entry doesn't carry an explicit `weather` field. Maps known weather-
+// associated names; everything else returns 'none'.
 // ---------------------------------------------------------------------------
 function weatherKindFromMoodName(moodName: string): WeatherKind {
   if (
@@ -124,12 +124,12 @@ function weatherKindFromMoodName(moodName: string): WeatherKind {
 }
 
 /**
- * Resolve the WeatherKind for a mood value. Supports both the current
- * string-based SceneMood and the extended object form that Wave 20.A will
- * introduce (where each mood entry may carry an optional `weather` field).
+ * Resolve the WeatherKind for a mood value. Supports both the string-based
+ * SceneMood form and an object form where the mood entry carries an
+ * optional `weather` field.
  */
 function resolveWeatherKind(mood: unknown): WeatherKind {
-  // Wave 20.A extended form: mood object with optional weather field.
+  // Object form — explicit `weather` field wins over name heuristics.
   if (mood && typeof mood === 'object' && 'weather' in mood) {
     const w = (mood as { weather?: WeatherKind }).weather;
     return w ?? 'none';
@@ -236,16 +236,17 @@ export function CesiumViewer({
       selectionIndicator: false,
       navigationHelpButton: false,
       navigationInstructionsInitiallyVisible: false,
-      // Wave 33.A: mark the WebGL context as XR-compatible so that
-      // navigator.xr.requestSession('immersive-vr') can use this canvas.
-      // xrCompatible is a valid WebGL context attribute (WebXR spec) but is
-      // not yet typed in Cesium 1.131's WebGLOptions — cast to satisfy tsc.
+      // Mark the WebGL context as XR-compatible so that
+      // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
+      // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
+      // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
       contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
     });
     viewerRef.current = viewer;
     setActiveViewer(viewer);
     setViewerReady(true);
-    // Wave 33.A: notify parent so EnterVRButton can receive the viewer ref.
+    // Notify the parent so EnterVRButton (and other consumers) can hold a
+    // ref to the viewer for XR session entry.
     onViewerReady?.(viewer);
 
     // Add Bing Maps Aerial as the permanent globe base layer so terrain is

@@ -236,7 +236,7 @@ interface XRViewport {
 }
 
 // ---------------------------------------------------------------------------
-// Wave 35.D: AR environment blend mode
+// AR environment blend mode
 // https://www.w3.org/TR/webxr-ar-module/#xrenvironmentblendmode-enum
 // ---------------------------------------------------------------------------
 

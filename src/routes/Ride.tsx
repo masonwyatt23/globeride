@@ -80,8 +80,9 @@ export function Ride() {
   // Ref for the main ride canvas container — used by gesture detection.
   const rideCanvasRef = useRef<HTMLDivElement>(null);
 
-  // Wave 33.A: viewer ref populated by CesiumViewer.onViewerReady — passed to
-  // EnterVRButton so it can call enterVR(viewer) without prop-drilling Cesium.
+  // Viewer ref populated by CesiumViewer.onViewerReady — passed to
+  // EnterVRButton / EnterARButton so they can call enter{VR,AR}(viewer)
+  // without prop-drilling Cesium through the HUD tree.
   const [cesiumViewer, setCesiumViewer] = useState<import('cesium').Viewer | null>(null);
 
   // ---- Outdoor GPS watcher ----

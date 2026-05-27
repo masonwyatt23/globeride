@@ -5,8 +5,8 @@
  * race results. When a fresh result is detected, surfaces a sticky toast with
  * a "Download result card" action that triggers the PNG download inline.
  *
- * Dependency on raceStore: imported dynamically at runtime so the rest of the
- * app builds cleanly even before Wave 21.A lands its files.
+ * Dependency on raceStore: imported dynamically at runtime so this hook
+ * stays resilient if the race protocol's store hasn't loaded yet.
  *
  * Mount once at the app root (App.tsx) — alongside AchievementToast.
  */
@@ -169,9 +169,9 @@ export function useRaceResultCardAutoToast(): void {
       }
     }
 
-    // Attempt to connect to raceStore. If the file doesn't exist yet (before
-    // Wave 21.A lands), the dynamic import rejects and we bail silently.
-    // The cast via Function avoids a static-analysis TS error on unresolved modules.
+    // Attempt to connect to raceStore via runtime import. If the module
+    // isn't available we bail silently. The Function() cast avoids a
+    // static-analysis TS error on the conditionally-present module.
     (Function('m', 'return import(m)')('@/stores/raceStore') as Promise<unknown>)
       .then((mod: unknown) => {
         if (stopped) return;

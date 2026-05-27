@@ -437,7 +437,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'queen',
       heroNarrative: 'Three giants of the Alps — only the strongest survive Bonette.',
       mood: 'alpine-storm',  // Bonette in summer invites dramatic storm fronts
-      // Wave 30.D — spectator crowds on Isola 2000 summit finish (final 2 km).
+      // Spectator crowds on the Isola 2000 summit finish (final 2 km).
       // Packed crowds line the narrow resort road on the approach to the line.
       spectatorClimbs: [
         { startDistance: 142_000, endDistance: 144_000, densityPerKm: 75 },
@@ -460,7 +460,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'queen',
       heroNarrative: "Mortirolo breaks the body — Sella breaks the spirit. Survive both.",
       mood: 'overcast',  // Mortirolo and the Dolomites are moody and grey
-      // Wave 30.D — spectator crowds on Passo del Mortirolo (the most feared
+      // Spectator crowds on Passo del Mortirolo (the most feared
       // climb in the Giro). Dense crowds pack the narrowest hairpins in pro
       // cycling, ~2 km before the summit.
       spectatorClimbs: [
@@ -538,7 +538,7 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'mountain',
       heroNarrative: 'Where Spain meets France — the Tourmalet awaits both nations.',
       mood: 'golden-hour',  // Vuelta stage finishes late — warm Pyrenean sunset light
-      // Wave 30.D — spectator crowds on Col du Tourmalet, the most-climbed
+      // Spectator crowds on Col du Tourmalet, the most-climbed
       // mountain in Tour de France history. Two km of roadside fans on the
       // upper flanks leading to the 2115 m summit.
       spectatorClimbs: [

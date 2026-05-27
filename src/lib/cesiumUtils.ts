@@ -345,7 +345,7 @@ interface MoodParams {
   groundHueShift: number;
   groundSaturationShift: number;
   groundBrightnessShift: number;
-  // ---- Wave 30.C: Sky + clouds descriptor ----
+  // ---- Sky + clouds descriptor ----
   sky: SkyConfig;
 }
 
