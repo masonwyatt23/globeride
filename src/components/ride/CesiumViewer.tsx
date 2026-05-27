@@ -327,28 +327,50 @@ export function CesiumViewer({
     // is fully constructed so scene.postProcessStages is available.
     applyCinematicEffects(viewer, initialQuality);
 
-    // HDR + ACES filmic tonemapping — richer colour on capable platforms.
-    // Skip on 'low' quality tier (power-saver devices) or if the platform
-    // probe in cesiumHDR.ts rejects it.
-    if (initialQuality !== 'low') {
-      tryEnableHDR(viewer);
-    }
+    // Lower the render resolution slightly on /ride so the heavy
+    // 3D-buildings + photoreal-tiles scene doesn't peg the GPU and
+    // freeze the JS thread (which was preventing the Start-ride button
+    // from registering taps in production).
+    viewer.resolutionScale = 0.85;
 
-    // Cesium World Terrain (ion asset 1) — shared so the route generator
-    // can sample elevations from the same provider.
-    getTerrainProvider()
-      .then((terrain) => {
-        // StrictMode (or a fast unmount) may have destroyed this viewer
-        // before the async terrain provider resolved.
-        if (viewer.isDestroyed()) return;
-        viewer.scene.terrainProvider = terrain;
-      })
-      .catch(() => undefined);
+    // Defer the expensive scene additions (HDR, terrain, OSM buildings,
+    // photoreal tiles) until the browser is idle. Without this, the JS
+    // thread is blocked during initial mount and React can't process
+    // user input — including the Start-ride button click — for several
+    // seconds.
+    const scheduleIdle = (fn: () => void): void => {
+      const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+      if (typeof ric === 'function') {
+        ric(fn, { timeout: 2000 });
+      } else {
+        setTimeout(fn, 0);
+      }
+    };
 
-    // World detail: Google Photorealistic 3D Tiles when available (real
-    // buildings, trees, terrain) — otherwise OSM buildings on the globe.
-    const usePhotoreal = import.meta.env.VITE_PHOTOREAL_TILES !== 'false';
-    const addOsmBuildings = () => {
+    scheduleIdle(() => {
+      if (viewer.isDestroyed()) return;
+      // HDR + ACES filmic tonemapping — richer colour on capable platforms.
+      // Skip on 'low' quality tier (power-saver devices).
+      if (initialQuality !== 'low') {
+        tryEnableHDR(viewer);
+      }
+
+      // Cesium World Terrain (ion asset 1).
+      getTerrainProvider()
+        .then((terrain) => {
+          if (viewer.isDestroyed()) return;
+          viewer.scene.terrainProvider = terrain;
+        })
+        .catch(() => undefined);
+    });
+
+    // OSM buildings + Google Photoreal 3D Tiles are the heaviest single
+    // contributors to first-frame jank. Hold them back further so the
+    // ride view becomes interactive immediately, then layer them in.
+    scheduleIdle(() => {
+      if (viewer.isDestroyed()) return;
+      const usePhotoreal = import.meta.env.VITE_PHOTOREAL_TILES !== 'false';
+
       Cesium.createOsmBuildingsAsync()
         .then((tileset) => {
           if (viewer.isDestroyed()) {
@@ -359,37 +381,25 @@ export function CesiumViewer({
           osmTilesetRef.current = tileset;
         })
         .catch(() => undefined);
-    };
 
-    // Always add OSM buildings — they appear globally and give structural
-    // depth even in areas where Google Photorealistic Tiles have no data.
-    addOsmBuildings();
-
-    if (usePhotoreal && !PHOTOREAL_MOBILE_DISABLED) {
-      const photoreal = getPhotorealTileset();
-      photorealPromiseRef.current = photoreal;
-      photoreal
-        .then((tileset) => {
-          if (viewer.isDestroyed()) {
-            tileset.destroy?.();
-            return;
-          }
-          // Add the photoreal tileset as an ADDITIVE overlay on top of the
-          // globe.  We intentionally keep globe.show = true so that rural
-          // areas (no Google data) still render terrain + Bing imagery.
-          // The tileset simply overrides the surface where it has coverage.
-          // Start hidden — the per-frame altitude gate controls visibility.
-          tileset.show = false;
-          viewer.scene.primitives.add(tileset);
-          tilesetRef.current = tileset;
-        })
-        .catch(() => {
-          // Google Photorealistic Tiles are unavailable (token lacks access or
-          // network error).  OSM buildings were already added above, so the
-          // globe + terrain + OSM path is the active fallback — nothing to do.
-          photorealPromiseRef.current = null;
-        });
-    }
+      if (usePhotoreal && !PHOTOREAL_MOBILE_DISABLED) {
+        const photoreal = getPhotorealTileset();
+        photorealPromiseRef.current = photoreal;
+        photoreal
+          .then((tileset) => {
+            if (viewer.isDestroyed()) {
+              tileset.destroy?.();
+              return;
+            }
+            tileset.show = false;
+            viewer.scene.primitives.add(tileset);
+            tilesetRef.current = tileset;
+          })
+          .catch(() => {
+            photorealPromiseRef.current = null;
+          });
+      }
+    });
 
     })(); // end async bootstrap IIFE
 
