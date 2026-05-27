@@ -11,6 +11,7 @@ import {
   climbingSwayAngle,
   clampEffortLevel,
   effortSkinColor,
+  avatarPrimitiveCount,
 } from '@/lib/avatar';
 import * as Cesium from 'cesium';
 
@@ -285,5 +286,107 @@ describe('effortSkinColor', () => {
       expect(c.blue).toBeGreaterThanOrEqual(0);
       expect(c.blue).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 38.B — avatarPrimitiveCount: bikeShape variation
+// ---------------------------------------------------------------------------
+
+describe('avatarPrimitiveCount — bikeShape', () => {
+  it('returns a positive non-zero count for default (roadAllRounder)', () => {
+    expect(avatarPrimitiveCount()).toBeGreaterThan(0);
+  });
+
+  it('mtbHardtail differs from roadAllRounder (flat bar vs drop bar + suspension fork)', () => {
+    const road = avatarPrimitiveCount({ bikeShape: 'roadAllRounder' });
+    const mtb  = avatarPrimitiveCount({ bikeShape: 'mtbHardtail' });
+    // MTB: flat bar (1) + dual susp fork (3) vs road drop bar (5) + single fork (1)
+    // Net: MTB loses 2 vs road allRounder, counts differ.
+    expect(mtb).not.toBe(road);
+  });
+
+  it('mtbFullSus has more primitives than mtbHardtail (rear shock body)', () => {
+    const hardtail = avatarPrimitiveCount({ bikeShape: 'mtbHardtail' });
+    const fullsus  = avatarPrimitiveCount({ bikeShape: 'mtbFullSus' });
+    expect(fullsus).toBeGreaterThan(hardtail);
+  });
+
+  it('tt differs from roadAllRounder (TT bar + clip-on extensions vs drop bar + hoods)', () => {
+    const road = avatarPrimitiveCount({ bikeShape: 'roadAllRounder' });
+    const tt   = avatarPrimitiveCount({ bikeShape: 'tt' });
+    // TT: bar(1) + 2 extensions vs road: bar(1) + drops(2) + hoods(2) — counts differ.
+    expect(tt).not.toBe(road);
+  });
+
+  it('ebike has more primitives than roadAllRounder (battery box)', () => {
+    const road  = avatarPrimitiveCount({ bikeShape: 'roadAllRounder' });
+    const ebike = avatarPrimitiveCount({ bikeShape: 'ebike' });
+    expect(ebike).toBeGreaterThan(road);
+  });
+
+  it('all bikeShape values produce a count within 1.5× of the roadAllRounder baseline', () => {
+    const baseline = avatarPrimitiveCount({ bikeShape: 'roadAllRounder' });
+    const shapes = [
+      'roadAero', 'roadClimber', 'tt', 'gravel', 'fixie',
+      'mtbHardtail', 'mtbFullSus', 'ebike', 'vintage',
+    ] as const;
+    for (const s of shapes) {
+      expect(avatarPrimitiveCount({ bikeShape: s })).toBeLessThanOrEqual(Math.ceil(baseline * 1.5));
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 38.B — avatarPrimitiveCount: kitPattern variation
+// ---------------------------------------------------------------------------
+
+describe('avatarPrimitiveCount — kitPattern', () => {
+  it('rainbow adds 5 band primitives over solid', () => {
+    const solid   = avatarPrimitiveCount({ kitPattern: 'solid' });
+    const rainbow = avatarPrimitiveCount({ kitPattern: 'rainbow' });
+    expect(rainbow - solid).toBe(5);
+  });
+
+  it('polka adds 6 dot primitives over solid', () => {
+    const solid = avatarPrimitiveCount({ kitPattern: 'solid' });
+    const polka = avatarPrimitiveCount({ kitPattern: 'polka' });
+    expect(polka - solid).toBe(6);
+  });
+
+  it('stripes adds 3 band primitives over solid', () => {
+    const solid   = avatarPrimitiveCount({ kitPattern: 'solid' });
+    const stripes = avatarPrimitiveCount({ kitPattern: 'stripes' });
+    expect(stripes - solid).toBe(3);
+  });
+
+  it('teamReplica adds 3 band primitives over solid', () => {
+    const solid  = avatarPrimitiveCount({ kitPattern: 'solid' });
+    const team   = avatarPrimitiveCount({ kitPattern: 'teamReplica' });
+    expect(team - solid).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 38.B — avatarPrimitiveCount: shoeStyle variation
+// ---------------------------------------------------------------------------
+
+describe('avatarPrimitiveCount — shoeStyle', () => {
+  it('roadClip adds 2 cleat-hint primitives over mtbClip (cleat vs grip blocks)', () => {
+    // roadClip: 2 cleats; mtbClip: 4 grip blocks → mtbClip has 2 more total
+    const road = avatarPrimitiveCount({ shoeStyle: 'roadClip' });
+    const mtb  = avatarPrimitiveCount({ shoeStyle: 'mtbClip' });
+    expect(mtb).toBeGreaterThan(road);
+  });
+
+  it('vintage and fluoro have fewer primitives than roadClip (no cleat hints added)', () => {
+    const roadClip = avatarPrimitiveCount({ shoeStyle: 'roadClip' });
+    const vintage  = avatarPrimitiveCount({ shoeStyle: 'vintage' });
+    const fluoro   = avatarPrimitiveCount({ shoeStyle: 'fluoro' });
+    // roadClip adds 2 cleat-hint boxes; vintage/fluoro add none.
+    expect(vintage).toBeLessThan(roadClip);
+    expect(fluoro).toBeLessThan(roadClip);
+    expect(roadClip - vintage).toBe(2);
+    expect(roadClip - fluoro).toBe(2);
   });
 });

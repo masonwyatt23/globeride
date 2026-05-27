@@ -10,6 +10,7 @@
 
 import { GEAR_CATALOG, HELMETS, type GearItem, type HelmetItem } from '@/lib/gear';
 import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
+import type { BikeShape, KitPattern, KitAccent, ShoeStyle } from '@/lib/avatar';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -47,10 +48,27 @@ export interface AvatarGearParams {
   hasBottle: boolean;
   /**
    * Bike frame shape identifier forwarded to createAvatar({ bikeShape }).
-   * Derived from the equipped bike GearItem kind + id.
-   * Falls back to 'road' when no bike is equipped.
+   * Derived from the equipped bike GearItem.shape field.
+   * Falls back to 'roadAllRounder' when no bike is equipped.
    */
-  bikeShape: string;
+  bikeShape: BikeShape;
+  /**
+   * Kit colour pattern forwarded to createAvatar({ kitPattern }).
+   * Derived from the kit GearItem.subCategory.
+   * Falls back to 'solid' when no kit is equipped.
+   */
+  kitPattern: KitPattern;
+  /**
+   * Optional accent colours for multi-colour kit patterns.
+   * Forwarded from kit GearItem.accentColors.
+   */
+  kitAccent: KitAccent | undefined;
+  /**
+   * Shoe geometry style forwarded to createAvatar({ shoeStyle }).
+   * Derived from the shoes GearItem.shape field.
+   * Falls back to 'roadClip' when no shoes are equipped.
+   */
+  shoeStyle: ShoeStyle;
 }
 
 // ---------------------------------------------------------------------------
@@ -128,9 +146,19 @@ export function avatarParamsFromGear(
   // helmetStyle — forward the HelmetItem.id so 37.A can vary geometry.
   const helmetStyle = equipped.helmet?.id ?? 'helmet-starter';
 
-  // bikeShape — derive from the equipped bike's id; falls back to 'road'.
-  // 37.A maps these strings to geometry variants (road / gravel / aero / tt).
+  // bikeShape — derive from the equipped bike's shape field (Wave 38.B).
   const bikeShape = deriveBikeShape(equipped.bike);
+
+  // kitPattern + kitAccent — derive from the equipped kit's subCategory.
+  const kitPattern = deriveKitPattern(equipped.kit);
+  const kitAccent  = equipped.kit?.accentColors
+    ? { primary: equipped.kit.accentColors.primary,
+        secondary: equipped.kit.accentColors.secondary,
+        tertiary: equipped.kit.accentColors.tertiary }
+    : undefined;
+
+  // shoeStyle — derive from the equipped shoes' shape field.
+  const shoeStyle = deriveShoeStyle(equipped.shoes);
 
   return {
     colors,
@@ -138,6 +166,9 @@ export function avatarParamsFromGear(
     hasGlasses: equipped.glasses !== null,
     hasBottle:  equipped.bottle  !== null,
     bikeShape,
+    kitPattern,
+    kitAccent,
+    shoeStyle,
   };
 }
 
@@ -146,16 +177,71 @@ export function avatarParamsFromGear(
 // ---------------------------------------------------------------------------
 
 /**
- * Map a bike GearItem to a geometry shape string.
- * Convention: check id substrings for known shape keywords; fall back to 'road'.
+ * Map a bike GearItem to a BikeShape via its shape field.
+ * Falls back to keyword scan of id, then 'roadAllRounder'.
  */
-function deriveBikeShape(bike: GearItem | null): string {
-  if (!bike) return 'road';
+function deriveBikeShape(bike: GearItem | null): BikeShape {
+  if (!bike) return 'roadAllRounder';
+  const shape = bike.shape?.toLowerCase() ?? '';
+  const shapeMap: Record<string, BikeShape> = {
+    allrounder:  'roadAllRounder',
+    climber:     'roadClimber',
+    aero:        'roadAero',
+    tt:          'tt',
+    gravel:      'gravel',
+    fixie:       'fixie',
+    mtbhardtail: 'mtbHardtail',
+    mtbfullsus:  'mtbFullSus',
+    ebike:       'ebike',
+    vintage:     'vintage',
+  };
+  if (shapeMap[shape]) return shapeMap[shape];
+  // Fallback: keyword scan of id.
   const id = bike.id.toLowerCase();
   if (id.includes('gravel') || id.includes('trail')) return 'gravel';
-  if (id.includes('aero'))  return 'aero';
-  if (id.includes('tt'))    return 'tt';
-  return 'road';
+  if (id.includes('aero'))   return 'roadAero';
+  if (id.includes('tt'))     return 'tt';
+  if (id.includes('mtb') || id.includes('hardtail')) return 'mtbHardtail';
+  if (id.includes('fixie'))  return 'fixie';
+  if (id.includes('vintage') || id.includes('steel')) return 'vintage';
+  if (id.includes('ebike') || id.includes('e-bike'))  return 'ebike';
+  return 'roadAllRounder';
+}
+
+/**
+ * Map a kit GearItem's subCategory to a KitPattern.
+ * Falls back to 'solid'.
+ */
+function deriveKitPattern(kit: GearItem | null): KitPattern {
+  if (!kit) return 'solid';
+  const sub = (kit.subCategory ?? '').toLowerCase();
+  if (sub === 'kom')              return 'polka';
+  if (sub === 'world-champion')   return 'rainbow';
+  if (sub === 'leader')           return 'yellowLeader';
+  if (sub === 'sprinter')         return 'sprinterGreen';
+  if (sub === 'vintage')          return 'stripes';
+  if (sub === 'team-replica')     return 'teamReplica';
+  // Fluoro kits: id contains 'fluoro'
+  if (kit.id.toLowerCase().includes('fluoro')) return 'fluoro';
+  return 'solid';
+}
+
+/**
+ * Map a shoes GearItem's shape field to a ShoeStyle.
+ * Falls back to 'roadClip'.
+ */
+function deriveShoeStyle(shoes: GearItem | null): ShoeStyle {
+  if (!shoes) return 'roadClip';
+  const shape = shoes.shape?.toLowerCase() ?? '';
+  if (shape === 'gravelshoe')   return 'gravel';
+  if (shape === 'mtbshoe')      return 'mtbClip';
+  if (shape === 'vintage')      return 'vintage';
+  const id = shoes.id.toLowerCase();
+  if (id.includes('fluoro'))    return 'fluoro';
+  if (id.includes('gravel'))    return 'gravel';
+  if (id.includes('mtb'))       return 'mtbClip';
+  if (id.includes('vintage') || id.includes('leather')) return 'vintage';
+  return 'roadClip';
 }
 
 // ---------------------------------------------------------------------------

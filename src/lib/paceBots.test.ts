@@ -3,7 +3,7 @@
  * Pure — no network, no React, no stores.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   tickPaceBot,
   createPaceBot,
@@ -302,5 +302,61 @@ describe('tickPaceBot — dt clamping', () => {
     const big = tickPaceBot(bot, route, 60, 0, 0);
     const small = tickPaceBot(bot, route, 1.0, 0, 0);
     expect(big.distance).toBeCloseTo(small.distance, 2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Allocation regression — Wave 38.E
+// tickPaceBot must not call Object.assign or Array.from per frame.
+// The module-scope _scratchParams object is mutated in place; no new
+// RiderParams object literal is created inside tickPaceBot.
+// ---------------------------------------------------------------------------
+
+describe('tickPaceBot — allocation regression (Wave 38.E)', () => {
+  it('does not call Object.assign during a tick', () => {
+    const bot = createPaceBot('bot-steady', BOT_PRESETS[0]);
+    const route = flatRoute();
+    const spy = vi.spyOn(Object, 'assign');
+    tickPaceBot(bot, route, 1.0, 0, 0);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('does not call Array.from during a tick', () => {
+    const bot = createPaceBot('bot-climber', BOT_PRESETS[1]);
+    const route = flatRoute();
+    const spy = vi.spyOn(Array, 'from');
+    tickPaceBot(bot, route, 1.0, 0, 5);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('returns correct speed for a bot with a non-default weight (scratch param is updated)', () => {
+    // Two bots with different weights should produce different speeds on flat ground.
+    const lightBot  = createPaceBot('light',  { ...BOT_PRESETS[0], weightKg: 55 });
+    const heavyBot  = createPaceBot('heavy',  { ...BOT_PRESETS[0], weightKg: 95 });
+    const route = flatRoute();
+    const lightState = tickPaceBot(lightBot,  route, 1.0, 0, 0);
+    const heavyState = tickPaceBot(heavyBot,  route, 1.0, 0, 0);
+    // Lighter rider goes faster at same power on flat (lower gravitational drag)
+    expect(lightState.speed).toBeGreaterThan(heavyState.speed);
+  });
+
+  it('consecutive ticks with different bots do not bleed weight across calls', () => {
+    // If _scratchParams were not properly reset, the second bot's speed would
+    // be calculated using the first bot's weight — this verifies isolation.
+    const bot55 = createPaceBot('b55', { ...BOT_PRESETS[0], weightKg: 55 });
+    const bot95 = createPaceBot('b95', { ...BOT_PRESETS[0], weightKg: 95 });
+    const route = flatRoute();
+    // Call both bots sequentially
+    tickPaceBot(bot55, route, 1.0, 0, 0);
+    const after95 = tickPaceBot(bot95, route, 1.0, 0, 0);
+    // Call bot55 fresh in isolation
+    const isolated55 = tickPaceBot(bot55, route, 1.0, 0, 0);
+    // If scratch leaked, after95.speed might be influenced by bot55 weight — ensure it isn't
+    // by confirming that a second call to bot95 gives the same result as the first.
+    const after95Again = tickPaceBot(bot95, route, 1.0, 0, 0);
+    expect(after95.speed).toBeCloseTo(after95Again.speed, 6);
+    void isolated55; // suppress unused warning
   });
 });

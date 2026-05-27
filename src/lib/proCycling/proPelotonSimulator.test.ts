@@ -3,7 +3,7 @@
  * Pure — no network, no React, no Cesium, no stores.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createProPelotonFromStage,
   tickProPeloton,
@@ -228,5 +228,74 @@ describe('proPelotonFinished', () => {
 
   it('returns true for an empty rider list', () => {
     expect(proPelotonFinished({ riders: [] }, ROUTE_DISTANCE)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Allocation regression — Wave 38.E
+// tickProPeloton allocates a new array and rider objects per tick (necessary
+// for Zustand immutability). These tests document the current contract and
+// guard against regressions that would add *extra* allocations such as
+// Object.assign, Array.from, or JSON.parse inside the hot path.
+// ---------------------------------------------------------------------------
+
+describe('tickProPeloton — allocation regression (Wave 38.E)', () => {
+  it('does not call Object.assign during a tick', () => {
+    const results = makeStageResults(5, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    const spy = vi.spyOn(Object, 'assign');
+    tickProPeloton(state, 1.0, ROUTE_DISTANCE);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('does not call Array.from during a tick', () => {
+    const results = makeStageResults(5, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    const spy = vi.spyOn(Array, 'from');
+    tickProPeloton(state, 1.0, ROUTE_DISTANCE);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('does not call JSON.parse or JSON.stringify during a tick', () => {
+    const results = makeStageResults(3, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    const parseSpy = vi.spyOn(JSON, 'parse');
+    const stringifySpy = vi.spyOn(JSON, 'stringify');
+    tickProPeloton(state, 1.0, ROUTE_DISTANCE);
+    expect(parseSpy).not.toHaveBeenCalled();
+    expect(stringifySpy).not.toHaveBeenCalled();
+    parseSpy.mockRestore();
+    stringifySpy.mockRestore();
+  });
+
+  it('returned state is a distinct object from input (immutability preserved)', () => {
+    const results = makeStageResults(3, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    const next = tickProPeloton(state, 1.0, ROUTE_DISTANCE);
+    expect(next).not.toBe(state);
+    expect(next.riders).not.toBe(state.riders);
+  });
+
+  it('does not mutate input rider objects', () => {
+    const results = makeStageResults(3, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    const origDistances = state.riders.map((r) => r.distance);
+    tickProPeloton(state, 1.0, ROUTE_DISTANCE);
+    for (let i = 0; i < state.riders.length; i++) {
+      expect(state.riders[i].distance).toBe(origDistances[i]);
+    }
+  });
+
+  it('100-rider tick completes without throwing (stress test)', () => {
+    const results = makeStageResults(100, 10000);
+    const state = createProPelotonFromStage(results, ROUTE_DISTANCE);
+    expect(() => {
+      let s = state;
+      for (let i = 0; i < 10; i++) {
+        s = tickProPeloton(s, 0.016, ROUTE_DISTANCE);
+      }
+    }).not.toThrow();
   });
 });

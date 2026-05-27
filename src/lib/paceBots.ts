@@ -15,8 +15,25 @@
 
 import type { Route } from '@/types';
 import { solveVelocity } from '@/lib/physics';
+import type { RiderParams } from '@/lib/physics';
 import { sampleRouteAtDistance, headingAt } from '@/lib/gpxParser';
 import type { AvatarColors } from '@/lib/avatarConfig';
+
+// ---------------------------------------------------------------------------
+// Module-scope scratch — reused every tickPaceBot call to avoid per-frame
+// heap allocation of the RiderParams object passed to solveVelocity.
+// All fields are overwritten before use; never read stale values.
+// ---------------------------------------------------------------------------
+const _scratchParams: RiderParams = {
+  riderMassKg:      75,
+  bikeMassKg:       8,
+  bikeType:         'road',
+  riderPosition:    'hoods',
+  drivetrainEff:    0.97,
+  rho:              1.225,
+  windSpeedMs:      0,
+  windDirectionDeg: 0,
+};
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -246,16 +263,10 @@ export function tickPaceBot(
   const clampedPower = Math.max(0, Math.min(bot.ftpW * 2.0, targetPower));
 
   // ---- Convert power → speed via physics ----
-  const speed = solveVelocity(clampedPower, grade, {
-    riderMassKg: bot.weightKg,
-    bikeMassKg:  8,
-    bikeType:    'road',
-    riderPosition: 'hoods',
-    drivetrainEff: 0.97,
-    rho:           1.225,
-    windSpeedMs:   0,
-    windDirectionDeg: 0,
-  });
+  // Mutate the module-scope scratch object rather than allocating a fresh
+  // RiderParams literal each frame — eliminates ~N*60 objects/s at 60 Hz.
+  _scratchParams.riderMassKg = bot.weightKg;
+  const speed = solveVelocity(clampedPower, grade, _scratchParams);
 
   // ---- Advance distance ----
   const newDistance = Math.min(

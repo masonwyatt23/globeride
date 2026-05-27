@@ -46,8 +46,8 @@ export interface SavedRoute extends Route {
   savedAt: number;
   /** Human-readable location label ("46.59°N, 7.91°E") derived from the first point. */
   location: string;
-  /** Optional source tag — "gpx", "demo", "sample". */
-  source?: 'gpx' | 'demo' | 'sample' | 'drawn';
+  /** Optional source tag — "gpx", "demo", "sample", "strava", "outdoor". */
+  source?: 'gpx' | 'demo' | 'sample' | 'drawn' | 'strava' | 'outdoor';
 }
 
 /** One telemetry sample recorded during a ride (~1 Hz). */

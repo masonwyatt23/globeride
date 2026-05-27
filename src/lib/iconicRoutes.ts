@@ -978,4 +978,942 @@ export const ICONIC_ROUTES: IconicRouteInfo[] = [
     difficulty: 'category 2',
     mood: 'mediterranean-mist',  // Côte d'Azur warmth, haze, and sea glitter
   },
+
+  // ---------------------------------------------------------------------------
+  // ASIA
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mount-fuji',
+      name: 'Mount Fuji — Subaru Line',
+      coords: [
+        [35.3606, 138.7308],  // Fujiyoshida base (850 m)
+        [35.3700, 138.7250],  // 5th station approach
+        [35.3800, 138.7190],  // Treeline end, volcanic slopes begin
+        [35.3860, 138.7150],  // 2000 m band
+        [35.3920, 138.7100],  // Upper switchbacks
+        [35.3960, 138.7050],  // Subaru 5th station (2305 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  850 },
+        { t: 0.20, ele: 1200 },
+        { t: 0.40, ele: 1600 },
+        { t: 0.60, ele: 1950 },
+        { t: 0.80, ele: 2150 },
+        { t: 1.00, ele: 2305 },
+      ],
+      numPts: 280,
+    }),
+    climbName: 'Mount Fuji — Subaru Line',
+    region: 'Japan — Yamanashi',
+    description:
+      "Japan's sacred volcano and iconic cycling challenge. The Subaru Line winds 24 km through cedar forest to the 5th station at 2305 m, with panoramic views of Lake Kawaguchiko far below.",
+    avgGradient: 6.1,
+    maxGradient: 10.0,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-hakone-pass',
+      name: 'Hakone Pass — Touge',
+      coords: [
+        [35.1960, 139.0750],  // Odawara base (15 m)
+        [35.2200, 139.0820],  // Lower hairpins
+        [35.2380, 139.0900],  // Mid-slope forest
+        [35.2500, 139.0980],  // Upper bend
+        [35.2320, 139.1050],  // Hakone summit (874 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  15 },
+        { t: 0.25, ele: 280 },
+        { t: 0.50, ele: 530 },
+        { t: 0.75, ele: 720 },
+        { t: 1.00, ele: 874 },
+      ],
+      numPts: 240,
+    }),
+    climbName: 'Hakone Touge',
+    region: 'Japan — Kanagawa',
+    description:
+      "The most famous cycling climb in Japan, serving as the finishing climb of the Tour de Okinawa and countless gran fondos. 15 km of relentless switchbacks rising from sea level through bamboo forest to the Hakone plateau.",
+    avgGradient: 5.8,
+    maxGradient: 10.5,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-taroko-hehuanshan',
+      name: 'Hehuanshan — Taiwan',
+      coords: [
+        [24.1500, 121.6200],  // Dayuling (2565 m)
+        [24.1350, 121.6350],  // Switchback zone
+        [24.1250, 121.6500],  // Wuling Pass shoulder
+        [24.1150, 121.6600],  // Upper plateau
+        [24.1070, 121.6730],  // Hehuanshan East Peak (3421 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 2565 },
+        { t: 0.25, ele: 2850 },
+        { t: 0.50, ele: 3100 },
+        { t: 0.75, ele: 3280 },
+        { t: 1.00, ele: 3421 },
+      ],
+      numPts: 220,
+    }),
+    climbName: 'Hehuanshan East Peak',
+    region: 'Taiwan — Nantou / Hualien',
+    description:
+      "The highest paved road in Taiwan at 3421 m. Starting from the already-high Dayuling junction, 14 km of high-altitude climbing through the Central Mountain Range with views across the island's spine.",
+    avgGradient: 6.3,
+    maxGradient: 11.0,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-cameron-highlands',
+      name: 'Cameron Highlands',
+      coords: [
+        [4.2550, 101.2400],  // Tapah base (90 m)
+        [4.3000, 101.3200],  // Lower jungle switchbacks
+        [4.3500, 101.3800],  // Tea plantation zone
+        [4.4000, 101.4100],  // Brinchang approach
+        [4.4670, 101.3870],  // Gunung Brinchang summit (2032 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:   90 },
+        { t: 0.25, ele:  550 },
+        { t: 0.50, ele: 1100 },
+        { t: 0.75, ele: 1600 },
+        { t: 1.00, ele: 2032 },
+      ],
+      numPts: 260,
+    }),
+    climbName: 'Gunung Brinchang',
+    region: 'Malaysia — Pahang',
+    description:
+      "Malaysia's highest paved road winds 55 km from the jungle floor through terraced tea plantations to the cloud-shrouded summit at 2032 m. Tropical heat gives way to cool mist as you climb.",
+    avgGradient: 3.6,
+    maxGradient: 9.0,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-kyoto-hiei',
+      name: 'Mount Hiei — Kyoto',
+      coords: [
+        [35.0197, 135.7693],  // Kyoto city (50 m)
+        [35.0400, 135.7900],  // Ohara approach
+        [35.0600, 135.8100],  // Forest climb
+        [35.0720, 135.8220],  // Enryakuji plateau
+        [35.0750, 135.8300],  // Mount Hiei summit (848 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  50 },
+        { t: 0.30, ele: 300 },
+        { t: 0.60, ele: 580 },
+        { t: 0.85, ele: 750 },
+        { t: 1.00, ele: 848 },
+      ],
+      numPts: 220,
+    }),
+    climbName: 'Mount Hiei',
+    region: 'Japan — Kyoto',
+    description:
+      "Rising above the ancient capital of Kyoto, Mount Hiei's temple roads offer 18 km of serene climbing through cedar and maple forest. The summit plateau hosts the 1200-year-old Enryakuji Temple complex.",
+    avgGradient: 4.4,
+    maxGradient: 9.5,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+
+  // ---------------------------------------------------------------------------
+  // NORTH AMERICA
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-pikes-peak',
+      name: 'Pikes Peak — America\'s Mountain',
+      coords: [
+        [38.8605, -104.9920],  // Crystal Creek Reservoir gate (2862 m)
+        [38.8750, -105.0100],  // Glen Cove area
+        [38.8900, -105.0300],  // Devil's Playground
+        [38.8980, -105.0420],  // Summit approach
+        [38.8405, -105.0423],  // Pikes Peak summit (4302 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 2862 },
+        { t: 0.25, ele: 3280 },
+        { t: 0.50, ele: 3700 },
+        { t: 0.75, ele: 4050 },
+        { t: 1.00, ele: 4302 },
+      ],
+      numPts: 260,
+    }),
+    climbName: 'Pikes Peak',
+    region: 'USA — Colorado',
+    description:
+      "America's Mountain and one of the world's iconic cycling ascents. 19.9 km rising 1440 m through 156 turns above timberline, culminating at 4302 m where the air is thin and the views span four states.",
+    avgGradient: 7.2,
+    maxGradient: 10.0,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mt-hamilton',
+      name: 'Mount Hamilton — Silicon Valley',
+      coords: [
+        [37.3350, -121.7950],  // Alum Rock base (120 m)
+        [37.3500, -121.7600],  // Lower switchbacks
+        [37.3650, -121.7350],  // Grant Ranch area
+        [37.3750, -121.7150],  // Antelope Valley
+        [37.3410, -121.6430],  // Lick Observatory summit (1283 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 120 },
+        { t: 0.25, ele: 450 },
+        { t: 0.50, ele: 750 },
+        { t: 0.75, ele: 1050 },
+        { t: 1.00, ele: 1283 },
+      ],
+      numPts: 280,
+    }),
+    climbName: 'Mount Hamilton',
+    region: 'USA — California',
+    description:
+      "The classic Silicon Valley climb: 31 km of unbroken switchbacks from the valley floor to the Lick Observatory at 1283 m. Dry chaparral, golden hills, and panoramic views of San Jose below.",
+    avgGradient: 3.7,
+    maxGradient: 9.0,
+    difficulty: 'category 1',
+    mood: 'golden-hour',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mt-lemmon',
+      name: 'Mount Lemmon — Sky Island',
+      coords: [
+        [32.3200, -110.8190],  // Tucson base (760 m)
+        [32.3500, -110.7800],  // Lower Sonoran desert
+        [32.3900, -110.7400],  // Pinyon-juniper zone
+        [32.4300, -110.7200],  // Ponderosa pine forest
+        [32.4430, -110.7887],  // Summerhaven summit (2791 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  760 },
+        { t: 0.25, ele: 1300 },
+        { t: 0.50, ele: 1850 },
+        { t: 0.75, ele: 2300 },
+        { t: 1.00, ele: 2791 },
+      ],
+      numPts: 280,
+    }),
+    climbName: 'Mount Lemmon',
+    region: 'USA — Arizona',
+    description:
+      "Tucson's sky island escape: 38 km from desert saguaro to Canadian-zone fir forest, rising 2000 m through five distinct ecological zones. USA Cycling's most popular winter training climb.",
+    avgGradient: 5.4,
+    maxGradient: 8.5,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mont-tremblant',
+      name: 'Mont-Tremblant',
+      coords: [
+        [46.1430, -74.5960],  // Saint-Jovite base (230 m)
+        [46.1500, -74.6100],  // Village approach
+        [46.1600, -74.6200],  // Lower slopes
+        [46.1700, -74.6300],  // Mid-mountain
+        [46.2067, -74.5933],  // Summit (875 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 230 },
+        { t: 0.30, ele: 420 },
+        { t: 0.55, ele: 600 },
+        { t: 0.80, ele: 760 },
+        { t: 1.00, ele: 875 },
+      ],
+      numPts: 220,
+    }),
+    climbName: 'Mont-Tremblant',
+    region: 'Canada — Québec',
+    description:
+      "The crown jewel of the Laurentians and host of multiple IRONMAN and Tour de Beauce stages. 18 km through the Quebec wilderness, with blazing autumn foliage creating a natural tunnel of colour.",
+    avgGradient: 3.6,
+    maxGradient: 8.0,
+    difficulty: 'category 1',
+    mood: 'golden-hour',
+  },
+  // ---------------------------------------------------------------------------
+  // AUSTRALIA / OCEANIA
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mt-buller',
+      name: 'Mount Buller',
+      coords: [
+        [-37.1430, 146.4020],  // Mansfield base (384 m)
+        [-37.1200, 146.4200],  // Lower slopes
+        [-37.1000, 146.4350],  // Mirimbah
+        [-37.0800, 146.4450],  // Upper forest road
+        [-37.1440, 146.4334],  // Mount Buller summit (1707 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  384 },
+        { t: 0.25, ele:  750 },
+        { t: 0.50, ele: 1100 },
+        { t: 0.75, ele: 1420 },
+        { t: 1.00, ele: 1707 },
+      ],
+      numPts: 260,
+    }),
+    climbName: 'Mount Buller',
+    region: 'Australia — Victoria',
+    description:
+      "The centrepiece of the Jayco Herald Sun Tour and one of Australia's most beloved cycling climbs. 26 km from Mansfield through dense alpine ash forest to the snowfields village at 1707 m.",
+    avgGradient: 5.1,
+    maxGradient: 9.0,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mt-hotham',
+      name: 'Mount Hotham — Great Alpine Road',
+      coords: [
+        [-36.9870, 147.0540],  // Harrietville base (380 m)
+        [-37.0100, 147.0700],  // Ovens River valley
+        [-37.0300, 147.0900],  // Feathertop Wilderness
+        [-37.0500, 147.1100],  // Diamondvale saddle
+        [-37.0488, 147.1304],  // Mount Hotham summit (1860 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  380 },
+        { t: 0.25, ele:  800 },
+        { t: 0.50, ele: 1200 },
+        { t: 0.75, ele: 1580 },
+        { t: 1.00, ele: 1860 },
+      ],
+      numPts: 260,
+    }),
+    climbName: 'Mount Hotham',
+    region: 'Australia — Victoria',
+    description:
+      "Victoria's highest road at 1860 m is the queen stage destination of the Tour de Pologne–inspired Australian stage races. 28 km of relentless climbing through the Victorian Alps with ski village at the top.",
+    avgGradient: 5.3,
+    maxGradient: 10.0,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-adelaide-hills',
+      name: 'Norton Summit — Adelaide Hills',
+      coords: [
+        [-34.9290, 138.7060],  // Norton Summit base (200 m)
+        [-34.9200, 138.7150],  // Lower switchbacks
+        [-34.9130, 138.7230],  // Mid-climb
+        [-34.9050, 138.7310],  // Upper ridge
+        [-34.9038, 138.7392],  // Summit (481 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 200 },
+        { t: 0.30, ele: 300 },
+        { t: 0.60, ele: 390 },
+        { t: 0.85, ele: 455 },
+        { t: 1.00, ele: 481 },
+      ],
+      numPts: 180,
+    }),
+    climbName: 'Norton Summit',
+    region: 'Australia — South Australia',
+    description:
+      "The defining climb of the Tour Down Under's queen stage and beloved by Adelaide's cycling community. Short, punchy, and steep — the 7 km ascent through eucalyptus woodland decides the GC.",
+    avgGradient: 4.0,
+    maxGradient: 11.5,
+    difficulty: 'category 2',
+    mood: 'clear-noon',
+  },
+
+  // ---------------------------------------------------------------------------
+  // SOUTH AMERICA
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-alto-de-letras',
+      name: 'Alto de Letras',
+      coords: [
+        [5.0540, -74.6870],   // Mariquita base (540 m)
+        [5.0700, -74.7200],   // Lower coffee zone
+        [5.1000, -74.7600],   // Mid-slope cloud forest
+        [5.1400, -74.7900],   // Páramo entry
+        [5.1700, -74.7700],   // Upper paramo
+        [5.1990, -74.7530],   // Alto de Letras summit (3700 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  540 },
+        { t: 0.20, ele: 1100 },
+        { t: 0.40, ele: 1800 },
+        { t: 0.60, ele: 2400 },
+        { t: 0.80, ele: 3100 },
+        { t: 1.00, ele: 3700 },
+      ],
+      numPts: 320,
+    }),
+    climbName: 'Alto de Letras',
+    region: 'Colombia — Tolima / Caldas',
+    description:
+      "The world's longest paved cycling climb at 80 km from Mariquita to 3700 m. A rite of passage for Colombian climbers — from equatorial heat through coffee plantations, cloud forest, and open páramo.",
+    avgGradient: 3.9,
+    maxGradient: 9.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-alto-de-mifafi',
+      name: 'Alto de Mifafí — Andes',
+      coords: [
+        [8.5900, -71.1400],   // Mérida city base (1600 m)
+        [8.6200, -71.1600],   // Lower cable car road
+        [8.6500, -71.1700],   // Las González
+        [8.6800, -71.1800],   // Páramo de Mucubají
+        [8.7100, -71.1900],   // Alto de Mifafí summit (4050 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1600 },
+        { t: 0.25, ele: 2400 },
+        { t: 0.50, ele: 3000 },
+        { t: 0.75, ele: 3600 },
+        { t: 1.00, ele: 4050 },
+      ],
+      numPts: 240,
+    }),
+    climbName: 'Alto de Mifafí',
+    region: 'Venezuela — Mérida',
+    description:
+      "Rising from the city of Mérida into the Venezuelan Andes, this 30 km climb reaches 4050 m through páramo high-altitude grasslands. Condors soar overhead as the road narrows to a single thread.",
+    avgGradient: 8.2,
+    maxGradient: 12.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-bariloche-cerro-otto',
+      name: 'Cerro Otto — Bariloche',
+      coords: [
+        [-41.1330, -71.3100],  // Bariloche lakeside (770 m)
+        [-41.1280, -71.3250],  // Lower pines
+        [-41.1230, -71.3380],  // Gondola station
+        [-41.1190, -71.3500],  // Upper slope
+        [-41.1143, -71.3597],  // Cerro Otto summit (1405 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  770 },
+        { t: 0.30, ele:  950 },
+        { t: 0.55, ele: 1100 },
+        { t: 0.80, ele: 1270 },
+        { t: 1.00, ele: 1405 },
+      ],
+      numPts: 200,
+    }),
+    climbName: 'Cerro Otto',
+    region: 'Argentina — Río Negro (Patagonia)',
+    description:
+      "Above the chocolate-box town of Bariloche on the shores of Lake Nahuel Huapi, Cerro Otto rises through Patagonian coihue forest with snowcapped Andean peaks in every direction.",
+    avgGradient: 5.4,
+    maxGradient: 10.0,
+    difficulty: 'category 1',
+    mood: 'clear-noon',
+  },
+
+  // ---------------------------------------------------------------------------
+  // AFRICA
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-chapmans-peak',
+      name: "Chapman's Peak — Cape Peninsula",
+      coords: [
+        [-34.1050, 18.3650],  // Hout Bay base (10 m)
+        [-34.1150, 18.3580],  // Lower cliff road
+        [-34.1250, 18.3520],  // Tunnel approach
+        [-34.1350, 18.3480],  // Chapman's Peak Drive mid-point
+        [-34.1450, 18.3450],  // Noordhoek descent start (596 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  10 },
+        { t: 0.25, ele: 200 },
+        { t: 0.50, ele: 400 },
+        { t: 0.75, ele: 530 },
+        { t: 1.00, ele: 596 },
+      ],
+      numPts: 200,
+    }),
+    climbName: "Chapman's Peak",
+    region: 'South Africa — Western Cape',
+    description:
+      "One of the most dramatic coastal roads on earth — 114 curves blasted from the sheer cliff face of Chapman's Peak above the Atlantic surf. Featured in the Cape Town Cycle Tour, the world's largest individually timed cycle race.",
+    avgGradient: 6.6,
+    maxGradient: 12.0,
+    difficulty: 'category 1',
+    mood: 'mediterranean-mist',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-kilimanjaro-approach',
+      name: 'Kilimanjaro — Marangu Gate Approach',
+      coords: [
+        [-3.2700, 37.3500],   // Moshi town (820 m)
+        [-3.2500, 37.4000],   // Marangu village
+        [-3.2300, 37.4500],   // Lower forest zone
+        [-3.2100, 37.5000],   // Marangu Gate (1879 m)
+        [-3.1900, 37.5300],   // Mandara Huts approach (2720 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  820 },
+        { t: 0.25, ele: 1100 },
+        { t: 0.50, ele: 1500 },
+        { t: 0.75, ele: 1879 },
+        { t: 1.00, ele: 2720 },
+      ],
+      numPts: 240,
+    }),
+    climbName: 'Kilimanjaro Approach',
+    region: 'Tanzania — Kilimanjaro Region',
+    description:
+      "The paved approach to Africa's highest mountain climbs through lush montane forest from Moshi town to the Mandara Huts zone. A legendary ride — every gain is a step toward the Roof of Africa.",
+    avgGradient: 4.5,
+    maxGradient: 9.0,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+
+  // ---------------------------------------------------------------------------
+  // EASTERN EUROPE
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-transfagarasan',
+      name: 'Transfăgărășan — Romania',
+      coords: [
+        [45.3590, 24.6270],   // Curtea de Argeș base (350 m)
+        [45.4000, 24.6400],   // Lower switchbacks
+        [45.4500, 24.6500],   // Vidraru Dam
+        [45.5000, 24.6300],   // Canyon walls
+        [45.5500, 24.6200],   // High plateau
+        [45.5960, 24.6100],   // Bâlea Lake / Summit tunnel (2042 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  350 },
+        { t: 0.15, ele:  600 },
+        { t: 0.30, ele:  900 },
+        { t: 0.50, ele: 1200 },
+        { t: 0.70, ele: 1600 },
+        { t: 0.85, ele: 1900 },
+        { t: 1.00, ele: 2042 },
+      ],
+      numPts: 320,
+    }),
+    climbName: 'Transfăgărășan Highway',
+    region: 'Romania — Argeș / Sibiu',
+    description:
+      "Declared the world's greatest driving road by Top Gear, the Transfăgărășan is an equally legendary cycling ascent. Built by Ceaușescu through the Southern Carpathians, 90 km of drama with a glacial lake at the top.",
+    avgGradient: 5.3,
+    maxGradient: 9.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-transalpina',
+      name: 'Transalpina — Urdele Pass',
+      coords: [
+        [45.3000, 23.7500],   // Novaci base (655 m)
+        [45.3300, 23.7200],   // Lower road
+        [45.3600, 23.6900],   // Rânca
+        [45.3900, 23.6600],   // Upper plateau
+        [45.4100, 23.6400],   // Urdele Pass summit (2145 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  655 },
+        { t: 0.25, ele: 1100 },
+        { t: 0.50, ele: 1550 },
+        { t: 0.75, ele: 1900 },
+        { t: 1.00, ele: 2145 },
+      ],
+      numPts: 260,
+    }),
+    climbName: 'Transalpina — Urdele Pass',
+    region: 'Romania — Gorj / Sibiu',
+    description:
+      "Romania's highest road at 2145 m is a secret gem of Eastern European cycling. The Transalpina climbs through bare Carpathian ridgelines where sheep graze and the sky dominates every vista.",
+    avgGradient: 5.5,
+    maxGradient: 10.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-high-tatras',
+      name: 'Lomnický štít — High Tatras',
+      coords: [
+        [49.0667, 20.2333],   // Tatranská Lomnica village (850 m)
+        [49.0800, 20.2000],   // Cable car base road
+        [49.1000, 20.1700],   // Forest zone
+        [49.1200, 20.1500],   // Upper Tatras
+        [49.1971, 20.1344],   // Skalnaté pleso (1751 m — road end)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  850 },
+        { t: 0.30, ele: 1100 },
+        { t: 0.60, ele: 1380 },
+        { t: 0.85, ele: 1600 },
+        { t: 1.00, ele: 1751 },
+      ],
+      numPts: 220,
+    }),
+    climbName: 'High Tatras — Skalnaté pleso',
+    region: 'Slovakia — Prešov',
+    description:
+      "The roof of Slovakia and one of Central Europe's finest cycling challenges. The paved road through the High Tatras National Park climbs 900 m through pine and spruce to the alpine lake plateau.",
+    avgGradient: 4.9,
+    maxGradient: 9.5,
+    difficulty: 'category 1',
+    mood: 'overcast',
+  },
+
+  // ---------------------------------------------------------------------------
+  // UK / IRELAND
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-hardknott-pass',
+      name: 'Hardknott Pass',
+      coords: [
+        [54.3910, -3.1800],   // Eskdale base (90 m)
+        [54.3940, -3.1950],   // Lower gradient ramp
+        [54.3960, -3.2050],   // The famous 30% ramp
+        [54.3980, -3.2150],   // Upper switchback
+        [54.4010, -3.2180],   // Hardknott summit (393 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  90 },
+        { t: 0.25, ele: 160 },
+        { t: 0.50, ele: 240 },
+        { t: 0.75, ele: 330 },
+        { t: 1.00, ele: 393 },
+      ],
+      numPts: 160,
+    }),
+    climbName: 'Hardknott Pass',
+    region: 'England — Cumbria (Lake District)',
+    description:
+      "Britain's steepest road at 30% gradient. Just 5 km but utterly savage — a Roman road that demands full commitment on every pedal stroke. The Lake District's ultimate cycling test.",
+    avgGradient: 12.4,
+    maxGradient: 30.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-cheddar-gorge',
+      name: 'Cheddar Gorge',
+      coords: [
+        [51.2870, -2.7750],   // Cheddar village base (20 m)
+        [51.2850, -2.7850],   // Gorge entrance
+        [51.2830, -2.7950],   // Canyon walls
+        [51.2810, -2.8050],   // Narrow gorge section
+        [51.2790, -2.8100],   // Top of gorge (130 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  20 },
+        { t: 0.30, ele:  55 },
+        { t: 0.60, ele:  90 },
+        { t: 0.85, ele: 120 },
+        { t: 1.00, ele: 130 },
+      ],
+      numPts: 160,
+    }),
+    climbName: 'Cheddar Gorge',
+    region: 'England — Somerset',
+    description:
+      "The deepest gorge in Britain carved through Mendip limestone. A 4 km climb through cathedral-like walls rising 137 m above the road — short, sharp, and spectacular. Beloved by West Country cyclists.",
+    avgGradient: 4.7,
+    maxGradient: 16.0,
+    difficulty: 'category 2',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-wicklow-gap',
+      name: 'Wicklow Gap — Ireland',
+      coords: [
+        [53.0670, -6.3130],   // Hollywood base (130 m)
+        [53.0600, -6.3400],   // Blessington lakes valley
+        [53.0530, -6.3700],   // Wicklow Way approach
+        [53.0470, -6.4000],   // Upper bogland
+        [53.0410, -6.4150],   // Wicklow Gap summit (474 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 130 },
+        { t: 0.25, ele: 220 },
+        { t: 0.50, ele: 320 },
+        { t: 0.75, ele: 420 },
+        { t: 1.00, ele: 474 },
+      ],
+      numPts: 200,
+    }),
+    climbName: 'Wicklow Gap',
+    region: 'Ireland — County Wicklow',
+    description:
+      "The heart of the Garden County's cycling culture. 14 km of gently rising bogs and glacially carved valleys to the exposed Wicklow Gap summit — a classic Rás Tailteann battleground since 1953.",
+    avgGradient: 2.5,
+    maxGradient: 9.0,
+    difficulty: 'category 2',
+    mood: 'overcast',
+  },
+
+  // ---------------------------------------------------------------------------
+  // MEDITERRANEAN / ISLANDS
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mount-teide',
+      name: 'Mount Teide — Tenerife',
+      coords: [
+        [28.2640, -16.6320],  // El Médano base (5 m)
+        [28.2800, -16.6400],  // South coast road
+        [28.2950, -16.6600],  // Granadilla de Abona
+        [28.2700, -16.6900],  // Vilaflor — gateway to Teide
+        [28.2400, -16.6700],  // Las Cañadas del Teide crater
+        [28.2720, -16.6410],  // Teide cable car base (3555 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:    5 },
+        { t: 0.15, ele:  200 },
+        { t: 0.35, ele:  800 },
+        { t: 0.55, ele: 1650 },
+        { t: 0.75, ele: 2300 },
+        { t: 0.90, ele: 3100 },
+        { t: 1.00, ele: 3555 },
+      ],
+      numPts: 320,
+    }),
+    climbName: 'Mount Teide',
+    region: 'Spain — Tenerife (Canary Islands)',
+    description:
+      "Europe's highest point at 3718 m and the winter training mecca for WorldTour teams. The climb from sea level to the Teide crater is 47 km of relentless volcanic landscape — Froome, Nibali, and Pogačar all train here.",
+    avgGradient: 7.6,
+    maxGradient: 12.0,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+
+  // ---------------------------------------------------------------------------
+  // DOLOMITES / ALPS EXTENSION
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-tre-cime-di-lavaredo',
+      name: 'Tre Cime di Lavaredo',
+      coords: [
+        [46.5960, 12.2710],   // Misurina Lake (1756 m)
+        [46.6050, 12.2800],   // Toll booth climb
+        [46.6150, 12.2880],   // Upper switchbacks
+        [46.6240, 12.3000],   // Tre Cime car park (2333 m)
+        [46.6200, 12.3050],   // Rifugio Auronzo (2320 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1756 },
+        { t: 0.30, ele: 1950 },
+        { t: 0.60, ele: 2150 },
+        { t: 0.85, ele: 2290 },
+        { t: 1.00, ele: 2333 },
+      ],
+      numPts: 180,
+    }),
+    climbName: 'Tre Cime di Lavaredo',
+    region: 'Italy — South Tyrol / Veneto (Dolomites)',
+    description:
+      "The three stone towers of the Dolomites — an image that defines the Giro d'Italia. 7 km from Misurina through UNESCO World Heritage landscape to the Rifugio Auronzo beneath the iconic pinnacles.",
+    avgGradient: 8.1,
+    maxGradient: 15.0,
+    difficulty: 'hors catégorie',
+    mood: 'dusk-cool',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-stelvio-south',
+      name: 'Stelvio — South Side (Bormio)',
+      coords: [
+        [46.4700, 10.3700],   // Bormio (1225 m)
+        [46.5000, 10.4000],   // Santa Caterina approach
+        [46.5200, 10.4200],   // Lower switchbacks
+        [46.5400, 10.4400],   // Mid-climb hairpins (30+)
+        [46.5280, 10.4530],   // Stelvio summit (2758 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1225 },
+        { t: 0.25, ele: 1700 },
+        { t: 0.50, ele: 2100 },
+        { t: 0.75, ele: 2450 },
+        { t: 1.00, ele: 2758 },
+      ],
+      numPts: 280,
+    }),
+    climbName: 'Stelvio South (Bormio)',
+    region: 'Italy — Alto Adige / Lombardy',
+    description:
+      "The shorter, steeper south side of the Stelvio from Bormio — 16 km averaging 8.8% with 21 numbered hairpins. The side used for the Giro cima coppi finish, where the air is noticeably thin at 2758 m.",
+    avgGradient: 8.8,
+    maxGradient: 13.0,
+    difficulty: 'hors catégorie',
+    mood: 'clear-noon',
+  },
+
+  // ---------------------------------------------------------------------------
+  // CLASSICS / NORTH EUROPEAN
+  // ---------------------------------------------------------------------------
+  {
+    route: buildIconicRoute({
+      id: 'iconic-paterberg',
+      name: 'Paterberg — Tour of Flanders',
+      coords: [
+        [50.8860, 3.5890],    // Kluisbergen base (15 m)
+        [50.8850, 3.5870],    // Steep lower section
+        [50.8840, 3.5850],    // Mid-wall (20%+ here)
+        [50.8830, 3.5840],    // Summit (80 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 15 },
+        { t: 0.40, ele: 45 },
+        { t: 0.75, ele: 68 },
+        { t: 1.00, ele: 80 },
+      ],
+      numPts: 120,
+    }),
+    climbName: 'Paterberg',
+    region: 'Belgium — East Flanders',
+    description:
+      "The Paterberg is the final and decisive cobbled climb of the Tour of Flanders — 360 m of pure savagery averaging 12.9% with a maximum of 20.3%. It separates winners from survivors every April.",
+    avgGradient: 12.9,
+    maxGradient: 20.3,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-koppenberg',
+      name: 'Koppenberg — Flanders',
+      coords: [
+        [50.9360, 3.7630],    // Melden base (15 m)
+        [50.9350, 3.7620],    // Cobbles begin
+        [50.9340, 3.7610],    // Steepest section (22%)
+        [50.9330, 3.7600],    // Summit (77 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 15 },
+        { t: 0.35, ele: 40 },
+        { t: 0.70, ele: 62 },
+        { t: 1.00, ele: 77 },
+      ],
+      numPts: 120,
+    }),
+    climbName: 'Koppenberg',
+    region: 'Belgium — East Flanders',
+    description:
+      "A cobbled wall so steep (22%) that it caused a Tour of Flanders pile-up so severe the race was neutralised. The narrowness means no passing — it's single-file suffering on 1200-year-old stones.",
+    avgGradient: 11.6,
+    maxGradient: 22.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-poggio-sanremo',
+      name: 'Poggio di Sanremo',
+      coords: [
+        [43.8380, 7.7650],    // Sanremo base (5 m)
+        [43.8400, 7.7700],    // Climb begins
+        [43.8450, 7.7800],    // Mid-slope olive groves
+        [43.8520, 7.7900],    // Poggio summit (162 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:   5 },
+        { t: 0.35, ele:  60 },
+        { t: 0.70, ele: 120 },
+        { t: 1.00, ele: 162 },
+      ],
+      numPts: 160,
+    }),
+    climbName: 'Poggio di Sanremo',
+    region: 'Italy — Liguria',
+    description:
+      "The decisive climb of Milan–Sanremo: 3.7 km of winding road through olive groves and Ligurian villas, 5 km from the finish line. Whoever attacks here first wins La Classicissima — or so the story goes.",
+    avgGradient: 3.7,
+    maxGradient: 8.0,
+    difficulty: 'category 2',
+    mood: 'mediterranean-mist',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-cipressa-sanremo',
+      name: 'Cipressa — Milan-Sanremo',
+      coords: [
+        [43.8200, 7.7300],    // San Lorenzo al Mare base (10 m)
+        [43.8250, 7.7380],    // Lower slope
+        [43.8310, 7.7450],    // Mid-climb
+        [43.8360, 7.7530],    // Cipressa village summit (239 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  10 },
+        { t: 0.30, ele:  90 },
+        { t: 0.65, ele: 175 },
+        { t: 1.00, ele: 239 },
+      ],
+      numPts: 160,
+    }),
+    climbName: 'Cipressa',
+    region: 'Italy — Liguria',
+    description:
+      "The first of Milan–Sanremo's two decisive climbs. 5.6 km at 4.1% through Ligurian terraced hills covered in cypress and olive trees — where the race's decisive breaks often form before the Poggio.",
+    avgGradient: 4.1,
+    maxGradient: 9.0,
+    difficulty: 'category 2',
+    mood: 'mediterranean-mist',
+  },
+  {
+    route: buildIconicRoute({
+      id: 'iconic-mur-de-huy',
+      name: 'Mur de Huy — La Flèche Wallonne',
+      coords: [
+        [50.5190, 5.2370],    // Huy town base (80 m)
+        [50.5210, 5.2390],    // First ramp
+        [50.5230, 5.2400],    // Steepest middle (26%)
+        [50.5250, 5.2410],    // Summit (204 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  80 },
+        { t: 0.30, ele: 125 },
+        { t: 0.65, ele: 175 },
+        { t: 1.00, ele: 204 },
+      ],
+      numPts: 120,
+    }),
+    climbName: 'Mur de Huy',
+    region: 'Belgium — Liège Province',
+    description:
+      "The finishing wall of La Flèche Wallonne: 1.3 km at an average 9.6% with a brutal 26% maximum. Climbed three times on race day — the Mur de Huy is one of cycling's most iconic finish lines.",
+    avgGradient: 9.6,
+    maxGradient: 26.0,
+    difficulty: 'hors catégorie',
+    mood: 'overcast',
+  },
 ];

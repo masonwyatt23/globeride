@@ -538,11 +538,649 @@ export const WORLD_TOUR_STAGES: WorldTourStageInfo[] = [
       difficulty: 'mountain',
       heroNarrative: 'Where Spain meets France — the Tourmalet awaits both nations.',
       mood: 'golden-hour',  // Vuelta stage finishes late — warm Pyrenean sunset light
-      // Spectator crowds on Col du Tourmalet, the most-climbed
-      // mountain in Tour de France history. Two km of roadside fans on the
-      // upper flanks leading to the 2115 m summit.
       spectatorClimbs: [
         { startDistance: 133_000, endDistance: 135_000, densityPerKm: 80 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // TdF 2022 Stage 12 — Briançon → Alpe d'Huez
+  // 165 km | Col du Galibier + Croix de Fer + Alpe d'Huez
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-tdf-2022-s12',
+      name: "TdF 2022 S12 — Alpe d'Huez",
+      coords: [
+        [44.8960, 6.6400],   // Briançon — start
+        [45.0640, 6.4080],   // Col du Galibier (2642 m)
+        [45.2200, 6.1500],   // Saint-Jean-de-Maurienne
+        [45.2500, 6.2000],   // Croix de Fer foot
+        [45.2290, 6.1790],   // Croix de Fer (2067 m)
+        [45.1600, 6.0800],   // Rochetaillée descent
+        [45.0539, 6.0338],   // Bourg-d'Oisans — Alpe d'Huez foot
+        [45.1131, 6.0743],   // Alpe d'Huez summit (1791 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1326 },
+        { t: 0.18, ele: 2642 },  // Galibier summit
+        { t: 0.28, ele:  555 },  // Saint-Jean valley
+        { t: 0.40, ele:  680 },  // Croix de Fer foot
+        { t: 0.55, ele: 2067 },  // Croix de Fer summit
+        { t: 0.68, ele:  720 },  // Bourg-d'Oisans
+        { t: 0.75, ele:  720 },  // Alpe d'Huez base
+        { t: 1.00, ele: 1791 },  // Alpe d'Huez summit
+      ],
+      numPts: 500,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2022,
+      stageNumber: 12,
+      name: "Stage 12 — Alpe d'Huez",
+      region: "France — Hautes-Alpes / Isère",
+      description:
+        "The Alpine monster of the 2022 Tour de France — three legendary cols in one stage. The Galibier and Croix de Fer precede a summit finish on Alpe d'Huez where Vingegaard made his decisive TdF winning move.",
+      keyClimbs: ["Col du Galibier", "Col de la Croix de Fer", "Alpe d'Huez"],
+      distanceKm: 165,
+      ascentM: 5000,
+      difficulty: 'queen',
+      heroNarrative: "Galibier, Croix de Fer, then Huez — the Alps delivered a champion.",
+      mood: 'golden-hour',
+      spectatorClimbs: [
+        { startDistance: 148_000, endDistance: 165_000, densityPerKm: 90 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // TdF 2021 Stage 11 — Sorgues → Malaucène (Mont Ventoux twice)
+  // 199 km | Mont Ventoux × 2
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-tdf-2021-s11',
+      name: 'TdF 2021 S11 — Mont Ventoux ×2',
+      coords: [
+        [44.0050, 4.8740],   // Sorgues — start
+        [44.0630, 5.0000],   // Carpentras
+        [44.1238, 5.1790],   // Bédoin — first Ventoux foot
+        [44.2100, 5.2785],   // Ventoux summit first time (1912 m)
+        [44.1720, 5.3140],   // Malaucène — between climbs
+        [44.2100, 5.2785],   // Ventoux summit second time (1912 m)
+        [44.1720, 5.3140],   // Malaucène finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  40 },
+        { t: 0.08, ele: 100 },
+        { t: 0.20, ele: 295 },  // Bédoin
+        { t: 0.38, ele: 1912 }, // Ventoux summit #1
+        { t: 0.50, ele: 380 },  // Malaucène
+        { t: 0.68, ele: 1912 }, // Ventoux summit #2
+        { t: 1.00, ele: 380 },  // Malaucène finish
+      ],
+      numPts: 500,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2021,
+      stageNumber: 11,
+      name: 'Stage 11 — Mont Ventoux ×2',
+      region: 'France — Vaucluse',
+      description:
+        "The stage that broke Primož Roglič — Mont Ventoux climbed twice in a single day. First via Bédoin's brutal south face, then the gentler Malaucène north side, finishing in the same town. Wout van Aert won after a memorable descent.",
+      keyClimbs: ['Mont Ventoux (Bédoin)', 'Mont Ventoux (Malaucène)'],
+      distanceKm: 199,
+      ascentM: 4400,
+      difficulty: 'queen',
+      heroNarrative: 'The Giant of Provence demanded twice its toll.',
+      mood: 'mediterranean-mist',
+      spectatorClimbs: [
+        { startDistance: 72_000,  endDistance:  86_000, densityPerKm: 65 },
+        { startDistance: 155_000, endDistance: 170_000, densityPerKm: 65 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Paris-Roubaix 2024 — Compiègne → Roubaix Velodrome
+  // 260 km | 29 cobbled sectors
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-paris-roubaix-2024',
+      name: 'Paris-Roubaix 2024',
+      coords: [
+        [49.4170, 2.8260],   // Compiègne — start
+        [50.0000, 3.0000],   // Arras area
+        [50.3500, 3.0500],   // Arenberg forest sector
+        [50.5000, 3.0800],   // Mons-en-Pévèle sector
+        [50.5500, 3.1200],   // Carrefour de l'Arbre
+        [50.6900, 3.1570],   // Roubaix Velodrome finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 70 },
+        { t: 0.25, ele: 80 },
+        { t: 0.50, ele: 55 },  // Arenberg depression
+        { t: 0.70, ele: 35 },
+        { t: 0.88, ele: 40 },
+        { t: 1.00, ele: 28 },
+      ],
+      numPts: 400,
+    }),
+    info: {
+      grandTour: 'tour',  // classic, using 'tour' as placeholder
+      year: 2024,
+      stageNumber: 1,
+      name: 'Paris-Roubaix 2024',
+      region: 'France — Nord-Pas-de-Calais',
+      description:
+        "The Hell of the North — 260 km from Compiègne to the Roubaix velodrome via 29 cobbled sectors. Mathieu van der Poel won a dominant solo victory in 2024, cementing his status as the greatest cobbled classics rider of his generation.",
+      keyClimbs: ['Arenberg Forest', 'Mons-en-Pévèle', 'Carrefour de l\'Arbre'],
+      distanceKm: 260,
+      ascentM: 1500,
+      difficulty: 'hilly',
+      heroNarrative: 'Mud, cobbles, and the velodrome — Hell rewards only the brave.',
+      mood: 'overcast',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tour of Flanders 2024 — Antwerp → Oudenaarde
+  // 273 km | Koppenberg + Paterberg (final circuit)
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-flanders-2024',
+      name: 'Tour of Flanders 2024',
+      coords: [
+        [51.2190, 4.4020],   // Antwerp — start
+        [51.0000, 3.8000],   // Ghent area
+        [50.9360, 3.7630],   // Koppenberg
+        [50.8860, 3.5890],   // Paterberg
+        [50.8480, 3.6100],   // Oudenaarde finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  10 },
+        { t: 0.40, ele:  20 },
+        { t: 0.62, ele:  77 },  // Koppenberg
+        { t: 0.72, ele:  20 },
+        { t: 0.84, ele:  80 },  // Paterberg
+        { t: 1.00, ele:  22 },  // Oudenaarde
+      ],
+      numPts: 450,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 1,
+      name: 'Tour of Flanders 2024',
+      region: 'Belgium — East Flanders',
+      description:
+        "The Ronde van Vlaanderen — 273 km through the Flemish Ardennes. Mathieu van der Poel won his third consecutive title in 2024 in a dominant solo performance over the Koppenberg and Paterberg, the two decisive bergs.",
+      keyClimbs: ['Koppenberg', 'Paterberg', 'Oude Kwaremont'],
+      distanceKm: 273,
+      ascentM: 2600,
+      difficulty: 'hilly',
+      heroNarrative: 'From Antwerp to Oudenaarde — the Ronde claims its king.',
+      mood: 'overcast',
+      spectatorClimbs: [
+        { startDistance: 255_000, endDistance: 263_000, densityPerKm: 85 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Liège-Bastogne-Liège 2024 — Liège → Liège (La Redoute)
+  // 253 km | La Redoute + Côte de Saint-Nicolas
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-liege-2024',
+      name: 'Liège-Bastogne-Liège 2024',
+      coords: [
+        [50.6320, 5.5690],   // Liège — start
+        [50.2580, 5.7250],   // Bastogne turnaround
+        [50.3500, 5.6000],   // La Redoute foot
+        [50.3600, 5.5800],   // La Redoute summit (499 m)
+        [50.5500, 5.5200],   // Côte de Saint-Nicolas
+        [50.6320, 5.5690],   // Liège finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 68 },
+        { t: 0.28, ele: 515 },  // Bastogne plateau
+        { t: 0.55, ele: 280 },
+        { t: 0.65, ele: 499 },  // La Redoute
+        { t: 0.78, ele: 200 },
+        { t: 0.88, ele: 320 },  // Saint-Nicolas
+        { t: 1.00, ele:  68 },
+      ],
+      numPts: 450,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 1,
+      name: 'Liège-Bastogne-Liège 2024',
+      region: 'Belgium — Liège Province (Ardennes)',
+      description:
+        "La Doyenne — the oldest Monument in cycling. 253 km through the rolling Ardennes with La Redoute as the pivotal climb. Tadej Pogačar won a commanding solo victory in 2024, his fourth Monument of the season.",
+      keyClimbs: ['La Redoute', 'Côte de Saint-Nicolas', 'Côte de la Roche-aux-Faucons'],
+      distanceKm: 253,
+      ascentM: 4000,
+      difficulty: 'mountain',
+      heroNarrative: 'La Doyenne has no mercy — only the strongest survive La Redoute.',
+      mood: 'overcast',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Strade Bianche 2024 — Siena → Siena (white gravel roads)
+  // 215 km | 15 white-road sectors through Tuscany
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-strade-bianche-2024',
+      name: 'Strade Bianche 2024',
+      coords: [
+        [43.3180, 11.3310],  // Siena — start
+        [43.2500, 11.1500],  // Monte Sante Marie sector
+        [43.1500, 11.2000],  // Montalcino area
+        [43.2000, 11.3000],  // Colle Pinzuto white sector
+        [43.3000, 11.3300],  // Tollena sector
+        [43.3180, 11.3310],  // Piazza del Campo, Siena — finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 322 },
+        { t: 0.20, ele: 520 },
+        { t: 0.40, ele: 380 },
+        { t: 0.60, ele: 480 },
+        { t: 0.80, ele: 350 },
+        { t: 0.92, ele: 300 },
+        { t: 1.00, ele: 322 },
+      ],
+      numPts: 400,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 1,
+      name: 'Strade Bianche 2024',
+      region: 'Italy — Tuscany (Siena)',
+      description:
+        "Racing on the white gravel roads of Tuscany, finishing on the medieval cobbles of Siena's Piazza del Campo. Pogačar won his third consecutive Strade Bianche in 2024 with a devastating solo attack on the final white sector.",
+      keyClimbs: ['Monte Sante Marie', 'Colle Pinzuto', 'Via Santa Caterina in Fontebranda'],
+      distanceKm: 215,
+      ascentM: 3400,
+      difficulty: 'hilly',
+      heroNarrative: 'White dust, medieval stones, and one rider above all others.',
+      mood: 'golden-hour',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Giro 2025 Stage 20 — Bormio → Santa Cristina Val Gardena
+  // 111 km | Stelvio + Passo del Tonale
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-giro-2025-s20',
+      name: 'Giro 2025 S20 — Stelvio',
+      coords: [
+        [46.4700, 10.3700],  // Bormio — start
+        [46.5280, 10.4530],  // Stelvio summit (2758 m)
+        [46.5500, 10.5500],  // Prato Stelvio
+        [46.4500, 10.7000],  // Malles / Vinschgau descent
+        [46.5900, 11.3500],  // Bolzano valley
+        [46.5760, 11.7040],  // Santa Cristina Val Gardena (1428 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1225 },
+        { t: 0.22, ele: 2758 },  // Stelvio summit
+        { t: 0.38, ele:  920 },  // Malles valley
+        { t: 0.60, ele:  262 },  // Bolzano
+        { t: 0.80, ele:  800 },  // Val Gardena approach
+        { t: 1.00, ele: 1428 },  // Santa Cristina
+      ],
+      numPts: 450,
+    }),
+    info: {
+      grandTour: 'giro',
+      year: 2025,
+      stageNumber: 20,
+      name: 'Stage 20 — Stelvio',
+      region: 'Italy — Alto Adige / Val Gardena',
+      description:
+        "The Giro's queen stage: the Stelvio from Bormio with its 48 hairpins at 2758 m provides the GC-deciding moment before a long descent into the Dolomite valleys and a hilltop finish in Santa Cristina Val Gardena.",
+      keyClimbs: ['Stelvio Pass', 'Val Gardena'],
+      distanceKm: 111,
+      ascentM: 3200,
+      difficulty: 'queen',
+      heroNarrative: "The Stelvio — where Giro champions are truly forged.",
+      mood: 'clear-noon',
+      spectatorClimbs: [
+        { startDistance: 18_000, endDistance: 30_000, densityPerKm: 60 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Vuelta 2024 Stage 17 — Arnedo → Alto de Moncalvillo
+  // 144 km | La Rioja mountain finish
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-vuelta-2024-s17',
+      name: 'Vuelta 2024 S17 — Moncalvillo',
+      coords: [
+        [42.2200, -2.0950],  // Arnedo — start
+        [42.2800, -2.3000],  // Logroño valley
+        [42.3500, -2.4500],  // Navarrete
+        [42.3900, -2.5500],  // Moncalvillo lower slopes
+        [42.4020, -2.6430],  // Alto de Moncalvillo summit (1260 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  440 },
+        { t: 0.25, ele:  380 },  // Logroño
+        { t: 0.55, ele:  600 },
+        { t: 0.78, ele:  950 },
+        { t: 1.00, ele: 1260 },
+      ],
+      numPts: 380,
+    }),
+    info: {
+      grandTour: 'vuelta',
+      year: 2024,
+      stageNumber: 17,
+      name: 'Stage 17 — Alto de Moncalvillo',
+      region: 'Spain — La Rioja',
+      description:
+        "A medium-mountain stage through the wine country of La Rioja with a summit finish on Moncalvillo. The Vuelta frequently uses this climb as a GC selector — steep enough to hurt, short enough to create explosive racing.",
+      keyClimbs: ['Alto de Moncalvillo'],
+      distanceKm: 144,
+      ascentM: 2800,
+      difficulty: 'mountain',
+      heroNarrative: 'La Rioja vineyards give way to the rocky Moncalvillo summit.',
+      mood: 'golden-hour',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tour Down Under 2024 Stage 6 — Adelaide Hills circuit
+  // 90 km | Corkscrew Road + Norton Summit (queen stage)
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-tdu-2024-s6',
+      name: 'Tour Down Under 2024 S6 — Adelaide Hills',
+      coords: [
+        [-34.9290, 138.6010],  // Adelaide central — start
+        [-34.9200, 138.6800],  // Eastern suburbs
+        [-34.9000, 138.7100],  // Corkscrew Road foot
+        [-34.8800, 138.7300],  // Corkscrew summit
+        [-34.9050, 138.7310],  // Norton Summit back to valley
+        [-34.9290, 138.7392],  // Norton Summit summit (481 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:  50 },
+        { t: 0.25, ele: 100 },
+        { t: 0.45, ele: 380 },  // Corkscrew summit
+        { t: 0.60, ele: 200 },
+        { t: 0.80, ele: 380 },
+        { t: 1.00, ele: 481 },  // Norton Summit
+      ],
+      numPts: 350,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 6,
+      name: 'Stage 6 — Norton Summit',
+      region: 'Australia — South Australia (Adelaide)',
+      description:
+        "The queen stage of the Santos Tour Down Under, finishing on the iconic Norton Summit above Adelaide. Multiple ascents of the Adelaide Hills create a punishing finale with sun-baked roads and partisan Australian crowd support.",
+      keyClimbs: ['Corkscrew Road', 'Norton Summit'],
+      distanceKm: 90,
+      ascentM: 2200,
+      difficulty: 'mountain',
+      heroNarrative: 'Under the Australian sun, Norton Summit separates the champions.',
+      mood: 'clear-noon',
+      spectatorClimbs: [
+        { startDistance: 82_000, endDistance: 90_000, densityPerKm: 50 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tour of California 2023 Stage 5 — Monterey → Big Sur (coastal)
+  // 157 km | Pacific Coast Highway + Nacimiento-Fergusson Road
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-toc-2023-s5',
+      name: 'Tour of California 2023 S5 — Big Sur',
+      coords: [
+        [36.6002, -121.8947],  // Monterey — start
+        [36.5500, -121.9200],  // Pacific Grove
+        [36.4500, -121.9300],  // Carmel-by-the-Sea
+        [36.2500, -121.8500],  // Big Sur coast
+        [35.9700, -121.5000],  // Nacimiento-Fergusson Road
+        [35.8000, -121.4000],  // Santa Lucia summit (900 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:   5 },
+        { t: 0.20, ele:  15 },
+        { t: 0.45, ele:  80 },
+        { t: 0.65, ele: 200 },
+        { t: 0.82, ele: 600 },
+        { t: 1.00, ele: 900 },
+      ],
+      numPts: 380,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2023,
+      stageNumber: 5,
+      name: 'Stage 5 — Big Sur',
+      region: 'USA — California (Pacific Coast)',
+      description:
+        "One of cycling's most scenic stages — the Pacific Coast Highway along the Big Sur coastline followed by the brutal Nacimiento-Fergusson climb into the Santa Lucia Mountains. Ocean views give way to redwood forest.",
+      keyClimbs: ['Nacimiento-Fergusson Road', 'Santa Lucia summit'],
+      distanceKm: 157,
+      ascentM: 2800,
+      difficulty: 'mountain',
+      heroNarrative: 'The Pacific recedes as the Santa Lucia Mountains demand everything.',
+      mood: 'mediterranean-mist',
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tour of Catalonia 2024 Stage 5 — Masnou → Andorra La Vella
+  // 188 km | Port del Cantó + Arcalís
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-volta-2024-s5',
+      name: 'Volta Catalunya 2024 S5 — Arcalís',
+      coords: [
+        [41.4820, 2.3230],   // Masnou — coastal start
+        [41.6000, 1.5000],   // Llobregat valley
+        [42.0000, 1.2000],   // Tremp area
+        [42.3500, 1.3000],   // Port del Cantó foot
+        [42.4800, 1.3500],   // Port del Cantó (1725 m)
+        [42.5480, 1.5440],   // Andorra La Vella
+        [42.5800, 1.5000],   // Arcalís base
+        [42.5850, 1.4990],   // Arcalís summit (2240 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:   5 },
+        { t: 0.20, ele: 300 },
+        { t: 0.40, ele: 600 },
+        { t: 0.58, ele: 1725 },  // Port del Cantó
+        { t: 0.70, ele: 1020 },  // Andorra valley
+        { t: 0.82, ele: 1500 },  // Arcalís base
+        { t: 1.00, ele: 2240 },  // Arcalís summit
+      ],
+      numPts: 450,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 5,
+      name: 'Stage 5 — Arcalís (Andorra)',
+      region: 'Spain / Andorra — Pyrenees',
+      description:
+        "From the Mediterranean coast to the Andorran Pyrenees in one stage. The remote Arcalís ski station provides one of the most dramatic summit finishes in the Volta a Catalunya, 2240 m above sea level.",
+      keyClimbs: ['Port del Cantó', 'Arcalís'],
+      distanceKm: 188,
+      ascentM: 4600,
+      difficulty: 'queen',
+      heroNarrative: 'From the sea to the sky — Arcalís crowns the king of Catalunya.',
+      mood: 'clear-noon',
+      spectatorClimbs: [
+        { startDistance: 178_000, endDistance: 188_000, densityPerKm: 45 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Vuelta 2024 Stage 13 — Luarca → Lagos de Covadonga
+  // 152 km | Asturian mountain finish
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-vuelta-2024-s13',
+      name: 'Vuelta 2024 S13 — Lagos de Covadonga',
+      coords: [
+        [43.5430, -6.5360],  // Luarca — north coast start
+        [43.4000, -5.8000],  // Oviedo area
+        [43.3500, -5.4000],  // Cangas de Onís
+        [43.2700, -5.0000],  // Lagos foot
+        [43.2628, -4.9999],  // Lagos de Covadonga (1134 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele:   10 },
+        { t: 0.25, ele:  200 },
+        { t: 0.50, ele:  300 },
+        { t: 0.72, ele:  400 },
+        { t: 0.85, ele:  750 },
+        { t: 1.00, ele: 1134 },
+      ],
+      numPts: 400,
+    }),
+    info: {
+      grandTour: 'vuelta',
+      year: 2024,
+      stageNumber: 13,
+      name: 'Stage 13 — Lagos de Covadonga',
+      region: 'Spain — Asturias (Picos de Europa)',
+      description:
+        "The most iconic stage finish in the Vuelta a España. Lagos de Covadonga in the Picos de Europa has hosted decisive GC battles for decades. The final 12 km feature an average gradient of 7% with sections above 15%.",
+      keyClimbs: ['Lagos de Covadonga'],
+      distanceKm: 152,
+      ascentM: 3200,
+      difficulty: 'mountain',
+      heroNarrative: 'The lakes of the gods — where Vuelta champions are made.',
+      mood: 'overcast',
+      spectatorClimbs: [
+        { startDistance: 140_000, endDistance: 152_000, densityPerKm: 70 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Il Lombardia 2024 — Bergamo → Como
+  // 253 km | San Fermo della Battaglia + Madonna del Ghisallo
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-lombardia-2024',
+      name: 'Il Lombardia 2024',
+      coords: [
+        [45.6950, 9.6700],   // Bergamo — start
+        [45.8500, 9.3800],   // Lecco, Lake Como
+        [45.9500, 9.2500],   // Madonna del Ghisallo foot
+        [45.9570, 9.2490],   // Ghisallo summit (754 m)
+        [45.8800, 9.1500],   // Civiglio
+        [45.8130, 9.0850],   // San Fermo della Battaglia
+        [45.7953, 9.0841],   // Como finish
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 249 },
+        { t: 0.28, ele: 214 },  // Lecco lakefront
+        { t: 0.45, ele: 400 },  // Ghisallo approach
+        { t: 0.55, ele: 754 },  // Madonna del Ghisallo
+        { t: 0.68, ele: 300 },
+        { t: 0.82, ele: 450 },  // San Fermo
+        { t: 1.00, ele: 210 },  // Como
+      ],
+      numPts: 450,
+    }),
+    info: {
+      grandTour: 'giro',
+      year: 2024,
+      stageNumber: 1,
+      name: 'Il Lombardia 2024',
+      region: 'Italy — Lombardy (Lakes)',
+      description:
+        "The Race of the Falling Leaves — 253 km along the shores of Lake Como through the autumn Lombardy countryside. Tadej Pogačar won a dominant solo victory in 2024, his third consecutive Monument of the season.",
+      keyClimbs: ['Madonna del Ghisallo', 'Civiglio', 'San Fermo della Battaglia'],
+      distanceKm: 253,
+      ascentM: 4100,
+      difficulty: 'mountain',
+      heroNarrative: 'Autumn leaves, lake views, and one champion standing alone at Como.',
+      mood: 'golden-hour',
+      spectatorClimbs: [
+        { startDistance: 230_000, endDistance: 243_000, densityPerKm: 55 },
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Tour of Romandy 2024 Stage 5 — Champéry → Crans-Montana
+  // 161 km | Col de la Croix + Crans-Montana summit finish
+  // ---------------------------------------------------------------------------
+  {
+    route: buildStageRoute({
+      id: 'wt-romandy-2024-s5',
+      name: 'Tour of Romandy 2024 S5 — Crans-Montana',
+      coords: [
+        [46.1740, 6.8700],   // Champéry — start
+        [46.2500, 7.0000],   // Aigle valley
+        [46.3000, 7.1500],   // Col de la Croix foot
+        [46.3300, 7.1300],   // Col de la Croix (1778 m)
+        [46.3000, 7.3500],   // Sion valley
+        [46.3100, 7.5300],   // Crans-Montana base
+        [46.3059, 7.5253],   // Crans-Montana summit (1500 m)
+      ],
+      elevationProfile: [
+        { t: 0.00, ele: 1000 },
+        { t: 0.18, ele:  430 },  // Aigle valley
+        { t: 0.38, ele: 1300 },  // Col de la Croix approach
+        { t: 0.50, ele: 1778 },  // Col de la Croix summit
+        { t: 0.62, ele:  490 },  // Sion
+        { t: 0.78, ele:  900 },  // Crans-Montana lower
+        { t: 1.00, ele: 1500 },  // Crans-Montana finish
+      ],
+      numPts: 400,
+    }),
+    info: {
+      grandTour: 'tour',
+      year: 2024,
+      stageNumber: 5,
+      name: 'Stage 5 — Crans-Montana',
+      region: 'Switzerland — Valais Alps',
+      description:
+        "The queen stage of the Tour de Romandy — a Swiss Alpine classic finishing on the Crans-Montana plateau above the Rhône valley. An early-season GC decider amid spectacular Valais scenery.",
+      keyClimbs: ['Col de la Croix', 'Crans-Montana'],
+      distanceKm: 161,
+      ascentM: 3800,
+      difficulty: 'mountain',
+      heroNarrative: 'Swiss precision meets Alpine brutality on Crans-Montana.',
+      mood: 'clear-noon',
+      spectatorClimbs: [
+        { startDistance: 150_000, endDistance: 161_000, densityPerKm: 40 },
       ],
     },
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -26,13 +26,21 @@ import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
 import { WorkoutBuilder } from '@/components/workouts/WorkoutBuilder';
 import { WorkoutLibrary } from '@/components/workouts/WorkoutLibrary';
 import { WorkoutPicker } from '@/components/workouts/WorkoutPicker';
-import { TrainingPlans } from '@/components/training/TrainingPlans';
-import { AIWorkoutDesigner } from '@/components/workouts/AIWorkoutDesigner';
+// Heavy AI/race panels — lazy-loaded so they don't bloat the initial bundle.
+// Each is only rendered when the user navigates to the relevant tab.
+const TrainingPlans    = lazy(() => import('@/components/training/TrainingPlans').then(m => ({ default: m.TrainingPlans })));
+const AIWorkoutDesigner = lazy(() => import('@/components/workouts/AIWorkoutDesigner').then(m => ({ default: m.AIWorkoutDesigner })));
+const AIRouteRecommender = lazy(() => import('@/components/routes/AIRouteRecommender').then(m => ({ default: m.AIRouteRecommender })));
+const WorldTourStages  = lazy(() => import('@/components/routes/WorldTourStages').then(m => ({ default: m.WorldTourStages })));
+const RaceLobby        = lazy(() => import('@/components/race/RaceLobby').then(m => ({ default: m.RaceLobby })));
+const AICoach          = lazy(() => import('@/components/training/AICoach').then(m => ({ default: m.AICoach })));
+
 import { RideHistory } from '@/components/training/RideHistory';
 import { FitnessChart } from '@/components/training/FitnessChart';
 import { PersonalRecords } from '@/components/training/PersonalRecords';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 import { FITUploader } from '@/components/setup/FITUploader';
+import { StravaUrlImport } from '@/components/setup/StravaUrlImport';
 import { RouteSearch } from '@/components/setup/RouteSearch';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { SensorConnect } from '@/components/trainer/SensorConnect';
@@ -40,16 +48,12 @@ import { ElevationProfile } from '@/components/ride/ElevationProfile';
 import { RouteLibrary } from '@/components/routes/RouteLibrary';
 import { RoutePreview } from '@/components/routes/RoutePreview';
 import { IconicRoutes } from '@/components/routes/IconicRoutes';
-import { WorldTourStages } from '@/components/routes/WorldTourStages';
-import { AIRouteRecommender } from '@/components/routes/AIRouteRecommender';
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
-import { AICoach } from '@/components/training/AICoach';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HomeTabBar, HomeTabPanel, type TabId } from '@/components/setup/HomeTabs';
-import { RaceLobby } from '@/components/race/RaceLobby';
 import { useRaceStore } from '@/stores/raceStore';
 import { decodeManifestUrl } from '@/lib/race/raceProtocol';
 import { useRideStore } from '@/stores/rideStore';
@@ -60,6 +64,15 @@ import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { ProPelotonSetup } from '@/components/setup/ProPelotonSetup';
+
+/** Minimal inline spinner shown while a lazy tab panel loads. */
+function TabSpinner() {
+  return (
+    <div className="h-16 flex items-center justify-center">
+      <div className="h-5 w-5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 /**
  * Landing / setup page — reorganised into four focused tabs:
@@ -217,6 +230,8 @@ export function Home() {
                     </summary>
                     <div className="mt-3 space-y-4">
                       <GPXUploader />
+                      <Divider label="or import from Strava" />
+                      <StravaUrlImport />
                       <Divider label="or replay a .FIT" />
                       <FITUploader />
                     </div>
@@ -431,7 +446,7 @@ export function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <AIRouteRecommender onPicked={() => navigate('/ride')} />
+                <Suspense fallback={<TabSpinner />}><AIRouteRecommender onPicked={() => navigate('/ride')} /></Suspense>
               </CardContent>
             </Card>
 
@@ -455,7 +470,7 @@ export function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <WorldTourStages onPicked={() => navigate('/ride')} />
+                <Suspense fallback={<TabSpinner />}><WorldTourStages onPicked={() => navigate('/ride')} /></Suspense>
               </CardContent>
             </Card>
 
@@ -578,13 +593,15 @@ export function Home() {
                   }}
                 />
 
-                <TrainingPlans
-                  onRide={(w) => {
-                    loadWorkout(w);
-                    if (!route) useRideStore.getState().setRoute(makeDemoRoute());
-                    navigate('/ride');
-                  }}
-                />
+                <Suspense fallback={<TabSpinner />}>
+                  <TrainingPlans
+                    onRide={(w) => {
+                      loadWorkout(w);
+                      if (!route) useRideStore.getState().setRoute(makeDemoRoute());
+                      navigate('/ride');
+                    }}
+                  />
+                </Suspense>
 
                 <WorkoutLibrary
                   onSelect={(w) => {
@@ -619,7 +636,7 @@ export function Home() {
               </CardContent>
             </Card>
 
-            <AIWorkoutDesigner />
+            <Suspense fallback={<TabSpinner />}><AIWorkoutDesigner /></Suspense>
           </div>
         </HomeTabPanel>
 
@@ -629,7 +646,7 @@ export function Home() {
           <div className="space-y-5">
             <Card>
               <CardContent className="pt-5">
-                <RaceLobby />
+                <Suspense fallback={<TabSpinner />}><RaceLobby /></Suspense>
               </CardContent>
             </Card>
           </div>
@@ -650,7 +667,7 @@ export function Home() {
                 {route && <SegmentLeaderboard route={route} className="mt-4" />}
               </CardContent>
             </Card>
-            <AICoach />
+            <Suspense fallback={<TabSpinner />}><AICoach /></Suspense>
             <FitnessChart />
             <PersonalRecords />
           </div>

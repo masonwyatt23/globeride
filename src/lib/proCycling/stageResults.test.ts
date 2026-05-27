@@ -15,9 +15,9 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('STAGE_RESULTS', () => {
-  it('is a non-empty record with at least 3 stage entries', () => {
+  it('is a non-empty record with at least 13 stage entries', () => {
     const keys = Object.keys(STAGE_RESULTS);
-    expect(keys.length).toBeGreaterThanOrEqual(3);
+    expect(keys.length).toBeGreaterThanOrEqual(13);
   });
 
   it('contains the Giro 2024 Stage 16 (Mortirolo) entry', () => {

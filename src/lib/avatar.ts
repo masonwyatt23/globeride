@@ -37,6 +37,49 @@ type ColorRole = keyof AvatarColors;
 export type HelmetStyle = 'road' | 'aero' | 'climbing';
 
 /**
+ * Bike frame geometry variants.
+ * Wave 38.B: drives wheel depth, tyre width, handlebar geometry, frame details.
+ */
+export type BikeShape =
+  | 'roadAero'       // deep rims, aero bars, thick top tube
+  | 'roadClimber'    // shallow rims, upright hoods, thin tubes
+  | 'roadAllRounder' // standard road (default)
+  | 'tt'             // aero bars + skinny clip-on extensions, disc-style rear
+  | 'gravel'         // drop bars, wider tyres
+  | 'fixie'          // drop bars, no derailleur box
+  | 'mtbHardtail'    // flat bars, fat tyres, suspension fork tubes
+  | 'mtbFullSus'     // flat bars, fat tyres, both suspension
+  | 'ebike'          // battery on down tube
+  | 'vintage';       // steel round tubes, no derailleur detail
+
+/**
+ * Jersey / kit colour pattern.
+ * Wave 38.B: changes jersey primitives to show bands, dots, or splits.
+ */
+export type KitPattern =
+  | 'solid'          // current behaviour (default)
+  | 'polka'          // red dots on white — KOM polka dot
+  | 'rainbow'        // 5 UCI bands across chest
+  | 'yellowLeader'   // solid yellow, black cuff accents
+  | 'sprinterGreen'  // solid green, white sleeves
+  | 'stripes'        // horizontal alternating stripes
+  | 'fluoro'         // bright primary + darker hem accent
+  | 'teamReplica';   // 3-colour chest/mid/hem split
+
+/** Per-kit accent colours forwarded from GearItem.accentColors. */
+export interface KitAccent {
+  primary: string;
+  secondary?: string;
+  tertiary?: string;
+}
+
+/**
+ * Shoe geometry style.
+ * Wave 38.B: alters sole width, cleat hint, and colour accent.
+ */
+export type ShoeStyle = 'roadClip' | 'gravel' | 'mtbClip' | 'vintage' | 'fluoro';
+
+/**
  * Options for createAvatar(). All fields are optional — existing call sites
  * that pass only a viewer continue to work with sensible defaults.
  */
@@ -51,6 +94,26 @@ export interface AvatarOptions {
   hasGlasses?: boolean;
   /** Whether to render a water bottle on the down tube. */
   hasBottle?: boolean;
+  /**
+   * Bike frame geometry variant. Wave 38.B.
+   * Defaults to 'roadAllRounder' when omitted.
+   */
+  bikeShape?: BikeShape;
+  /**
+   * Jersey / kit colour pattern. Wave 38.B.
+   * Defaults to 'solid' when omitted.
+   */
+  kitPattern?: KitPattern;
+  /**
+   * Accent colours for multi-colour kit patterns. Wave 38.B.
+   * When omitted, the base accent colour is reused.
+   */
+  kitAccent?: KitAccent;
+  /**
+   * Shoe geometry style. Wave 38.B.
+   * Defaults to 'roadClip' when omitted.
+   */
+  shoeStyle?: ShoeStyle;
 }
 
 export interface AvatarUpdate {
@@ -327,14 +390,59 @@ function anklePart(name: string, side: -1 | 1): PartSpec {
   };
 }
 
-/** Cycling shoe — follows pedal position. */
-function shoePart(name: string, side: -1 | 1): PartSpec {
+/** Cycling shoe — follows pedal position. Geometry varies by shoeStyle. */
+function shoePart(name: string, side: -1 | 1, style: ShoeStyle): PartSpec {
+  // Sole dimensions: width (X), length (Y), height (Z)
+  const soleDims: Record<ShoeStyle, V3> = {
+    roadClip: v3(0.082, 0.20, 0.052),   // narrow, stiff
+    gravel:   v3(0.090, 0.20, 0.058),   // slightly wider, walkable
+    mtbClip:  v3(0.098, 0.21, 0.062),   // widest, grippiest
+    vintage:  v3(0.086, 0.20, 0.056),   // leather-brown shape
+    fluoro:   v3(0.082, 0.20, 0.052),   // same as road, vivid colour applied via role
+  };
+  const dims = soleDims[style];
+  // MTB sole gets a slightly darker outsole hint via 'wheel' role (near-black).
+  // Fluoro gets 'kit' role so it picks up the bright kit primary.
+  // Vintage gets 'frame' role (warm brown from frame color).
+  // Road/gravel get 'accent' role as before.
+  const role: ColorRole =
+    style === 'mtbClip'  ? 'wheel'  :
+    style === 'fluoro'   ? 'kit'    :
+    style === 'vintage'  ? 'frame'  : 'accent';
   return {
     name,
     kind: 'box',
-    dims: v3(0.085, 0.20, 0.055),
-    role: 'accent',
+    dims,
+    role,
     place: (d) => ({ pos: pedalPos(side, d.crankAngle), rot: QUAT_IDENTITY }),
+  };
+}
+
+/** Cleat hint on road shoes — tiny box near the toe. Allocation-free static. */
+function shoeCleatPart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.030, 0.038, 0.012),
+    role: 'wheel',
+    place: (d) => {
+      const base = pedalPos(side, d.crankAngle);
+      return { pos: v3(base[0], base[1] + 0.065, base[2] - 0.032), rot: QUAT_IDENTITY };
+    },
+  };
+}
+
+/** MTB outsole grip blocks — two small bumps under the sole. */
+function mtbGripPart(name: string, side: -1 | 1, yOffset: number): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.092, 0.030, 0.016),
+    role: 'accent',
+    place: (d) => {
+      const base = pedalPos(side, d.crankAngle);
+      return { pos: v3(base[0], base[1] + yOffset, base[2] - 0.042), rot: QUAT_IDENTITY };
+    },
   };
 }
 
@@ -618,7 +726,7 @@ function brakeRotorPart(name: string, hub: V3, side: -1 | 1): PartSpec {
 /**
  * Rim accent — a thin-walled ring slightly inside the tyre.
  */
-function rimAccent(name: string, hub: V3): PartSpec {
+function _rimAccent(name: string, hub: V3): PartSpec {
   return {
     name,
     kind: 'cylinder',
@@ -665,35 +773,152 @@ function hipsPart(): PartSpec {
   };
 }
 
+// ---- Bike shape geometry helpers (Wave 38.B) ------------------------------
+
+/** Rim depth multiplier and tyre width by bike shape. */
+const BIKE_WHEEL_PROFILE: Record<BikeShape, { rimDepth: number; tyreWidth: number }> = {
+  roadAero:       { rimDepth: 0.96, tyreWidth: 0.060 },
+  roadClimber:    { rimDepth: 0.80, tyreWidth: 0.056 },
+  roadAllRounder: { rimDepth: 0.88, tyreWidth: 0.060 },
+  tt:             { rimDepth: 0.96, tyreWidth: 0.058 },
+  gravel:         { rimDepth: 0.78, tyreWidth: 0.080 },
+  fixie:          { rimDepth: 0.88, tyreWidth: 0.056 },
+  mtbHardtail:    { rimDepth: 0.72, tyreWidth: 0.110 },
+  mtbFullSus:     { rimDepth: 0.72, tyreWidth: 0.110 },
+  ebike:          { rimDepth: 0.80, tyreWidth: 0.072 },
+  vintage:        { rimDepth: 0.82, tyreWidth: 0.062 },
+};
+
+/** Frame tube radius scale — thicker for aero/TT, thinner for climber/vintage. */
+const BIKE_TUBE_SCALE: Record<BikeShape, number> = {
+  roadAero:       1.12,
+  roadClimber:    0.88,
+  roadAllRounder: 1.00,
+  tt:             1.10,
+  gravel:         0.96,
+  fixie:          0.94,
+  mtbHardtail:    1.04,
+  mtbFullSus:     1.06,
+  ebike:          1.10,
+  vintage:        0.92,
+};
+
+/** Tyre cylinder — width varies by bike type. */
+function tyrePart(name: string, hub: V3, tyreWidth: number): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(WHEEL_R, tyreWidth, WHEEL_R),
+    role: 'wheel',
+    place: { pos: hub, rot: quatZTo(v3(1, 0, 0)) },
+  };
+}
+
+/** Rim accent with variable depth — aero bikes get a taller rim wall. */
+function rimAccentShaped(name: string, hub: V3, rimDepth: number): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(WHEEL_R * rimDepth, 0.025, WHEEL_R * rimDepth),
+    role: 'accent',
+    place: { pos: hub, rot: quatZTo(v3(1, 0, 0)) },
+  };
+}
+
+/** TT aero bar extensions — two thin forward-pointing cylinders. */
+function ttBarPart(name: string, xSide: number): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.014, 0.22, 0.014),
+    role: 'frame',
+    place: { pos: v3(xSide * 0.065, 0.62, 0.87), rot: quatZTo(v3(0, 1, 0)) },
+  };
+}
+
+/** Flat MTB/gravel bar — wide box replacing drop-bar section. */
+function flatBarPart(): PartSpec {
+  return {
+    name: 'flat-handlebar',
+    kind: 'box',
+    dims: v3(0.55, 0.04, 0.038),
+    role: 'frame',
+    place: { pos: v3(0, 0.46, 0.88), rot: QUAT_IDENTITY },
+  };
+}
+
+/** Suspension fork leg — vertical tube from steerer to wheel axle. */
+function suspForkPart(name: string, xSide: number): PartSpec {
+  return tube(name, v3(xSide * 0.040, HEAD_TOP[1], HEAD_TOP[2]),
+                    v3(xSide * 0.040, FRONT_HUB[1], FRONT_HUB[2]), 0.022, 'frame');
+}
+
+/** E-bike battery box on the down tube. */
+function ebikeBatteryPart(): PartSpec {
+  return {
+    name: 'ebike-battery',
+    kind: 'box',
+    dims: v3(0.065, 0.26, 0.065),
+    role: 'accent',
+    place: { pos: v3(0, 0.21, 0.46), rot: quatZTo(sub(HEAD_TOP, BB)) },
+  };
+}
+
+// ---- Kit pattern helpers (Wave 38.B) --------------------------------------
+
+/** Horizontal jersey band — thin box across the torso at a given Z height. */
+function jerseyBandPart(name: string, zPos: number, role: ColorRole): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.30, 0.22, 0.065),
+    role,
+    place: { pos: v3(0, 0.05, zPos), rot: QUAT_IDENTITY },
+  };
+}
+
+/** Polka dot — small ellipsoid on jersey surface. */
+function polkaDotPart(name: string, x: number, z: number): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.028, 0.012, 0.028),
+    role: 'accent',
+    place: { pos: v3(x, 0.22, z), rot: QUAT_IDENTITY },
+  };
+}
+
 // ---- Per-instance part list builder ----------------------------------------
 
 /**
  * Build the full PARTS list for one avatar instance.
  * Options control accessory geometry so different riders can have
  * different gear without global PARTS contamination.
+ *
+ * Wave 38.B: branches on bikeShape (wheels/bars/frame/accessories),
+ * kitPattern (jersey overlays), and shoeStyle (sole geometry + colour role).
  */
-function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
+type ResolvedAvatarOptions = Omit<Required<AvatarOptions>, 'kitAccent'> & { kitAccent: KitAccent | undefined };
+
+function buildParts(opts: ResolvedAvatarOptions): PartSpec[] {
+  const shape = opts.bikeShape;
+  const { rimDepth, tyreWidth } = BIKE_WHEEL_PROFILE[shape];
+  const ts = BIKE_TUBE_SCALE[shape];   // tube scale
+
+  const isMtb    = shape === 'mtbHardtail' || shape === 'mtbFullSus';
+  const isGravel = shape === 'gravel';
+  const isTT     = shape === 'tt';
+  const isEbike  = shape === 'ebike';
+
   const parts: PartSpec[] = [
-    // ---- wheels (tyre + rim accent + hub + 4-cross spokes + brake rotors) ----
-    {
-      name: 'wheel-rear',
-      kind: 'cylinder',
-      dims: v3(WHEEL_R, 0.06, WHEEL_R),
-      role: 'wheel',
-      place: { pos: REAR_HUB, rot: quatZTo(v3(1, 0, 0)) },
-    },
-    {
-      name: 'wheel-front',
-      kind: 'cylinder',
-      dims: v3(WHEEL_R, 0.06, WHEEL_R),
-      role: 'wheel',
-      place: { pos: FRONT_HUB, rot: quatZTo(v3(1, 0, 0)) },
-    },
-    rimAccent('rim-rear', REAR_HUB),
-    rimAccent('rim-front', FRONT_HUB),
-    hubPart('hub-rear', REAR_HUB),
+    // ---- wheels — tyre width + rim depth vary by bikeShape ----------------
+    tyrePart('wheel-rear',  REAR_HUB,  tyreWidth),
+    tyrePart('wheel-front', FRONT_HUB, tyreWidth),
+    rimAccentShaped('rim-rear',  REAR_HUB,  rimDepth),
+    rimAccentShaped('rim-front', FRONT_HUB, rimDepth),
+    hubPart('hub-rear',  REAR_HUB),
     hubPart('hub-front', FRONT_HUB),
-    // 4-cross spoke pattern — 4 bars per wheel = ~16 visual spokes
+    // 4-cross spoke pattern
     spokePart('spoke-rear-1',   REAR_HUB),
     spokeCross2('spoke-rear-2', REAR_HUB),
     spokeCross3('spoke-rear-3', REAR_HUB),
@@ -702,62 +927,23 @@ function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
     spokeCross2('spoke-front-2', FRONT_HUB),
     spokeCross3('spoke-front-3', FRONT_HUB),
     spokeCross4('spoke-front-4', FRONT_HUB),
-    // Brake rotors — left side of each wheel
     brakeRotorPart('rotor-rear',  REAR_HUB,  -1),
     brakeRotorPart('rotor-front', FRONT_HUB, -1),
 
-    // ---- frame (each tube is a distinct primitive for independent materials) ----
-    tube('down-tube',   BB,           HEAD_TOP,  0.035, 'frame'),
-    tube('seat-tube',   BB,           SADDLE_J,  0.032, 'frame'),
-    tube('top-tube',    SADDLE_J,     HEAD_TOP,  0.030, 'frame'),
-    tube('chain-stay',  REAR_HUB,     BB,        0.025, 'frame'),
-    tube('seat-stay',   REAR_HUB,     SADDLE_J,  0.022, 'frame'),
-    tube('fork',        HEAD_TOP,     FRONT_HUB, 0.028, 'frame'),
-    tube('steerer',     HEAD_TOP,     BAR,       0.026, 'frame'),
-    tube('seatpost',    SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
-    // Head tube — short cylinder at fork crown
-    tube('head-tube',   v3(0, 0.44, 0.58), HEAD_TOP, 0.028, 'frame'),
+    // ---- frame — tube radii scaled by bikeShape ---------------------------
+    tube('down-tube',  BB,           HEAD_TOP,          0.035 * ts, 'frame'),
+    tube('seat-tube',  BB,           SADDLE_J,          0.032 * ts, 'frame'),
+    tube('top-tube',   SADDLE_J,     HEAD_TOP,          0.030 * ts, 'frame'),
+    tube('chain-stay', REAR_HUB,     BB,                0.025 * ts, 'frame'),
+    tube('seat-stay',  REAR_HUB,     SADDLE_J,          0.022 * ts, 'frame'),
+    tube('steerer',    HEAD_TOP,     BAR,               0.026 * ts, 'frame'),
+    tube('seatpost',   SEATPOST_BOT, SEATPOST_TOP,      0.020 * ts, 'frame'),
+    tube('head-tube',  v3(0, 0.44, 0.58), HEAD_TOP,    0.028 * ts, 'frame'),
 
-    // Handlebar flat section
-    {
-      name: 'handlebar',
-      kind: 'box',
-      dims: v3(0.42, 0.05, 0.04),
-      role: 'frame',
-      place: { pos: BAR, rot: QUAT_IDENTITY },
-    },
-    tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
-    tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
-
-    {
-      name: 'hood-left',
-      kind: 'ellipsoid',
-      dims: v3(0.038, 0.065, 0.040),
-      role: 'frame',
-      place: { pos: HOOD_LEFT, rot: QUAT_IDENTITY },
-    },
-    {
-      name: 'hood-right',
-      kind: 'ellipsoid',
-      dims: v3(0.038, 0.065, 0.040),
-      role: 'frame',
-      place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY },
-    },
-
-    {
-      name: 'saddle',
-      kind: 'box',
-      dims: v3(0.14, 0.18, 0.05),
-      role: 'frame',
-      place: { pos: SADDLE, rot: QUAT_IDENTITY },
-    },
-    {
-      name: 'saddle-nose',
-      kind: 'box',
-      dims: v3(0.07, 0.10, 0.04),
-      role: 'frame',
-      place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY },
-    },
+    { name: 'saddle', kind: 'box', dims: v3(0.14, 0.18, 0.05), role: 'frame',
+      place: { pos: SADDLE, rot: QUAT_IDENTITY } },
+    { name: 'saddle-nose', kind: 'box', dims: v3(0.07, 0.10, 0.04), role: 'frame',
+      place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY } },
 
     // ---- drivetrain ----------------------------------------------------------
     crankPart('crank-left',  -1),
@@ -769,8 +955,6 @@ function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
     // ---- rider body ----------------------------------------------------------
     hipsPart(),
     tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
-
-    // Arms — shoulder joint → upper arm → elbow joint → forearm → hand
     shoulderPart('shoulder-left',  'left'),
     shoulderPart('shoulder-right', 'right'),
     tube('upper-arm-left',  SHOULDER_LEFT,  ELBOW_LEFT,  0.044, 'kit'),
@@ -781,17 +965,16 @@ function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
     forearmPart('forearm-right', 'right'),
     handPart('hand-left',  'left'),
     handPart('hand-right', 'right'),
-
     headPart(),
 
-    // ---- helmet (style-conditional) -----------------------------------------
+    // ---- helmet --------------------------------------------------------------
     helmetShellPart(opts.helmetStyle),
     helmetVisorPart(opts.helmetStyle),
     helmetVentPart('helmet-vent-1', 0.010),
     helmetVentPart('helmet-vent-2', -0.010),
     helmetStrapPart(),
 
-    // ---- legs (segmented: thigh cylinder + knee sphere + shin cylinder + ankle sphere + shoe) ----
+    // ---- legs + shoes --------------------------------------------------------
     thighPart('thigh-left',  -1),
     thighPart('thigh-right',  1),
     kneePart('knee-left',   -1),
@@ -800,9 +983,122 @@ function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
     shinPart('shin-right',   1),
     anklePart('ankle-left',  -1),
     anklePart('ankle-right',  1),
-    shoePart('shoe-left',   -1),
-    shoePart('shoe-right',   1),
+    shoePart('shoe-left',  -1, opts.shoeStyle),
+    shoePart('shoe-right',  1, opts.shoeStyle),
   ];
+
+  // ---- Handlebar geometry — varies by bikeShape ----------------------------
+  if (isMtb || isGravel) {
+    parts.push(flatBarPart());
+  } else if (isTT) {
+    parts.push(
+      { name: 'handlebar', kind: 'box', dims: v3(0.38, 0.05, 0.04), role: 'frame',
+        place: { pos: BAR, rot: QUAT_IDENTITY } },
+      ttBarPart('tt-bar-left',  -1),
+      ttBarPart('tt-bar-right',  1),
+    );
+  } else {
+    // Standard drop-bar road geometry.
+    parts.push(
+      { name: 'handlebar', kind: 'box', dims: v3(0.42, 0.05, 0.04), role: 'frame',
+        place: { pos: BAR, rot: QUAT_IDENTITY } },
+      tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
+      tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
+      { name: 'hood-left',  kind: 'ellipsoid', dims: v3(0.038, 0.065, 0.040),
+        role: 'frame', place: { pos: HOOD_LEFT,  rot: QUAT_IDENTITY } },
+      { name: 'hood-right', kind: 'ellipsoid', dims: v3(0.038, 0.065, 0.040),
+        role: 'frame', place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY } },
+    );
+  }
+
+  // ---- Fork — MTB gets dual suspension legs --------------------------------
+  if (isMtb) {
+    parts.push(
+      suspForkPart('susp-fork-left',  -1),
+      suspForkPart('susp-fork-right',  1),
+      { name: 'susp-brace', kind: 'cylinder', dims: v3(0.014, 0.085, 0.014),
+        role: 'frame',
+        place: { pos: v3(0, FRONT_HUB[1] + 0.08, FRONT_HUB[2] + 0.22),
+                 rot: quatZTo(v3(1, 0, 0)) } },
+    );
+    if (shape === 'mtbFullSus') {
+      parts.push(
+        { name: 'rear-shock', kind: 'cylinder', dims: v3(0.018, 0.13, 0.018),
+          role: 'accent',
+          place: { pos: v3(0, -0.25, 0.52),
+                   rot: quatZTo(sub(v3(0, -0.05, 0.65), v3(0, -0.30, 0.43))) } },
+      );
+    }
+  } else {
+    parts.push(tube('fork', HEAD_TOP, FRONT_HUB, 0.028 * ts, 'frame'));
+  }
+
+  // ---- E-bike battery ------------------------------------------------------
+  if (isEbike) parts.push(ebikeBatteryPart());
+
+  // ---- Shoe detail geometry ------------------------------------------------
+  const ss = opts.shoeStyle;
+  if (ss === 'roadClip' || ss === 'gravel') {
+    parts.push(shoeCleatPart('cleat-left', -1), shoeCleatPart('cleat-right', 1));
+  } else if (ss === 'mtbClip') {
+    parts.push(
+      mtbGripPart('grip-left-f',  -1,  0.050),
+      mtbGripPart('grip-left-r',  -1, -0.050),
+      mtbGripPart('grip-right-f',  1,  0.050),
+      mtbGripPart('grip-right-r',  1, -0.050),
+    );
+  }
+
+  // ---- Kit pattern overlays ------------------------------------------------
+  const kp = opts.kitPattern;
+  if (kp === 'rainbow') {
+    const RAINBOW_ROLES: ColorRole[] = ['accent', 'kit', 'wheel', 'helmet', 'frame'];
+    for (let i = 0; i < 5; i++) {
+      parts.push(jerseyBandPart(`rainbow-band-${i}`, 0.94 + i * 0.050, RAINBOW_ROLES[i]));
+    }
+  } else if (kp === 'polka') {
+    const DOTS: [number, number][] = [
+      [-0.08, 1.02], [0.08, 1.02],
+      [-0.11, 0.95], [0.11, 0.95],
+      [-0.06, 0.88], [0.06, 0.88],
+    ];
+    for (let i = 0; i < DOTS.length; i++) {
+      parts.push(polkaDotPart(`polka-${i}`, DOTS[i][0], DOTS[i][1]));
+    }
+  } else if (kp === 'stripes') {
+    parts.push(
+      jerseyBandPart('stripe-0', 1.00, 'accent'),
+      jerseyBandPart('stripe-1', 0.93, 'kit'),
+      jerseyBandPart('stripe-2', 0.86, 'accent'),
+    );
+  } else if (kp === 'teamReplica') {
+    parts.push(
+      jerseyBandPart('team-chest', 1.01, 'accent'),
+      jerseyBandPart('team-mid',   0.93, 'kit'),
+      jerseyBandPart('team-hem',   0.86, 'frame'),
+    );
+  } else if (kp === 'yellowLeader') {
+    parts.push(
+      { name: 'cuff-left',  kind: 'box', dims: v3(0.075, 0.030, 0.030),
+        role: 'wheel', place: { pos: v3(-0.21, 0.42, 0.82), rot: QUAT_IDENTITY } },
+      { name: 'cuff-right', kind: 'box', dims: v3(0.075, 0.030, 0.030),
+        role: 'wheel', place: { pos: v3( 0.21, 0.42, 0.82), rot: QUAT_IDENTITY } },
+    );
+  } else if (kp === 'sprinterGreen') {
+    parts.push(
+      { name: 'sleeve-left',  kind: 'cylinder',
+        dims: v3(0.046, THIGH_L * 0.65, 0.046), role: 'skin',
+        place: { pos: mid(SHOULDER_LEFT,  ELBOW_LEFT),
+                 rot: quatZTo(sub(ELBOW_LEFT,  SHOULDER_LEFT))  } },
+      { name: 'sleeve-right', kind: 'cylinder',
+        dims: v3(0.046, THIGH_L * 0.65, 0.046), role: 'skin',
+        place: { pos: mid(SHOULDER_RIGHT, ELBOW_RIGHT),
+                 rot: quatZTo(sub(ELBOW_RIGHT, SHOULDER_RIGHT)) } },
+    );
+  } else if (kp === 'fluoro') {
+    parts.push(jerseyBandPart('fluoro-hem', 0.87, 'frame'));
+  }
+  // 'solid': no extra primitives.
 
   // ---- Optional accessories -----------------------------------------------
   if (opts.hasGlasses) {
@@ -812,10 +1108,7 @@ function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
       glassesBridgePart(),
     );
   }
-
-  if (opts.hasBottle) {
-    parts.push(waterBottlePart());
-  }
+  if (opts.hasBottle) parts.push(waterBottlePart());
 
   return parts;
 }
@@ -963,12 +1256,16 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   const scene = viewer.scene;
 
   // Resolve options with defaults.
-  const opts: Required<AvatarOptions> = {
+  const opts: ResolvedAvatarOptions = {
     colors:      options?.colors      ?? { ...DEFAULT_AVATAR_COLORS },
     posture:     options?.posture     ?? 'hoods',
     helmetStyle: options?.helmetStyle ?? 'road',
     hasGlasses:  options?.hasGlasses  ?? false,
     hasBottle:   options?.hasBottle   ?? false,
+    bikeShape:   options?.bikeShape   ?? 'roadAllRounder',
+    kitPattern:  options?.kitPattern  ?? 'solid',
+    kitAccent:   options?.kitAccent   ?? undefined,
+    shoeStyle:   options?.shoeStyle   ?? 'roadClip',
   };
 
   let colors: AvatarColors = { ...opts.colors };
@@ -1155,6 +1452,30 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
 export function setAvatarEffortLevel(avatar: Avatar, level01: number): void {
   // Reflect clamped value onto the opaque handle field so tests can verify.
   avatar._effortLevel = clampEffortLevel(level01);
+}
+
+// ---- Test-surface export (Wave 38.B) --------------------------------------
+
+/**
+ * Returns the number of primitives that would be built for a given set of
+ * AvatarOptions. Cesium-free — safe to call in unit tests.
+ *
+ * This is the only allocation `buildParts` makes; it is exported purely for
+ * test assertions and must never be called in the hot render path.
+ */
+export function avatarPrimitiveCount(options?: AvatarOptions): number {
+  const opts: ResolvedAvatarOptions = {
+    colors:      options?.colors      ?? DEFAULT_AVATAR_COLORS,
+    posture:     options?.posture     ?? 'hoods',
+    helmetStyle: options?.helmetStyle ?? 'road',
+    hasGlasses:  options?.hasGlasses  ?? false,
+    hasBottle:   options?.hasBottle   ?? false,
+    bikeShape:   options?.bikeShape   ?? 'roadAllRounder',
+    kitPattern:  options?.kitPattern  ?? 'solid',
+    kitAccent:   options?.kitAccent,
+    shoeStyle:   options?.shoeStyle   ?? 'roadClip',
+  };
+  return buildParts(opts).length;
 }
 
 // ---- Private helpers ------------------------------------------------------
