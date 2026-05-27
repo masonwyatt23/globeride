@@ -49,6 +49,7 @@ import { usePlanStore } from '@/stores/planStore';
 import { TrainingCalendar } from '@/components/training/TrainingCalendar';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+import { PeriodizedPlanPicker } from '@/components/training/PeriodizedPlanPicker';
 
 // ---------------------------------------------------------------------------
 // Category colours (mirrors WorkoutPicker)
@@ -616,6 +617,11 @@ function PlanCatalog({
           <PlanCard key={plan.id} plan={plan} onPreview={onPreview} />
         ))}
       </ul>
+
+      {/* Periodized plans */}
+      <div className="mt-2 pt-3 border-t border-white/8">
+        <PeriodizedPlanPicker />
+      </div>
     </div>
   );
 }

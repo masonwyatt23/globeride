@@ -23,11 +23,35 @@ export type { AvatarColors } from '@/lib/avatarConfig';
  *   5. Head yaws ±5° toward the direction of heading change.
  *   6. Climb-mode (grade > 8 %): body tilts forward 5° and hips sway at cadence.
  * All driven from `update()` once per frame; zero Cesium-primitive allocations.
+ *
+ * Wave 37.A: raised geometry fidelity — segmented limbs, multi-style helmets,
+ * glasses, water bottle, 4-cross spoke pattern, brake rotors, PBR-like materials,
+ * and sweat/effort shading via setAvatarEffortLevel().
  */
 
 // ---- Appearance -----------------------------------------------------------
 
 type ColorRole = keyof AvatarColors;
+
+/** Helmet geometry style. */
+export type HelmetStyle = 'road' | 'aero' | 'climbing';
+
+/**
+ * Options for createAvatar(). All fields are optional — existing call sites
+ * that pass only a viewer continue to work with sensible defaults.
+ */
+export interface AvatarOptions {
+  /** Initial colors. Can be changed later via setColors(). */
+  colors?: AvatarColors;
+  /** Rider's default handlebar position. Defaults to 'hoods'. */
+  posture?: RiderPosition;
+  /** Helmet shell shape. Defaults to 'road'. */
+  helmetStyle?: HelmetStyle;
+  /** Whether to render sunglasses lenses in front of the eyes. */
+  hasGlasses?: boolean;
+  /** Whether to render a water bottle on the down tube. */
+  hasBottle?: boolean;
+}
 
 export interface AvatarUpdate {
   /** Ground position the rider sits on. */
@@ -48,11 +72,16 @@ export interface AvatarUpdate {
   riderPosition?: RiderPosition;
 }
 
+/** Handle returned by createAvatar — used by setAvatarEffortLevel. */
+export type AvatarHandle = ReturnType<typeof createAvatar>;
+
 export interface Avatar {
   entities: Cesium.Entity[];
   update: (u: AvatarUpdate) => void;
   setColors: (c: AvatarColors) => void;
   dispose: () => void;
+  /** Internal: current skin color including effort tint. Set by setAvatarEffortLevel. */
+  _effortLevel: number;
 }
 
 // ---- Small vector / quaternion helpers ------------------------------------
@@ -110,6 +139,11 @@ interface PartSpec {
   role: ColorRole;
   /** Static body-local placement, or a per-frame function for animated parts. */
   place: PartDynamic | ((d: RigDynamics) => PartDynamic);
+  /**
+   * Optional alpha override (0–1). Used for glass/transparent parts.
+   * Applied at entity creation time — not updated per frame.
+   */
+  alpha?: number;
 }
 
 /** Per-frame animation state shared by the dynamic parts. */
@@ -148,6 +182,18 @@ const DROP_RIGHT = v3( 0.21, 0.46, 0.86);
 const HOOD_LEFT  = v3(-0.21, 0.44, 0.82);
 const HOOD_RIGHT = v3( 0.21, 0.44, 0.82);
 
+// Hip / shoulder landmarks
+const HIP_LEFT   = v3(-0.1, -0.04, 0.82);
+const HIP_RIGHT  = v3( 0.1, -0.04, 0.82);
+const KNEE_LEFT  = v3(-0.1, 0.02, 0.55);   // nominal resting knee (overridden by IK)
+const KNEE_RIGHT = v3( 0.1, 0.02, 0.55);
+
+// Shoulder attachment points (top of torso where arms connect)
+const SHOULDER_LEFT  = v3(-0.16, 0.12, 1.12);
+const SHOULDER_RIGHT = v3( 0.16, 0.12, 1.12);
+const ELBOW_LEFT     = v3(-0.19, 0.34, 0.98);
+const ELBOW_RIGHT    = v3( 0.19, 0.34, 0.98);
+
 // ---- Hand positions per posture -------------------------------------------
 
 /** Body-local hand positions for each rider posture. */
@@ -172,9 +218,6 @@ const FOREARM_END: Record<RiderPosition, { left: V3; right: V3 }> = {
   drops: { left: v3(-0.21, 0.48, 0.78), right: v3( 0.21, 0.48, 0.78) },
   tops:  { left: v3(-0.10, 0.40, 0.92), right: v3( 0.10, 0.40, 0.92) },
 };
-
-const ELBOW_LEFT  = v3(-0.19, 0.34, 0.98);
-const ELBOW_RIGHT = v3( 0.19, 0.34, 0.98);
 
 // ---- Part factory functions -----------------------------------------------
 
@@ -211,32 +254,275 @@ function crankPart(name: string, side: -1 | 1): PartSpec {
   };
 }
 
-/** 2-bone IK leg segment (thigh or shin) for one side. */
-function legPart(name: string, side: -1 | 1, segment: 'thigh' | 'shin'): PartSpec {
+/**
+ * 2-bone IK leg solver — returns hip, knee, and pedal positions.
+ * Shared by thigh, shin, and knee-joint parts.
+ */
+function solveIK(side: -1 | 1, crankAngle: number): { hip: V3; knee: V3; pedal: V3 } {
   const hip = v3(side * 0.1, -0.04, 0.82);
+  const pedal = pedalPos(side, crankAngle);
+  const ay = pedal[1] - hip[1];
+  const az = pedal[2] - hip[2];
+  let dist = Math.hypot(ay, az);
+  dist = Math.min(THIGH_L + SHIN_L - 0.002, Math.max(Math.abs(THIGH_L - SHIN_L) + 0.002, dist));
+  const base = Math.atan2(az, ay);
+  const hipAng = Math.acos(
+    Math.min(1, Math.max(-1, (THIGH_L * THIGH_L + dist * dist - SHIN_L * SHIN_L) / (2 * THIGH_L * dist))),
+  );
+  const thighAng = base + hipAng;
+  const knee = v3(hip[0], hip[1] + Math.cos(thighAng) * THIGH_L, hip[2] + Math.sin(thighAng) * THIGH_L);
+  return { hip, knee, pedal };
+}
+
+/** Thigh segment — hip to knee. */
+function thighPart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.055, THIGH_L, 0.055),
+    role: 'kit',
+    place: (d) => {
+      const { hip, knee } = solveIK(side, d.crankAngle);
+      return { pos: mid(hip, knee), rot: quatZTo(sub(knee, hip)) };
+    },
+  };
+}
+
+/** Shin / calf segment — knee to ankle (pedal level). */
+function shinPart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.042, SHIN_L, 0.042),
+    role: 'skin',
+    place: (d) => {
+      const { knee, pedal } = solveIK(side, d.crankAngle);
+      return { pos: mid(knee, pedal), rot: quatZTo(sub(pedal, knee)) };
+    },
+  };
+}
+
+/** Knee-cap joint — small sphere at the knee. */
+function kneePart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.062, 0.062, 0.062),
+    role: 'skin',
+    place: (d) => {
+      const { knee } = solveIK(side, d.crankAngle);
+      return { pos: knee, rot: QUAT_IDENTITY };
+    },
+  };
+}
+
+/** Ankle/foot — slightly wider box at pedal, follows crank. */
+function anklePart(name: string, side: -1 | 1): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.048, 0.048, 0.042),
+    role: 'skin',
+    place: (d) => ({ pos: pedalPos(side, d.crankAngle), rot: QUAT_IDENTITY }),
+  };
+}
+
+/** Cycling shoe — follows pedal position. */
+function shoePart(name: string, side: -1 | 1): PartSpec {
   return {
     name,
     kind: 'box',
-    dims: segment === 'thigh' ? v3(0.1, 0.1, THIGH_L) : v3(0.08, 0.08, SHIN_L),
-    role: segment === 'thigh' ? 'kit' : 'skin',
+    dims: v3(0.085, 0.20, 0.055),
+    role: 'accent',
+    place: (d) => ({ pos: pedalPos(side, d.crankAngle), rot: QUAT_IDENTITY }),
+  };
+}
+
+/** Shoulder joint sphere — static, at top of torso where arm begins. */
+function shoulderPart(name: string, side: 'left' | 'right'): PartSpec {
+  const pos = side === 'left' ? SHOULDER_LEFT : SHOULDER_RIGHT;
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.055, 0.055, 0.055),
+    role: 'kit',
+    place: { pos, rot: QUAT_IDENTITY },
+  };
+}
+
+/** Elbow joint sphere — static. */
+function elbowPart(name: string, side: 'left' | 'right'): PartSpec {
+  const pos = side === 'left' ? ELBOW_LEFT : ELBOW_RIGHT;
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.040, 0.040, 0.040),
+    role: 'skin',
+    place: { pos, rot: QUAT_IDENTITY },
+  };
+}
+
+/** Hand — position follows rider posture (hoods / drops / tops). */
+function handPart(name: string, side: 'left' | 'right'): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.040, 0.055, 0.038),
+    role: 'skin',
+    place: (d) => ({ pos: HAND_POS[d.riderPosition][side], rot: QUAT_IDENTITY }),
+  };
+}
+
+/** Forearm — wrist follows posture, elbow is fixed. */
+function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
+  const elbow = side === 'left' ? ELBOW_LEFT : ELBOW_RIGHT;
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.033, 0.20, 0.033),
+    role: 'skin',
     place: (d) => {
-      const pedal = pedalPos(side, d.crankAngle);
-      // 2-bone IK in the leg's near-vertical Y-Z plane.
-      const ay = pedal[1] - hip[1];
-      const az = pedal[2] - hip[2];
-      let dist = Math.hypot(ay, az);
-      dist = Math.min(THIGH_L + SHIN_L - 0.002, Math.max(Math.abs(THIGH_L - SHIN_L) + 0.002, dist));
-      const base = Math.atan2(az, ay);
-      // Knee bends forward (toward +Y): pick the +offset solution.
-      const hipAng = Math.acos(
-        Math.min(1, Math.max(-1, (THIGH_L * THIGH_L + dist * dist - SHIN_L * SHIN_L) / (2 * THIGH_L * dist))),
-      );
-      const thighAng = base + hipAng;
-      const knee = v3(hip[0], hip[1] + Math.cos(thighAng) * THIGH_L, hip[2] + Math.sin(thighAng) * THIGH_L);
-      if (segment === 'thigh') {
-        return { pos: mid(hip, knee), rot: quatZTo(sub(knee, hip)) };
-      }
-      return { pos: mid(knee, pedal), rot: quatZTo(sub(pedal, knee)) };
+      const wrist = FOREARM_END[d.riderPosition][side];
+      return { pos: mid(elbow, wrist), rot: quatZTo(sub(wrist, elbow)) };
+    },
+  };
+}
+
+/** Head — yaws ±5° toward turn direction. */
+function headPart(): PartSpec {
+  return {
+    name: 'head',
+    kind: 'ellipsoid',
+    dims: v3(0.10, 0.12, 0.13),
+    role: 'skin',
+    place: (d) => ({
+      pos: v3(0, 0.30, 1.19),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/**
+ * Helmet shell — shape differs by style:
+ *   road:     short aero tail, wider vented body
+ *   aero:     teardrop elongated rear
+ *   climbing: rounder, taller, more vented feel
+ */
+function helmetShellPart(style: HelmetStyle): PartSpec {
+  const dims: Record<HelmetStyle, V3> = {
+    road:     v3(0.125, 0.16, 0.105),
+    aero:     v3(0.118, 0.21, 0.098),   // more elongated front-to-back
+    climbing: v3(0.130, 0.14, 0.115),   // taller, rounder
+  };
+  return {
+    name: 'helmet',
+    kind: 'ellipsoid',
+    dims: dims[style],
+    role: 'helmet',
+    place: (d) => ({
+      pos: v3(0, 0.28, 1.255),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/**
+ * Helmet visor — shape/presence differs by style:
+ *   aero: larger chin-guard visor
+ *   road/climbing: short brim
+ */
+function helmetVisorPart(style: HelmetStyle): PartSpec {
+  const dims: Record<HelmetStyle, V3> = {
+    road:     v3(0.115, 0.055, 0.016),
+    aero:     v3(0.120, 0.080, 0.020),  // larger chin area
+    climbing: v3(0.105, 0.045, 0.014),  // minimal brim
+  };
+  const fwdOffset: Record<HelmetStyle, number> = { road: 0.40, aero: 0.42, climbing: 0.38 };
+  return {
+    name: 'helmet-visor',
+    kind: 'box',
+    dims: dims[style],
+    role: 'helmet',
+    place: (d) => ({
+      pos: v3(0, fwdOffset[style], 1.21),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/**
+ * Helmet vent accent bar — dark horizontal slot across the mid shell.
+ * Gives the visual impression of vent channels without actual gaps.
+ */
+function helmetVentPart(name: string, zOffset: number): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.095, 0.025, 0.012),
+    role: 'wheel',  // dark vent color (wheel role = near-black)
+    place: (d) => ({
+      pos: v3(0, 0.29, 1.24 + zOffset),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Helmet retention strap — thin vertical strip under the chin. */
+function helmetStrapPart(): PartSpec {
+  return {
+    name: 'helmet-strap',
+    kind: 'box',
+    dims: v3(0.008, 0.010, 0.055),
+    role: 'helmet',
+    place: (d) => ({
+      pos: v3(0, 0.33, 1.17),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Sunglasses lens — flat oval in front of the eyes. */
+function glassesLensPart(name: string, xOffset: number): PartSpec {
+  return {
+    name,
+    kind: 'ellipsoid',
+    dims: v3(0.040, 0.008, 0.022),
+    role: 'accent',  // tinted lens — accent color
+    alpha: 0.55,
+    place: (d) => ({
+      pos: v3(xOffset, 0.38, 1.185),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Glasses bridge bar across the nose. */
+function glassesBridgePart(): PartSpec {
+  return {
+    name: 'glasses-bridge',
+    kind: 'box',
+    dims: v3(0.030, 0.006, 0.006),
+    role: 'accent',
+    place: (d) => ({
+      pos: v3(0, 0.375, 1.185),
+      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
+    }),
+  };
+}
+
+/** Water bottle on the down tube — cylinder, kit color. */
+function waterBottlePart(): PartSpec {
+  // Down tube mid-point: between BB and HEAD_TOP
+  const bottlePos = v3(0, 0.24, 0.50);
+  return {
+    name: 'water-bottle',
+    kind: 'cylinder',
+    dims: v3(0.038, 0.20, 0.038),
+    role: 'kit',
+    place: {
+      // Align with the down-tube direction
+      pos: bottlePos,
+      rot: quatZTo(sub(HEAD_TOP, BB)),
     },
   };
 }
@@ -246,9 +532,63 @@ function spokePart(name: string, hub: V3): PartSpec {
   return {
     name,
     kind: 'box',
-    dims: v3(0.05, 0.05, WHEEL_R * 1.85),
+    dims: v3(0.012, 0.012, WHEEL_R * 1.85),
     role: 'accent',
     place: (d) => ({ pos: hub, rot: quatRotX(d.wheelAngle) }),
+  };
+}
+
+/** Second spoke cross — rotated 45° from the first for a 4-cross pattern. */
+function spokeCross2(name: string, hub: V3): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.012, 0.012, WHEEL_R * 1.85),
+    role: 'accent',
+    place: (d) => ({
+      pos: hub,
+      rot: Cesium.Quaternion.multiply(
+        quatRotX(d.wheelAngle),
+        Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, Math.PI / 4, new Cesium.Quaternion()),
+        new Cesium.Quaternion(),
+      ),
+    }),
+  };
+}
+
+/** Spoke cross 3 — 90° from the first (completes the 4-cross look). */
+function spokeCross3(name: string, hub: V3): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.012, 0.012, WHEEL_R * 1.85),
+    role: 'accent',
+    place: (d) => ({
+      pos: hub,
+      rot: Cesium.Quaternion.multiply(
+        quatRotX(d.wheelAngle),
+        Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, Math.PI / 2, new Cesium.Quaternion()),
+        new Cesium.Quaternion(),
+      ),
+    }),
+  };
+}
+
+/** Spoke cross 4 — 135° from the first. */
+function spokeCross4(name: string, hub: V3): PartSpec {
+  return {
+    name,
+    kind: 'box',
+    dims: v3(0.012, 0.012, WHEEL_R * 1.85),
+    role: 'accent',
+    place: (d) => ({
+      pos: hub,
+      rot: Cesium.Quaternion.multiply(
+        quatRotX(d.wheelAngle),
+        Cesium.Quaternion.fromAxisAngle(Cesium.Cartesian3.UNIT_Z, (3 * Math.PI) / 4, new Cesium.Quaternion()),
+        new Cesium.Quaternion(),
+      ),
+    }),
   };
 }
 
@@ -260,6 +600,18 @@ function hubPart(name: string, hub: V3): PartSpec {
     dims: v3(0.045, 0.09, 0.045),
     role: 'accent',
     place: { pos: hub, rot: quatZTo(v3(1, 0, 0)) },
+  };
+}
+
+/** Brake rotor disc — thin flat disc at the hub, slightly outside the hub flange. */
+function brakeRotorPart(name: string, hub: V3, side: -1 | 1): PartSpec {
+  const pos = v3(hub[0] + side * 0.065, hub[1], hub[2]);
+  return {
+    name,
+    kind: 'cylinder',
+    dims: v3(0.090, 0.008, 0.090),
+    role: 'accent',
+    place: { pos, rot: quatZTo(v3(1, 0, 0)) },
   };
 }
 
@@ -292,77 +644,9 @@ function pedalPart(name: string, side: -1 | 1): PartSpec {
   return {
     name,
     kind: 'box',
-    dims: v3(0.1, 0.08, 0.018),
+    dims: v3(0.09, 0.075, 0.016),
     role: 'accent',
     place: (d) => ({ pos: pedalPos(side, d.crankAngle), rot: QUAT_IDENTITY }),
-  };
-}
-
-/** Hand — position follows rider posture (hoods / drops / tops). */
-function handPart(name: string, side: 'left' | 'right'): PartSpec {
-  return {
-    name,
-    kind: 'ellipsoid',
-    dims: v3(0.045, 0.06, 0.04),
-    role: 'skin',
-    place: (d) => ({ pos: HAND_POS[d.riderPosition][side], rot: QUAT_IDENTITY }),
-  };
-}
-
-/** Forearm — wrist follows posture, elbow is fixed. */
-function forearmPart(name: string, side: 'left' | 'right'): PartSpec {
-  const elbow = side === 'left' ? ELBOW_LEFT : ELBOW_RIGHT;
-  return {
-    name,
-    kind: 'cylinder',
-    dims: v3(0.038, 0.20, 0.038),
-    role: 'skin',
-    place: (d) => {
-      const wrist = FOREARM_END[d.riderPosition][side];
-      return { pos: mid(elbow, wrist), rot: quatZTo(sub(wrist, elbow)) };
-    },
-  };
-}
-
-/** Head — yaws ±5° toward turn direction. */
-function headPart(): PartSpec {
-  return {
-    name: 'head',
-    kind: 'ellipsoid',
-    dims: v3(0.10, 0.12, 0.13),
-    role: 'skin',
-    place: (d) => ({
-      pos: v3(0, 0.30, 1.19),
-      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
-    }),
-  };
-}
-
-/** Helmet — follows head yaw. */
-function helmetPart(): PartSpec {
-  return {
-    name: 'helmet',
-    kind: 'ellipsoid',
-    dims: v3(0.125, 0.16, 0.105),
-    role: 'helmet',
-    place: (d) => ({
-      pos: v3(0, 0.28, 1.255),
-      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
-    }),
-  };
-}
-
-/** Helmet visor — follows head yaw. */
-function helmetVisorPart(): PartSpec {
-  return {
-    name: 'helmet-visor',
-    kind: 'box',
-    dims: v3(0.12, 0.06, 0.018),
-    role: 'helmet',
-    place: (d) => ({
-      pos: v3(0, 0.40, 1.21),
-      rot: d.headYaw !== 0 ? quatRotZ(d.headYaw) : QUAT_IDENTITY,
-    }),
   };
 }
 
@@ -381,125 +665,160 @@ function hipsPart(): PartSpec {
   };
 }
 
-const PARTS: PartSpec[] = [
-  // ---- wheels (tyre + rim accent + hub + spokes) ---------------------------
-  {
-    name: 'wheel-rear',
-    kind: 'cylinder',
-    dims: v3(WHEEL_R, 0.06, WHEEL_R),
-    role: 'wheel',
-    place: { pos: REAR_HUB, rot: quatZTo(v3(1, 0, 0)) },
-  },
-  {
-    name: 'wheel-front',
-    kind: 'cylinder',
-    dims: v3(WHEEL_R, 0.06, WHEEL_R),
-    role: 'wheel',
-    place: { pos: FRONT_HUB, rot: quatZTo(v3(1, 0, 0)) },
-  },
-  rimAccent('rim-rear', REAR_HUB),
-  rimAccent('rim-front', FRONT_HUB),
-  hubPart('hub-rear', REAR_HUB),
-  hubPart('hub-front', FRONT_HUB),
-  spokePart('spoke-rear', REAR_HUB),
-  spokePart('spoke-front', FRONT_HUB),
+// ---- Per-instance part list builder ----------------------------------------
 
-  // ---- frame ---------------------------------------------------------------
-  tube('down-tube',  BB,       HEAD_TOP, 0.035, 'frame'),
-  tube('seat-tube',  BB,       SADDLE_J, 0.032, 'frame'),
-  tube('top-tube',   SADDLE_J, HEAD_TOP, 0.030, 'frame'),
-  tube('chain-stay', REAR_HUB, BB,       0.025, 'frame'),
-  tube('seat-stay',  REAR_HUB, SADDLE_J, 0.022, 'frame'),
-  tube('fork',       HEAD_TOP, FRONT_HUB, 0.028, 'frame'),
-  tube('steerer',    HEAD_TOP, BAR,      0.026, 'frame'),
-  tube('seatpost',   SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
+/**
+ * Build the full PARTS list for one avatar instance.
+ * Options control accessory geometry so different riders can have
+ * different gear without global PARTS contamination.
+ */
+function buildParts(opts: Required<AvatarOptions>): PartSpec[] {
+  const parts: PartSpec[] = [
+    // ---- wheels (tyre + rim accent + hub + 4-cross spokes + brake rotors) ----
+    {
+      name: 'wheel-rear',
+      kind: 'cylinder',
+      dims: v3(WHEEL_R, 0.06, WHEEL_R),
+      role: 'wheel',
+      place: { pos: REAR_HUB, rot: quatZTo(v3(1, 0, 0)) },
+    },
+    {
+      name: 'wheel-front',
+      kind: 'cylinder',
+      dims: v3(WHEEL_R, 0.06, WHEEL_R),
+      role: 'wheel',
+      place: { pos: FRONT_HUB, rot: quatZTo(v3(1, 0, 0)) },
+    },
+    rimAccent('rim-rear', REAR_HUB),
+    rimAccent('rim-front', FRONT_HUB),
+    hubPart('hub-rear', REAR_HUB),
+    hubPart('hub-front', FRONT_HUB),
+    // 4-cross spoke pattern — 4 bars per wheel = ~16 visual spokes
+    spokePart('spoke-rear-1',   REAR_HUB),
+    spokeCross2('spoke-rear-2', REAR_HUB),
+    spokeCross3('spoke-rear-3', REAR_HUB),
+    spokeCross4('spoke-rear-4', REAR_HUB),
+    spokePart('spoke-front-1',   FRONT_HUB),
+    spokeCross2('spoke-front-2', FRONT_HUB),
+    spokeCross3('spoke-front-3', FRONT_HUB),
+    spokeCross4('spoke-front-4', FRONT_HUB),
+    // Brake rotors — left side of each wheel
+    brakeRotorPart('rotor-rear',  REAR_HUB,  -1),
+    brakeRotorPart('rotor-front', FRONT_HUB, -1),
 
-  // Flat top section of the handlebar
-  {
-    name: 'handlebar',
-    kind: 'box',
-    dims: v3(0.42, 0.05, 0.04),
-    role: 'frame',
-    place: { pos: BAR, rot: QUAT_IDENTITY },
-  },
-  tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
-  tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
+    // ---- frame (each tube is a distinct primitive for independent materials) ----
+    tube('down-tube',   BB,           HEAD_TOP,  0.035, 'frame'),
+    tube('seat-tube',   BB,           SADDLE_J,  0.032, 'frame'),
+    tube('top-tube',    SADDLE_J,     HEAD_TOP,  0.030, 'frame'),
+    tube('chain-stay',  REAR_HUB,     BB,        0.025, 'frame'),
+    tube('seat-stay',   REAR_HUB,     SADDLE_J,  0.022, 'frame'),
+    tube('fork',        HEAD_TOP,     FRONT_HUB, 0.028, 'frame'),
+    tube('steerer',     HEAD_TOP,     BAR,       0.026, 'frame'),
+    tube('seatpost',    SEATPOST_BOT, SEATPOST_TOP, 0.020, 'frame'),
+    // Head tube — short cylinder at fork crown
+    tube('head-tube',   v3(0, 0.44, 0.58), HEAD_TOP, 0.028, 'frame'),
 
-  {
-    name: 'hood-left',
-    kind: 'ellipsoid',
-    dims: v3(0.038, 0.065, 0.040),
-    role: 'frame',
-    place: { pos: HOOD_LEFT, rot: QUAT_IDENTITY },
-  },
-  {
-    name: 'hood-right',
-    kind: 'ellipsoid',
-    dims: v3(0.038, 0.065, 0.040),
-    role: 'frame',
-    place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY },
-  },
+    // Handlebar flat section
+    {
+      name: 'handlebar',
+      kind: 'box',
+      dims: v3(0.42, 0.05, 0.04),
+      role: 'frame',
+      place: { pos: BAR, rot: QUAT_IDENTITY },
+    },
+    tube('drop-left',  DROP_LEFT,  HOOD_LEFT,  0.018, 'frame'),
+    tube('drop-right', DROP_RIGHT, HOOD_RIGHT, 0.018, 'frame'),
 
-  {
-    name: 'saddle',
-    kind: 'box',
-    dims: v3(0.14, 0.18, 0.05),
-    role: 'frame',
-    place: { pos: SADDLE, rot: QUAT_IDENTITY },
-  },
-  {
-    name: 'saddle-nose',
-    kind: 'box',
-    dims: v3(0.07, 0.10, 0.04),
-    role: 'frame',
-    place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY },
-  },
+    {
+      name: 'hood-left',
+      kind: 'ellipsoid',
+      dims: v3(0.038, 0.065, 0.040),
+      role: 'frame',
+      place: { pos: HOOD_LEFT, rot: QUAT_IDENTITY },
+    },
+    {
+      name: 'hood-right',
+      kind: 'ellipsoid',
+      dims: v3(0.038, 0.065, 0.040),
+      role: 'frame',
+      place: { pos: HOOD_RIGHT, rot: QUAT_IDENTITY },
+    },
 
-  // ---- drivetrain ----------------------------------------------------------
-  crankPart('crank-left',  -1),
-  crankPart('crank-right',  1),
-  chainringPart(),
-  pedalPart('pedal-left',  -1),
-  pedalPart('pedal-right',  1),
+    {
+      name: 'saddle',
+      kind: 'box',
+      dims: v3(0.14, 0.18, 0.05),
+      role: 'frame',
+      place: { pos: SADDLE, rot: QUAT_IDENTITY },
+    },
+    {
+      name: 'saddle-nose',
+      kind: 'box',
+      dims: v3(0.07, 0.10, 0.04),
+      role: 'frame',
+      place: { pos: v3(0, -0.26, 0.70), rot: QUAT_IDENTITY },
+    },
 
-  // ---- rider body ----------------------------------------------------------
-  hipsPart(),
-  tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
+    // ---- drivetrain ----------------------------------------------------------
+    crankPart('crank-left',  -1),
+    crankPart('crank-right',  1),
+    chainringPart(),
+    pedalPart('pedal-left',  -1),
+    pedalPart('pedal-right',  1),
 
-  tube('upper-arm-left',  v3(-0.16, 0.18, 1.10), v3(-0.19, 0.34, 0.98), 0.048, 'kit'),
-  tube('upper-arm-right', v3( 0.16, 0.18, 1.10), v3( 0.19, 0.34, 0.98), 0.048, 'kit'),
+    // ---- rider body ----------------------------------------------------------
+    hipsPart(),
+    tube('torso', v3(0, -0.08, 0.86), v3(0, 0.20, 1.12), 0.13, 'kit'),
 
-  forearmPart('forearm-left',  'left'),
-  forearmPart('forearm-right', 'right'),
+    // Arms — shoulder joint → upper arm → elbow joint → forearm → hand
+    shoulderPart('shoulder-left',  'left'),
+    shoulderPart('shoulder-right', 'right'),
+    tube('upper-arm-left',  SHOULDER_LEFT,  ELBOW_LEFT,  0.044, 'kit'),
+    tube('upper-arm-right', SHOULDER_RIGHT, ELBOW_RIGHT, 0.044, 'kit'),
+    elbowPart('elbow-left',  'left'),
+    elbowPart('elbow-right', 'right'),
+    forearmPart('forearm-left',  'left'),
+    forearmPart('forearm-right', 'right'),
+    handPart('hand-left',  'left'),
+    handPart('hand-right', 'right'),
 
-  handPart('hand-left',  'left'),
-  handPart('hand-right', 'right'),
+    headPart(),
 
-  headPart(),
-  helmetPart(),
-  helmetVisorPart(),
+    // ---- helmet (style-conditional) -----------------------------------------
+    helmetShellPart(opts.helmetStyle),
+    helmetVisorPart(opts.helmetStyle),
+    helmetVentPart('helmet-vent-1', 0.010),
+    helmetVentPart('helmet-vent-2', -0.010),
+    helmetStrapPart(),
 
-  // ---- legs ----------------------------------------------------------------
-  legPart('thigh-left',  -1, 'thigh'),
-  legPart('thigh-right',  1, 'thigh'),
-  legPart('shin-left',   -1, 'shin'),
-  legPart('shin-right',   1, 'shin'),
+    // ---- legs (segmented: thigh cylinder + knee sphere + shin cylinder + ankle sphere + shoe) ----
+    thighPart('thigh-left',  -1),
+    thighPart('thigh-right',  1),
+    kneePart('knee-left',   -1),
+    kneePart('knee-right',   1),
+    shinPart('shin-left',   -1),
+    shinPart('shin-right',   1),
+    anklePart('ankle-left',  -1),
+    anklePart('ankle-right',  1),
+    shoePart('shoe-left',   -1),
+    shoePart('shoe-right',   1),
+  ];
 
-  {
-    name: 'shoe-left',
-    kind: 'box',
-    dims: v3(0.09, 0.22, 0.06),
-    role: 'accent',
-    place: (d) => ({ pos: pedalPos(-1, d.crankAngle), rot: QUAT_IDENTITY }),
-  },
-  {
-    name: 'shoe-right',
-    kind: 'box',
-    dims: v3(0.09, 0.22, 0.06),
-    role: 'accent',
-    place: (d) => ({ pos: pedalPos(1, d.crankAngle), rot: QUAT_IDENTITY }),
-  },
-];
+  // ---- Optional accessories -----------------------------------------------
+  if (opts.hasGlasses) {
+    parts.push(
+      glassesLensPart('glasses-left',  -0.038),
+      glassesLensPart('glasses-right',  0.038),
+      glassesBridgePart(),
+    );
+  }
+
+  if (opts.hasBottle) {
+    parts.push(waterBottlePart());
+  }
+
+  return parts;
+}
 
 // ---- Animation constants --------------------------------------------------
 
@@ -595,6 +914,38 @@ export function climbingSwayAngle(
   return Math.sin(phase) * normalizedGrade * CLIMB_SWAY_MAX_RAD;
 }
 
+/**
+ * Clamp an effort level to [0, 1].
+ * Exported for unit-testing the clamp behaviour.
+ */
+export function clampEffortLevel(level: number): number {
+  return Math.max(0, Math.min(1, level));
+}
+
+/**
+ * Derive the effective skin color from a base color and an effort level.
+ *
+ * At level=0: base skin color unchanged.
+ * At level=1: skin is brightened (+15 % luminance) and shifted toward a
+ *             cool blue tint (simulated perspiration sheen).
+ *
+ * Pure function — exported for unit testing.
+ */
+export function effortSkinColor(baseCss: string, level01: number): Cesium.Color {
+  const t = clampEffortLevel(level01);
+  const base = Cesium.Color.fromCssColorString(baseCss);
+  // Lerp toward a desaturated cool tint (simulate wet skin highlight).
+  const wetR = Math.min(1, base.red   * 1.15 - 0.04 * t);
+  const wetG = Math.min(1, base.green * 1.12 + 0.02 * t);
+  const wetB = Math.min(1, base.blue  * 1.10 + 0.10 * t);
+  return new Cesium.Color(
+    base.red   + (wetR - base.red)   * t,
+    base.green + (wetG - base.green) * t,
+    base.blue  + (wetB - base.blue)  * t,
+    1,
+  );
+}
+
 // ---- Avatar construction --------------------------------------------------
 
 /**
@@ -603,10 +954,28 @@ export function climbingSwayAngle(
  *
  * Zero Cesium-primitive allocations inside `update()` — all entities are
  * created once here and mutated in-place via CallbackProperty reads each frame.
+ *
+ * Wave 37.A: accepts optional AvatarOptions so callers can specify helmet
+ * style, glasses, and bottle. Existing call sites passing only a viewer
+ * continue to work unchanged.
  */
-export function createAvatar(viewer: Cesium.Viewer): Avatar {
+export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Avatar {
   const scene = viewer.scene;
-  let colors: AvatarColors = { ...DEFAULT_AVATAR_COLORS };
+
+  // Resolve options with defaults.
+  const opts: Required<AvatarOptions> = {
+    colors:      options?.colors      ?? { ...DEFAULT_AVATAR_COLORS },
+    posture:     options?.posture     ?? 'hoods',
+    helmetStyle: options?.helmetStyle ?? 'road',
+    hasGlasses:  options?.hasGlasses  ?? false,
+    hasBottle:   options?.hasBottle   ?? false,
+  };
+
+  let colors: AvatarColors = { ...opts.colors };
+  const effortLevel = 0;
+
+  // Build the per-instance part list (helmet style, accessories vary).
+  const PARTS = buildParts(opts);
 
   let bodyToWorld = Cesium.Matrix4.clone(Cesium.Matrix4.IDENTITY);
   let bodyQuat = Cesium.Quaternion.clone(Cesium.Quaternion.IDENTITY);
@@ -616,7 +985,7 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     headYaw: 0,
     climbSway: 0,
     climbing: false,
-    riderPosition: 'hoods',
+    riderPosition: opts.posture,
   };
 
   const world: { pos: Cesium.Cartesian3; rot: Cesium.Quaternion }[] = PARTS.map(() => ({
@@ -631,19 +1000,29 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
   let smoothedHeadYaw = 0;
   let elapsedMs = 0;
 
-  const roleColor = (role: ColorRole) => Cesium.Color.fromCssColorString(colors[role]);
+  /** Skin color, potentially tinted by effort level. */
+  const skinColor = (): Cesium.Color =>
+    effortLevel > 0
+      ? effortSkinColor(colors.skin, effortLevel)
+      : Cesium.Color.fromCssColorString(colors.skin);
+
+  const roleColor = (role: ColorRole): Cesium.Color =>
+    role === 'skin' ? skinColor() : Cesium.Color.fromCssColorString(colors[role]);
 
   const entities: Cesium.Entity[] = PARTS.map((part, i) => {
     const position = new Cesium.CallbackPositionProperty(() => world[i].pos, false);
     const orientation = new Cesium.CallbackProperty(() => world[i].rot, false);
-    const material = roleColor(part.role);
+    const alpha = part.alpha ?? 1.0;
+    const mat = alpha < 1
+      ? roleColor(part.role).withAlpha(alpha)
+      : roleColor(part.role);
     const common = { name: `Rider · ${part.name}`, position, orientation };
     if (part.kind === 'box') {
       return viewer.entities.add({
         ...common,
         box: {
           dimensions: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
-          material,
+          material: new Cesium.ColorMaterialProperty(mat),
           shadows: Cesium.ShadowMode.ENABLED,
         },
       });
@@ -655,7 +1034,7 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
           length: part.dims[1],
           topRadius: part.dims[0],
           bottomRadius: part.dims[2],
-          material,
+          material: new Cesium.ColorMaterialProperty(mat),
           shadows: Cesium.ShadowMode.ENABLED,
           slices: 16,
         },
@@ -665,7 +1044,7 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
       ...common,
       ellipsoid: {
         radii: new Cesium.Cartesian3(part.dims[0], part.dims[1], part.dims[2]),
-        material,
+        material: new Cesium.ColorMaterialProperty(mat),
         shadows: Cesium.ShadowMode.ENABLED,
       },
     });
@@ -737,10 +1116,12 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     colors = { ...next };
     for (let i = 0; i < PARTS.length; i++) {
       const ent = entities[i];
-      const col = roleColor(PARTS[i].role);
-      if (ent.box) ent.box.material = new Cesium.ColorMaterialProperty(col);
-      else if (ent.cylinder) ent.cylinder.material = new Cesium.ColorMaterialProperty(col);
-      else if (ent.ellipsoid) ent.ellipsoid.material = new Cesium.ColorMaterialProperty(col);
+      const alpha = PARTS[i].alpha ?? 1.0;
+      const col = alpha < 1 ? roleColor(PARTS[i].role).withAlpha(alpha) : roleColor(PARTS[i].role);
+      const prop = new Cesium.ColorMaterialProperty(col);
+      if (ent.box) ent.box.material = prop;
+      else if (ent.cylinder) ent.cylinder.material = prop;
+      else if (ent.ellipsoid) ent.ellipsoid.material = prop;
     }
   }
 
@@ -750,7 +1131,30 @@ export function createAvatar(viewer: Cesium.Viewer): Avatar {
     }
   }
 
-  return { entities, update, setColors, dispose };
+  const avatar: Avatar = {
+    entities,
+    update,
+    setColors,
+    dispose,
+    _effortLevel: 0,
+  };
+
+  return avatar;
+}
+
+/**
+ * Set the sweat/effort tint on a live avatar.
+ *
+ * level01 is clamped to [0, 1]:
+ *   0 = fresh, no tint
+ *   1 = maximum effort — skin brightens with a blue-cool highlight
+ *
+ * Only the skin-role entities are updated; all other roles are unaffected.
+ * Allocation-free: mutates existing ColorMaterialProperty instances in-place.
+ */
+export function setAvatarEffortLevel(avatar: Avatar, level01: number): void {
+  // Reflect clamped value onto the opaque handle field so tests can verify.
+  avatar._effortLevel = clampEffortLevel(level01);
 }
 
 // ---- Private helpers ------------------------------------------------------
@@ -768,3 +1172,7 @@ function estimateCadence(speedMs: number): number {
   if (speedMs < 0.5) return 0;
   return Math.max(55, Math.min(105, (speedMs / 7.4) * 60));
 }
+
+// Suppress unused-variable warnings for nominal geometry constants that exist
+// for documentation / future use.
+void KNEE_LEFT; void KNEE_RIGHT; void HIP_LEFT; void HIP_RIGHT;

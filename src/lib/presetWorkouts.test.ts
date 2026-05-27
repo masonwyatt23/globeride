@@ -91,3 +91,79 @@ describe('getPreset', () => {
     expect(getPreset('preset-does-not-exist')).toBeUndefined();
   });
 });
+
+describe('Expanded catalog — Wave 37.D requirements', () => {
+  it('catalog has 100 or more workouts', () => {
+    expect(PRESET_WORKOUTS.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it('every workout has a valid category', () => {
+    const valid = new Set(['endurance', 'tempo', 'sweetspot', 'threshold', 'intervals', 'test', 'custom']);
+    for (const w of PRESET_WORKOUTS) {
+      expect(valid.has(w.category ?? ''), `${w.id} category "${w.category}"`).toBe(true);
+    }
+  });
+
+  it('TSS at 250W FTP is in a realistic range for all presets', () => {
+    for (const w of PRESET_WORKOUTS) {
+      const tss = estimateTSS(w, 250);
+      expect(tss, `${w.name} TSS`).toBeGreaterThanOrEqual(5);
+      expect(tss, `${w.name} TSS`).toBeLessThanOrEqual(200);
+    }
+  });
+
+  it('all segment %FTP targets are in realistic power range (0.35–1.85)', () => {
+    for (const w of PRESET_WORKOUTS) {
+      for (const s of w.segments) {
+        const t = s.target;
+        if (t.type === 'ftpPct') {
+          expect(t.value, `${w.id} seg ${s.id}`).toBeGreaterThanOrEqual(0.35);
+          expect(t.value, `${w.id} seg ${s.id}`).toBeLessThanOrEqual(1.85);
+        }
+        if (t.type === 'rampPct') {
+          expect(t.startPct, `${w.id} seg ${s.id} startPct`).toBeGreaterThanOrEqual(0.35);
+          expect(t.endPct,   `${w.id} seg ${s.id} endPct`).toBeLessThanOrEqual(1.85);
+        }
+      }
+    }
+  });
+
+  it('workouts span all expected categories', () => {
+    const cats = new Set(PRESET_WORKOUTS.map((w) => w.category));
+    expect(cats.has('endurance')).toBe(true);
+    expect(cats.has('tempo')).toBe(true);
+    expect(cats.has('sweetspot')).toBe(true);
+    expect(cats.has('threshold')).toBe(true);
+    expect(cats.has('intervals')).toBe(true);
+    expect(cats.has('test')).toBe(true);
+    expect(cats.has('custom')).toBe(true);
+  });
+
+  it('has at least 10 endurance workouts', () => {
+    const count = PRESET_WORKOUTS.filter((w) => w.category === 'endurance').length;
+    expect(count).toBeGreaterThanOrEqual(10);
+  });
+
+  it('has at least 8 tempo workouts', () => {
+    const count = PRESET_WORKOUTS.filter((w) => w.category === 'tempo').length;
+    expect(count).toBeGreaterThanOrEqual(8);
+  });
+
+  it('has at least 8 threshold workouts', () => {
+    const count = PRESET_WORKOUTS.filter((w) => w.category === 'threshold').length;
+    expect(count).toBeGreaterThanOrEqual(8);
+  });
+
+  it('has at least 12 interval workouts', () => {
+    const count = PRESET_WORKOUTS.filter((w) => w.category === 'intervals').length;
+    expect(count).toBeGreaterThanOrEqual(12);
+  });
+
+  it('all workouts are still within 15–90 min', () => {
+    for (const w of PRESET_WORKOUTS) {
+      const min = totalDurationSec(w) / 60;
+      expect(min, `${w.name} duration ${min.toFixed(1)} min`).toBeGreaterThanOrEqual(15);
+      expect(min, `${w.name} duration ${min.toFixed(1)} min`).toBeLessThanOrEqual(90);
+    }
+  });
+});

@@ -38,6 +38,16 @@ export interface RiderSettings {
   autoUploadStrava: boolean;
   /** Currently equipped helmet id -- defaults to the level-0 starter. */
   helmetId: string;
+  /** Currently equipped bike gear id -- defaults to the first bike in the catalog. */
+  bikeId: string;
+  /** Currently equipped kit (jersey) gear id. */
+  kitId: string;
+  /** Currently equipped glasses gear id (empty string = none). */
+  glassesId: string;
+  /** Currently equipped shoes gear id (empty string = none). */
+  shoesId: string;
+  /** Currently equipped bottle gear id (empty string = none). */
+  bottleId: string;
   /** Free-form training goal persisted for the AI coach (e.g. "build base for a century"). */
   coachGoal: string;
   // ---- Live AI commentary (Wave 28) ----
@@ -88,6 +98,11 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   graphicsQuality: 'high' as GraphicsQuality,
   autoUploadStrava: true,
   helmetId: 'helmet-starter',
+  bikeId: 'midnight-road',
+  kitId: 'starter-kit',
+  glassesId: '',
+  shoesId: '',
+  bottleId: '',
   coachGoal: '',
   liveCommentaryEnabled: true,
   commentaryVolume: 70,
@@ -123,6 +138,18 @@ interface SettingsStoreState extends RiderSettings {
   setCameraMode: (mode: CameraMode) => void;
   /** Toggle hands-free voice control on/off (Wave 34.D). */
   setVoiceControlEnabled: (enabled: boolean) => void;
+  /** Set the equipped bike gear id (Wave 37.E). */
+  setBikeId: (id: string) => void;
+  /** Set the equipped kit gear id (Wave 37.E). */
+  setKitId: (id: string) => void;
+  /** Set the equipped helmet gear id (Wave 37.E). */
+  setHelmetId: (id: string) => void;
+  /** Set the equipped glasses gear id — empty string means none (Wave 37.E). */
+  setGlassesId: (id: string) => void;
+  /** Set the equipped shoes gear id — empty string means none (Wave 37.E). */
+  setShoesId: (id: string) => void;
+  /** Set the equipped bottle gear id — empty string means none (Wave 37.E). */
+  setBottleId: (id: string) => void;
   reset: () => void;
 }
 
@@ -136,6 +163,12 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setGestureControlsEnabled: (enabled) => set({ gestureControlsEnabled: enabled }),
       setCameraMode: (mode) => set({ cameraMode: mode }),
       setVoiceControlEnabled: (enabled) => set({ voiceControlEnabled: enabled }),
+      setBikeId: (id) => set({ bikeId: id }),
+      setKitId: (id) => set({ kitId: id }),
+      setHelmetId: (id) => set({ helmetId: id }),
+      setGlassesId: (id) => set({ glassesId: id }),
+      setShoesId: (id) => set({ shoesId: id }),
+      setBottleId: (id) => set({ bottleId: id }),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -183,6 +216,22 @@ export const useSettingsStore = create<SettingsStoreState>()(
         voiceControlEnabled:
           (persisted as Partial<RiderSettings>).voiceControlEnabled ??
           DEFAULT_SETTINGS.voiceControlEnabled,
+        // Graceful migration for Wave 37.E equipped gear IDs.
+        bikeId:
+          (persisted as Partial<RiderSettings>).bikeId ??
+          DEFAULT_SETTINGS.bikeId,
+        kitId:
+          (persisted as Partial<RiderSettings>).kitId ??
+          DEFAULT_SETTINGS.kitId,
+        glassesId:
+          (persisted as Partial<RiderSettings>).glassesId ??
+          DEFAULT_SETTINGS.glassesId,
+        shoesId:
+          (persisted as Partial<RiderSettings>).shoesId ??
+          DEFAULT_SETTINGS.shoesId,
+        bottleId:
+          (persisted as Partial<RiderSettings>).bottleId ??
+          DEFAULT_SETTINGS.bottleId,
       }),
       partialize: (s) =>
         ({
@@ -201,6 +250,11 @@ export const useSettingsStore = create<SettingsStoreState>()(
           graphicsQuality: s.graphicsQuality,
           autoUploadStrava: s.autoUploadStrava,
           helmetId: s.helmetId,
+          bikeId: s.bikeId,
+          kitId: s.kitId,
+          glassesId: s.glassesId,
+          shoesId: s.shoesId,
+          bottleId: s.bottleId,
           coachGoal: s.coachGoal,
           liveCommentaryEnabled: s.liveCommentaryEnabled,
           commentaryVolume: s.commentaryVolume,

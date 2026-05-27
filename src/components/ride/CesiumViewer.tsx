@@ -84,6 +84,16 @@ import {
   type SegmentPortalHandle,
 } from '@/lib/strava/segmentPortals';
 import { mapSegmentsToRoute } from '@/lib/segmentOverlay';
+import {
+  createRoadEntity,
+  createRoadEdgeStripes,
+  createKmMarkers,
+  createClimbArches,
+  type RoadEntityHandle,
+  type EdgeStripesHandle,
+  type KmMarkersHandle,
+  type ClimbArchesHandle,
+} from '@/lib/routeSurface';
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -195,6 +205,11 @@ export function CesiumViewer({
   const livePolylineEntityRef = useRef<Cesium.Entity | null>(null);
   // Strava segment portal handles — rebuilt on route change, destroyed on cleanup.
   const segmentPortalHandleRef = useRef<SegmentPortalHandle | null>(null);
+  // ---- Road surface (Wave 37.B) ----
+  const roadEntityRef = useRef<RoadEntityHandle | null>(null);
+  const roadEdgeStripesRef = useRef<EdgeStripesHandle | null>(null);
+  const kmMarkersRef = useRef<KmMarkersHandle | null>(null);
+  const climbArchesRef = useRef<ClimbArchesHandle | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
   const [viewerReady, setViewerReady] = useState(false);
 
@@ -393,6 +408,15 @@ export function CesiumViewer({
       wetMaterialRef.current = null;
       segmentPortalHandleRef.current?.destroy();
       segmentPortalHandleRef.current = null;
+      // ---- Road surface (Wave 37.B) cleanup ----
+      roadEntityRef.current?.destroy();
+      roadEntityRef.current = null;
+      roadEdgeStripesRef.current?.destroy();
+      roadEdgeStripesRef.current = null;
+      kmMarkersRef.current?.destroy();
+      kmMarkersRef.current = null;
+      climbArchesRef.current?.destroy();
+      climbArchesRef.current = null;
       setActiveViewer(null);
       if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (!viewer.isDestroyed()) viewer.destroy();
@@ -500,6 +524,16 @@ export function CesiumViewer({
     segmentPortalHandleRef.current?.destroy();
     segmentPortalHandleRef.current = null;
 
+    // ---- Road surface (Wave 37.B) — tear down previous surface ----
+    roadEntityRef.current?.destroy();
+    roadEntityRef.current = null;
+    roadEdgeStripesRef.current?.destroy();
+    roadEdgeStripesRef.current = null;
+    kmMarkersRef.current?.destroy();
+    kmMarkersRef.current = null;
+    climbArchesRef.current?.destroy();
+    climbArchesRef.current = null;
+
     if (!route) return;
 
     // Resolve the scene mood: prefer explicit mood from the route catalog,
@@ -551,17 +585,28 @@ export function CesiumViewer({
     // Build start / finish / km markers.
     routeMarkersRef.current = buildRouteMarkers(viewer, route, positions);
 
-    // When the active mood is rain-themed, replace the standard glow material
-    // on each gradient segment with the wet-road reflective material.
+    // ---- Road surface (Wave 37.B) ----
+    // Build corridor + edge stripes + km markers + climb arches once per route.
+    // The corridor replaces the thin polyline visually; gradient polylines remain
+    // for the elevation-profile colour data but are now underlaid by the surface.
+    roadEntityRef.current = createRoadEntity(viewer, route, positions, {
+      gradientColored: true,
+    });
+    roadEdgeStripesRef.current = createRoadEdgeStripes(viewer, route);
+    kmMarkersRef.current = createKmMarkers(viewer, route, positions);
+    climbArchesRef.current = createClimbArches(viewer, route, positions);
+
+    // When the active mood is rain, apply the wet-road material to the corridor.
     if (shouldUseWetMaterial(resolvedMood as string)) {
       const mat = createWetRoadMaterial();
       wetMaterialRef.current = mat;
+      if (roadEntityRef.current?.entity.corridor) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (roadEntityRef.current.entity.corridor as any).material = mat;
+      }
+      // Also apply to gradient segments for the narrow colored lines underneath.
       for (const seg of gradientSegmentsRef.current) {
         if (seg.entity.polyline) {
-          // Cesium's entity system accepts a raw Material on polyline.material
-          // via the MaterialProperty duck-type path at runtime. The declared type
-          // is MaterialProperty but the runtime also accepts Cesium.Material —
-          // suppress only the setter, not the entire object.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (seg.entity.polyline as any).material = mat;
         }

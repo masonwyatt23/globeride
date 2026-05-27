@@ -102,7 +102,9 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
   }, []);
 
   // ---- Wire up mesh event callbacks ----
-  function wireCallbacks(mesh: MeshState) {
+  // Wrapped in useCallback so its identity is stable across renders — keeps
+  // the handleCreateRoom / handleJoinRoom dep arrays clean.
+  const wireCallbacks = useCallback((mesh: MeshState) => {
     const unsubJoin = onPeerJoin(mesh, (peerId) => {
       setPeers((prev) => {
         if (prev.some((p) => p.peerId === peerId)) return prev;
@@ -116,7 +118,7 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
       setStatus(`Peer disconnected: ${peerId.slice(0, 8)}…`);
     });
     unsubsRef.current.push(unsubJoin, unsubLeave);
-  }
+  }, [store]);
 
   // ---- HOST: Create room ----
   const handleCreateRoom = useCallback(async () => {

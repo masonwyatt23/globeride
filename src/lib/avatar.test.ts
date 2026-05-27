@@ -9,7 +9,10 @@ import {
   cornerLeanAngle,
   smoothLean,
   climbingSwayAngle,
+  clampEffortLevel,
+  effortSkinColor,
 } from '@/lib/avatar';
+import * as Cesium from 'cesium';
 
 // ---------------------------------------------------------------------------
 // pedalPhaseFromCadence
@@ -197,5 +200,90 @@ describe('climbingSwayAngle', () => {
       maxSeen = Math.max(maxSeen, Math.abs(climbingSwayAngle(100, 90, t)));
     }
     expect(maxSeen).toBeLessThanOrEqual(MAX_RAD + 1e-10);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 37.A — clampEffortLevel
+// ---------------------------------------------------------------------------
+
+describe('clampEffortLevel', () => {
+  it('clamps values below 0 to 0', () => {
+    expect(clampEffortLevel(-5)).toBe(0);
+    expect(clampEffortLevel(-0.001)).toBe(0);
+  });
+
+  it('clamps values above 1 to 1', () => {
+    expect(clampEffortLevel(2)).toBe(1);
+    expect(clampEffortLevel(1.0001)).toBe(1);
+  });
+
+  it('passes through values in [0, 1] unchanged', () => {
+    expect(clampEffortLevel(0)).toBe(0);
+    expect(clampEffortLevel(0.5)).toBeCloseTo(0.5, 10);
+    expect(clampEffortLevel(1)).toBe(1);
+  });
+
+  it('is idempotent: clamping an already-clamped value is a no-op', () => {
+    const v = clampEffortLevel(clampEffortLevel(3));
+    expect(v).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 37.A — effortSkinColor
+// ---------------------------------------------------------------------------
+
+describe('effortSkinColor', () => {
+  const BASE_SKIN = '#d8a877'; // DEFAULT_AVATAR_COLORS.skin
+
+  it('at level=0 returns a color very close to the base skin color', () => {
+    const result = effortSkinColor(BASE_SKIN, 0);
+    const base = Cesium.Color.fromCssColorString(BASE_SKIN);
+    // With t=0 the lerp produces exactly the base colour.
+    expect(result.red).toBeCloseTo(base.red, 5);
+    expect(result.green).toBeCloseTo(base.green, 5);
+    expect(result.blue).toBeCloseTo(base.blue, 5);
+  });
+
+  it('at level=1 the blue channel increases relative to base (cool wet tint)', () => {
+    const base   = effortSkinColor(BASE_SKIN, 0);
+    const drenched = effortSkinColor(BASE_SKIN, 1);
+    expect(drenched.blue).toBeGreaterThan(base.blue);
+  });
+
+  it('blue channel increases monotonically from level 0 → 1', () => {
+    const blues = [0, 0.25, 0.5, 0.75, 1].map((t) =>
+      effortSkinColor(BASE_SKIN, t).blue,
+    );
+    for (let i = 1; i < blues.length; i++) {
+      expect(blues[i]).toBeGreaterThanOrEqual(blues[i - 1]);
+    }
+  });
+
+  it('clamps effort level: level=2 produces same result as level=1', () => {
+    const atOne = effortSkinColor(BASE_SKIN, 1);
+    const atTwo = effortSkinColor(BASE_SKIN, 2);
+    expect(atTwo.red).toBeCloseTo(atOne.red, 5);
+    expect(atTwo.green).toBeCloseTo(atOne.green, 5);
+    expect(atTwo.blue).toBeCloseTo(atOne.blue, 5);
+  });
+
+  it('always returns alpha=1', () => {
+    expect(effortSkinColor(BASE_SKIN, 0).alpha).toBe(1);
+    expect(effortSkinColor(BASE_SKIN, 0.5).alpha).toBe(1);
+    expect(effortSkinColor(BASE_SKIN, 1).alpha).toBe(1);
+  });
+
+  it('output RGB channels are all in [0, 1]', () => {
+    for (const t of [0, 0.1, 0.5, 0.9, 1]) {
+      const c = effortSkinColor(BASE_SKIN, t);
+      expect(c.red).toBeGreaterThanOrEqual(0);
+      expect(c.red).toBeLessThanOrEqual(1);
+      expect(c.green).toBeGreaterThanOrEqual(0);
+      expect(c.green).toBeLessThanOrEqual(1);
+      expect(c.blue).toBeGreaterThanOrEqual(0);
+      expect(c.blue).toBeLessThanOrEqual(1);
+    }
   });
 });
