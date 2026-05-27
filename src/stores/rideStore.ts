@@ -708,10 +708,21 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   },
 
   start: () => {
-    if (!get().route) return;
+    const st = get();
+    // Diagnostic logging — keep until we confirm the live Start-ride bug is
+    // resolved. The console line lets a user / bug reporter see exactly why
+    // the transition didn't happen.
+    if (!st.route) {
+      console.warn('[rideStore.start] aborted: no route loaded');
+      return;
+    }
+    if (st.rideState !== 'ready' && st.rideState !== 'idle') {
+      console.warn(`[rideStore.start] called from unexpected state '${st.rideState}' — transitioning anyway`);
+    }
     const patch: Partial<RideStoreState> = { rideState: 'running', startedAt: Date.now() };
-    if (get().rideMode === 'outdoor') patch.livePolyline = [];
+    if (st.rideMode === 'outdoor') patch.livePolyline = [];
     set(patch);
+    console.log('[rideStore.start] rideState → running', { startedAt: patch.startedAt });
   },
 
   pause: () => {

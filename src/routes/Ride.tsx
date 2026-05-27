@@ -322,8 +322,11 @@ export function Ride() {
       <Minimap className="absolute bottom-[6rem] right-3 z-[2] pointer-events-none hidden sm:block" />
 
       {/* -- Transport controls -- bottom-center ----------------------------- */}
+      {/* z-50 (above every other HUD layer) so the Start ride button can
+          never be intercepted by a stray sibling. pointer-events-auto on
+          the wrapper means clicks always land on the button. */}
       <div
-        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-[3]"
+        className="absolute left-1/2 -translate-x-1/2 pointer-events-auto z-50"
         style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
       >
         <RideControls />
