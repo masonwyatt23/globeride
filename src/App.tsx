@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 
 import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
+import { DrawRoute } from '@/routes/DrawRoute';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { Onboarding } from '@/components/profile/Onboarding';
@@ -13,6 +14,7 @@ const Ride = React.lazy(() => import('@/routes/Ride').then(m => ({ default: m.Ri
 const Explore = React.lazy(() => import('@/routes/Explore').then(m => ({ default: m.Explore })));
 const Companion = React.lazy(() => import('@/routes/Companion').then(m => ({ default: m.Companion })));
 const Replay = React.lazy(() => import('@/routes/Replay').then(m => ({ default: m.Replay })));
+const WorkoutBuilderRoute = React.lazy(() => import('@/routes/WorkoutBuilderRoute').then(m => ({ default: m.WorkoutBuilderRoute })));
 
 function LoadingFallback() {
   return (
@@ -45,8 +47,13 @@ export default function App() {
           <Route path="/ride" element={<Ride />} />
           {/* Phone companion screen — same-origin BroadcastChannel peer */}
           <Route path="/companion" element={<Companion />} />
+          {/* Draw a route on the globe — redirects to /explore with draw mode ready */}
+          <Route path="/draw" element={<DrawRoute />} />
           {/* Cinematic replay — Wave 35.A */}
           <Route path="/replay/:rideId" element={<Replay />} />
+          {/* Custom workout builder — Wave 39.C */}
+          <Route path="/workouts/new" element={<WorkoutBuilderRoute />} />
+          <Route path="/workouts/:id/edit" element={<WorkoutBuilderRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

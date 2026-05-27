@@ -80,6 +80,11 @@ export interface RiderSettings {
   // ---- Voice control (Wave 34.D) ----
   /** Whether hands-free voice command recognition is enabled during rides. */
   voiceControlEnabled: boolean;
+  // ---- Procedural ride audio (Wave 39.D) ----
+  /** Whether the procedural cycling-sound engine is enabled during rides. */
+  rideAudioEnabled: boolean;
+  /** Procedural ride audio master volume, 0-100. */
+  rideAudioVolume: number;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -114,6 +119,8 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   climbAnnouncementsEnabled: true,
   cameraMode: 'chase',
   voiceControlEnabled: true,
+  rideAudioEnabled: true,
+  rideAudioVolume: 60,
 };
 
 type CommentaryPatch = Partial<
@@ -150,6 +157,10 @@ interface SettingsStoreState extends RiderSettings {
   setShoesId: (id: string) => void;
   /** Set the equipped bottle gear id — empty string means none (Wave 37.E). */
   setBottleId: (id: string) => void;
+  /** Toggle procedural ride audio on/off (Wave 39.D). */
+  setRideAudioEnabled: (enabled: boolean) => void;
+  /** Set procedural ride audio volume 0-100 (Wave 39.D). */
+  setRideAudioVolume: (volume: number) => void;
   reset: () => void;
 }
 
@@ -169,6 +180,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setGlassesId: (id) => set({ glassesId: id }),
       setShoesId: (id) => set({ shoesId: id }),
       setBottleId: (id) => set({ bottleId: id }),
+      setRideAudioEnabled: (enabled) => set({ rideAudioEnabled: enabled }),
+      setRideAudioVolume: (volume) => set({ rideAudioVolume: Math.max(0, Math.min(100, volume)) }),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -216,6 +229,13 @@ export const useSettingsStore = create<SettingsStoreState>()(
         voiceControlEnabled:
           (persisted as Partial<RiderSettings>).voiceControlEnabled ??
           DEFAULT_SETTINGS.voiceControlEnabled,
+        // Graceful migration for Wave 39.D procedural ride audio.
+        rideAudioEnabled:
+          (persisted as Partial<RiderSettings>).rideAudioEnabled ??
+          DEFAULT_SETTINGS.rideAudioEnabled,
+        rideAudioVolume:
+          (persisted as Partial<RiderSettings>).rideAudioVolume ??
+          DEFAULT_SETTINGS.rideAudioVolume,
         // Graceful migration for Wave 37.E equipped gear IDs.
         bikeId:
           (persisted as Partial<RiderSettings>).bikeId ??
@@ -266,6 +286,8 @@ export const useSettingsStore = create<SettingsStoreState>()(
           climbAnnouncementsEnabled: s.climbAnnouncementsEnabled,
           cameraMode: s.cameraMode,
           voiceControlEnabled: s.voiceControlEnabled,
+          rideAudioEnabled: s.rideAudioEnabled,
+          rideAudioVolume: s.rideAudioVolume,
         }) satisfies RiderSettings,
     },
   ),

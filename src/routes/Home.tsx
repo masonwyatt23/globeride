@@ -18,6 +18,7 @@ import {
   Users,
   Trophy,
   Flag,
+  PenLine,
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
@@ -246,15 +247,27 @@ export function Home() {
                   )}
 
                   {rideMode !== 'outdoor' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-muted-foreground hover:text-foreground"
-                    onClick={() => navigate('/explore')}
-                  >
-                    <Globe2 className="h-4 w-4" />
-                    Explore or draw on the 3D globe
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 text-muted-foreground hover:text-foreground"
+                      onClick={() => navigate('/explore')}
+                    >
+                      <Globe2 className="h-4 w-4" />
+                      Explore globe
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 text-muted-foreground hover:text-foreground"
+                      onClick={() => navigate('/draw')}
+                      title="Click waypoints on the 3D globe to draw a custom route"
+                    >
+                      <PenLine className="h-4 w-4" />
+                      Draw a route
+                    </Button>
+                  </div>
                   )}
 
                   {route && rideMode !== 'outdoor' && (
@@ -438,6 +451,32 @@ export function Home() {
         {/* ROUTES tab */}
         <HomeTabPanel id="routes" activeTab={activeTab}>
           <div className="space-y-5">
+            {/* Draw-a-route CTA */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <PenLine className="h-3.5 w-3.5 text-primary" />
+                  Draw a custom route
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Click waypoints anywhere on the 3D globe to trace a custom
+                  ride. Real terrain elevation is fetched automatically. Works
+                  on roads, trails, or anywhere you can imagine a ride.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/draw')}
+                  className="gap-2"
+                >
+                  <PenLine className="h-4 w-4" />
+                  Open globe and draw
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

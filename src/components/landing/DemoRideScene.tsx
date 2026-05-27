@@ -17,6 +17,13 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
+import { tryEnableHDR } from '@/lib/cesiumHDR';
+
+/** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
+const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
+
+/** Cesium ion asset ID for Google Photorealistic 3D Tiles. */
+const GOOGLE_PHOTOREAL_ASSET_ID = 2275207;
 
 // ---------------------------------------------------------------------------
 // Route — Mont Ventoux (different from HeroGlobe's Mortirolo)
@@ -135,6 +142,33 @@ export function DemoRideScene({ ionToken }: { ionToken: string }) {
     // ------------------------------------------------------------------ //
     scene.imageryLayers.removeAll();
     setupBaseImagery(viewer).catch(() => undefined);
+
+    // ------------------------------------------------------------------ //
+    // 3b. HDR + ACES tonemapping.                                         //
+    // ------------------------------------------------------------------ //
+    tryEnableHDR(viewer);
+
+    // ------------------------------------------------------------------ //
+    // 3c. Google Photorealistic 3D Tiles — hidden above 5 km altitude.   //
+    // Only loaded on capable hardware (not on isMobile low-end devices).  //
+    // ------------------------------------------------------------------ //
+    let photorealTileset: Cesium.Cesium3DTileset | null = null;
+
+    if (!isMobile) {
+      Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
+        maximumScreenSpaceError: 16,
+      })
+        .then((tileset) => {
+          if (viewer.isDestroyed()) {
+            tileset.destroy?.();
+            return;
+          }
+          tileset.show = false; // altitude gate controls visibility per-frame
+          viewer.scene.primitives.add(tileset);
+          photorealTileset = tileset;
+        })
+        .catch(() => undefined); // token may lack photoreal access — that's fine
+    }
 
     if (scene.skyAtmosphere) {
       scene.skyAtmosphere.show = true;
@@ -283,6 +317,12 @@ export function DemoRideScene({ ionToken }: { ionToken: string }) {
       lastTickMs = nowMs;
       phaseElapsed += dt;
 
+      // --- Photoreal altitude gate ---
+      if (photorealTileset && !photorealTileset.isDestroyed()) {
+        const altM = viewer.camera.positionCartographic.height;
+        photorealTileset.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
+      }
+
       // ---- Phase 0: globe overview — slow rotation ---- //
       if (phase === 'globeOverview') {
         const deltaRad = Cesium.Math.toRadians(ROTATE_DEG_PER_SEC * dt);
@@ -379,6 +419,14 @@ export function DemoRideScene({ ionToken }: { ionToken: string }) {
         scene.preRender.removeEventListener(onPreRender);
         try { viewer.entities.remove(routeEntity); } catch { /* already gone */ }
         try { viewer.entities.remove(riderEntity); } catch { /* already gone */ }
+        if (photorealTileset && !photorealTileset.isDestroyed()) {
+          try {
+            viewer.scene.primitives.remove(photorealTileset);
+            photorealTileset.destroy();
+          } catch {
+            // Scene may already be torn down — ignore.
+          }
+        }
         viewer.destroy();
       }
     };

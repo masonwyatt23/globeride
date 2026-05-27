@@ -24,6 +24,13 @@ import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
+import { tryEnableHDR } from '@/lib/cesiumHDR';
+
+/** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
+const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
+
+/** Cesium ion asset ID for Google Photorealistic 3D Tiles. */
+const GOOGLE_PHOTOREAL_ASSET_ID = 2275207;
 
 /** Auto-rotation speed — 0.4°/s → one full orbit in ~15 minutes. */
 const AUTO_ROTATE_DEG_PER_SEC = 0.4;
@@ -90,6 +97,30 @@ export function HeroGlobe({ ionToken }: { ionToken: string }) {
     setupBaseImagery(viewer).catch(() => undefined);
 
     // ------------------------------------------------------------------ //
+    // 4b. HDR + ACES tonemapping — richer colour on capable platforms.   //
+    // ------------------------------------------------------------------ //
+    tryEnableHDR(viewer);
+
+    // ------------------------------------------------------------------ //
+    // 4c. Google Photorealistic 3D Tiles — hidden above 5 km altitude.   //
+    // ------------------------------------------------------------------ //
+    let photorealTileset: Cesium.Cesium3DTileset | null = null;
+
+    Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
+      maximumScreenSpaceError: 16,
+    })
+      .then((tileset) => {
+        if (viewer.isDestroyed()) {
+          tileset.destroy?.();
+          return;
+        }
+        tileset.show = false; // altitude gate controls visibility per-frame
+        viewer.scene.primitives.add(tileset);
+        photorealTileset = tileset;
+      })
+      .catch(() => undefined); // token may lack photoreal access — that's fine
+
+    // ------------------------------------------------------------------ //
     // 5. Atmosphere — NASA spaceflight limb glow.                        //
     // ------------------------------------------------------------------ //
     if (scene.skyAtmosphere) {
@@ -154,6 +185,12 @@ export function HeroGlobe({ ionToken }: { ionToken: string }) {
     let lastTickMs = performance.now();
 
     const onPreRender = () => {
+      // --- Photoreal altitude gate ---
+      if (photorealTileset && !photorealTileset.isDestroyed()) {
+        const altM = viewer.camera.positionCartographic.height;
+        photorealTileset.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
+      }
+
       if (!isRotating) return;
       const nowMs = performance.now();
       const dt = (nowMs - lastTickMs) / 1000;
@@ -197,6 +234,14 @@ export function HeroGlobe({ ionToken }: { ionToken: string }) {
           viewer.entities.remove(routeEntity);
         } catch {
           // Entity may already be gone if scene is tearing down.
+        }
+        if (photorealTileset && !photorealTileset.isDestroyed()) {
+          try {
+            viewer.scene.primitives.remove(photorealTileset);
+            photorealTileset.destroy();
+          } catch {
+            // Scene may already be torn down — ignore.
+          }
         }
         viewer.destroy();
       }

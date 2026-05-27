@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
+import { sanitizeForLabel } from '@/lib/security/sanitize';
 
 import { useRideStore } from '@/stores/rideStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -94,6 +95,16 @@ import {
   type KmMarkersHandle,
   type ClimbArchesHandle,
 } from '@/lib/routeSurface';
+import { tryEnableHDR } from '@/lib/cesiumHDR';
+
+/** Altitude threshold below which Google Photorealistic 3D Tiles are shown. */
+const PHOTOREAL_SHOW_ALTITUDE_M = 5_000;
+
+/**
+ * Disable photoreal on mobile (< 6 hardware cores) — the chase-cam altitude
+ * keeps tiles in constant view, which can drop 40+ FPS on a phone GPU.
+ */
+const PHOTOREAL_MOBILE_DISABLED = (navigator.hardwareConcurrency ?? 8) < 6;
 
 // Ghost avatar appearance — desaturated pale blue, semi-transparent feel.
 // We pass real hex colors; the avatar entity materials carry opacity via
@@ -289,6 +300,13 @@ export function CesiumViewer({
     // is fully constructed so scene.postProcessStages is available.
     applyCinematicEffects(viewer, initialQuality);
 
+    // HDR + ACES filmic tonemapping — richer colour on capable platforms.
+    // Skip on 'low' quality tier (power-saver devices) or if the platform
+    // probe in cesiumHDR.ts rejects it.
+    if (initialQuality !== 'low') {
+      tryEnableHDR(viewer);
+    }
+
     // Cesium World Terrain (ion asset 1) — shared so the route generator
     // can sample elevations from the same provider.
     getTerrainProvider()
@@ -320,7 +338,7 @@ export function CesiumViewer({
     // depth even in areas where Google Photorealistic Tiles have no data.
     addOsmBuildings();
 
-    if (usePhotoreal) {
+    if (usePhotoreal && !PHOTOREAL_MOBILE_DISABLED) {
       const photoreal = getPhotorealTileset();
       photorealPromiseRef.current = photoreal;
       photoreal
@@ -333,6 +351,8 @@ export function CesiumViewer({
           // globe.  We intentionally keep globe.show = true so that rural
           // areas (no Google data) still render terrain + Bing imagery.
           // The tileset simply overrides the surface where it has coverage.
+          // Start hidden — the per-frame altitude gate controls visibility.
+          tileset.show = false;
           viewer.scene.primitives.add(tileset);
           tilesetRef.current = tileset;
         })
@@ -728,7 +748,7 @@ export function CesiumViewer({
     }
 
     searchPinRef.current = viewer.entities.add({
-      name: flyToTarget.label ?? 'Search target',
+      name: sanitizeForLabel(flyToTarget.label ?? 'Search target'),
       position: Cesium.Cartesian3.fromDegrees(flyToTarget.lon, flyToTarget.lat),
       point: {
         pixelSize: 14,
@@ -739,7 +759,7 @@ export function CesiumViewer({
       },
       label: flyToTarget.label
         ? {
-            text: flyToTarget.label,
+            text: sanitizeForLabel(flyToTarget.label),
             font: '14px sans-serif',
             fillColor: Cesium.Color.WHITE,
             outlineColor: Cesium.Color.fromCssColorString('#0b1220'),
@@ -791,6 +811,12 @@ export function CesiumViewer({
       const nowMs = performance.now();
       const dt = (nowMs - lastFrameMs) / 1000;
       lastFrameMs = nowMs;
+
+      // --- Photoreal altitude gate — show only when camera is below 5 km ---
+      if (tilesetRef.current && !tilesetRef.current.isDestroyed()) {
+        const altM = viewer.camera.positionCartographic.height;
+        tilesetRef.current.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
+      }
 
       const state = useRideStore.getState();
       const r = state.route;

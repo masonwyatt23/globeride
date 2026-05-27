@@ -1,15 +1,18 @@
 /**
- * useRideAudio — wires the RideAudioEngine to live ride state.
+ * useRideAudio — wires the RideAudioEngine + ProceduralRideAudioEngine to live ride state.
  *
  * Mount this hook inside the Ride screen (alongside useRideLoop). It:
- *   • Starts the engine when rideState becomes 'running' and audio is enabled.
- *   • Updates ambient/effort params every animation frame via a rAF loop.
+ *   • Starts the existing RideAudioEngine (ambient wind/road/drone) when rideState
+ *     becomes 'running' and audio is enabled.
+ *   • Starts the ProceduralRideAudioEngine (chain noise, road rumble, brake squeal,
+ *     gear-shift clicks) when rideState becomes 'running' and rideAudioEnabled is true.
+ *   • Updates both engines each animation frame.
  *   • Plays chimes on workout-segment transitions and ride finish.
  *   • Fades to silence on pause; resumes on unpause.
  *   • Tears down cleanly when the component unmounts.
  *
  * Autoplay policy compliance:
- *   The AudioContext is created lazily on the first user gesture (the ride
+ *   Both AudioContexts are created lazily on the first user gesture (the ride
  *   Start button click) — that action already satisfies the browser's policy.
  *   engine.resumeContext() is called whenever audio becomes enabled while the
  *   ride is already running (e.g. user toggles sound on mid-ride).
@@ -18,7 +21,10 @@
 import { useEffect, useRef } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { useAudioStore } from '@/stores/audioStore';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { RideAudioEngine } from '@/lib/rideAudio';
+import { createRideAudioEngine } from '@/lib/audio/proceduralRideAudio';
+import type { ProceduralRideAudioEngine } from '@/lib/audio/proceduralRideAudio';
 
 export function useRideAudio(): void {
   // Lazy-initialise inside the ref so we never allocate during render
@@ -29,12 +35,23 @@ export function useRideAudio(): void {
     return engineRef.current;
   }
 
+  // Procedural engine ref — created once, on first use.
+  const procEngineRef = useRef<ProceduralRideAudioEngine | null | undefined>(undefined);
+  function getProcEngine(): ProceduralRideAudioEngine | null {
+    if (procEngineRef.current === undefined) {
+      procEngineRef.current = createRideAudioEngine();
+    }
+    return procEngineRef.current;
+  }
+
   // Track previous workout-segment index so we can detect transitions.
   const prevSegmentRef = useRef<number>(-1);
   // Track whether a finish chime has been played for this ride session.
   const finishChimeFiredRef = useRef(false);
-  // Track whether the engine is currently started (to avoid double-start).
+  // Track whether the ambient engine is currently started (to avoid double-start).
   const engineRunningRef = useRef(false);
+  // Track whether the procedural engine is currently started.
+  const procRunningRef = useRef(false);
 
   useEffect(() => {
     const engine = getEngine();
@@ -47,10 +64,11 @@ export function useRideAudio(): void {
     const frame = () => {
       rafId = requestAnimationFrame(frame);
 
-      const ride = useRideStore.getState();
-      const audio = useAudioStore.getState();
+      const ride    = useRideStore.getState();
+      const audio   = useAudioStore.getState();
+      const settings = useSettingsStore.getState();
 
-      // ── Handle engine start / stop based on ride + audio state ────────────
+      // ── Ambient engine: start / stop based on ride + audio state ──────────
       if (audio.enabled && ride.rideState === 'running' && !engineRunningRef.current) {
         engine.start();
         engine.resumeContext().catch(() => undefined);
@@ -63,6 +81,22 @@ export function useRideAudio(): void {
         prevSegmentRef.current = -1;
         finishChimeFiredRef.current = false;
         return;
+      }
+
+      // ── Procedural engine: start / stop ────────────────────────────────────
+      const procEngine = getProcEngine();
+      if (procEngine) {
+        if (settings.rideAudioEnabled && ride.rideState === 'running' && !procRunningRef.current) {
+          procEngine.start();
+          procRunningRef.current = true;
+          // Sync initial volume from settings (0-100 → 0-0.7 clamped inside setMasterVolume).
+          procEngine.setMasterVolume(settings.rideAudioVolume / 100);
+        }
+
+        if (!settings.rideAudioEnabled && procRunningRef.current) {
+          procEngine.stop();
+          procRunningRef.current = false;
+        }
       }
 
       if (!engineRunningRef.current) return;
@@ -86,7 +120,7 @@ export function useRideAudio(): void {
 
       // ── Workout-segment change detection ──────────────────────────────────
       if (ride.activeWorkout && ride.workoutRunning) {
-        const elapsed = ride.workoutElapsedSec;
+        const elapsed  = ride.workoutElapsedSec;
         const segments = ride.activeWorkout.segments;
         let cursor = 0;
         let currentSegIdx = 0;
@@ -104,13 +138,25 @@ export function useRideAudio(): void {
         prevSegmentRef.current = currentSegIdx;
       }
 
-      // ── Update continuous ambient / effort layers ─────────────────────────
+      // ── Update ambient / effort layers ────────────────────────────────────
       engine.update({
-        speedMs: ride.speed,
+        speedMs:  ride.speed,
         gradePct: ride.grade,
-        powerW: ride.power,
-        volume: audio.volume,
+        powerW:   ride.power,
+        volume:   audio.volume,
       });
+
+      // ── Update procedural layers ───────────────────────────────────────────
+      if (procEngine && procRunningRef.current) {
+        // Sync volume every frame so slider changes take effect immediately.
+        procEngine.setMasterVolume(settings.rideAudioVolume / 100);
+        procEngine.updateFromRideState({
+          speedMs:     ride.speed,
+          cadenceRpm:  ride.cadence,
+          powerW:      ride.power,
+          // brakeAmount is not yet exposed in rideStore — omit (treated as 0).
+        });
+      }
     };
 
     rafId = requestAnimationFrame(frame);
@@ -121,6 +167,15 @@ export function useRideAudio(): void {
       engineRunningRef.current = false;
       prevSegmentRef.current = -1;
       finishChimeFiredRef.current = false;
+
+      // Tear down procedural engine.
+      const procEngine = procEngineRef.current;
+      if (procEngine && procRunningRef.current) {
+        procEngine.stop();
+      }
+      procRunningRef.current = false;
+      // Do not null-out procEngineRef — stop() suspends but doesn't destroy;
+      // the ref is cleaned up when the component fully unmounts (GC handles it).
     };
-  }, []); // Runs once — engine is a stable ref; state is read via getState().
+  }, []); // Runs once — engines are stable refs; state is read via getState().
 }

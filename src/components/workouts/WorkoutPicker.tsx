@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dumbbell,
   Play,
@@ -21,6 +22,8 @@ import {
   Filter,
   ChevronRight,
   Trash2,
+  Plus,
+  Pencil,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -111,6 +114,7 @@ export interface WorkoutPickerProps {
 // ---------------------------------------------------------------------------
 
 export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProps) {
+  const navigate = useNavigate();
   const [workouts, setWorkouts]         = useState<Workout[]>([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState<string | null>(null);
@@ -211,6 +215,24 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
   return (
     <div className={cn('flex flex-col gap-3', className)}>
 
+      {/* Create custom workout CTA — Wave 39.C */}
+      <button
+        type="button"
+        onClick={() => navigate('/workouts/new')}
+        className={cn(
+          'flex items-center gap-2.5 rounded-xl border border-dashed border-border/70 bg-muted/10 px-3.5 py-2.5',
+          'text-sm text-muted-foreground transition-colors',
+          'hover:border-primary/40 hover:bg-primary/5 hover:text-foreground',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        )}
+        aria-label="Create a new custom workout"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/60">
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <span className="font-medium">Create custom workout</span>
+      </button>
+
       {/* Category filter toggles */}
       <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter by category">
         {CATEGORY_TABS.map((cat) => {
@@ -279,6 +301,7 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
               onToggleExpand={() => setExpanded((prev) => prev === w.id ? null : w.id)}
               onSelect={onSelect}
               onRide={onRide}
+              onEdit={(wk) => navigate(`/workouts/${wk.id}/edit`)}
               onDelete={() => void handleDelete(w.id)}
               onDeleteBlur={() => pendingDelete === w.id && setPendingDelete(null)}
             />
@@ -302,6 +325,7 @@ interface WorkoutCardProps {
   onToggleExpand: () => void;
   onSelect?: (w: Workout) => void;
   onRide?: (w: Workout) => void;
+  onEdit?: (w: Workout) => void;
   onDelete: () => void;
   onDeleteBlur: () => void;
 }
@@ -315,6 +339,7 @@ function WorkoutCard({
   onToggleExpand,
   onSelect,
   onRide,
+  onEdit,
   onDelete,
   onDeleteBlur,
 }: WorkoutCardProps) {
@@ -388,6 +413,16 @@ function WorkoutCard({
             <ChevronRight className={cn('h-3.5 w-3.5 transition-transform duration-200', isExpanded && 'rotate-90')} />
           </button>
 
+          {onEdit && w.source === 'manual' && (
+            <button
+              type="button"
+              aria-label={`Edit workout: ${w.name}`}
+              onClick={() => onEdit(w)}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          )}
           {onSelect && (
             <Button
               variant="outline"
