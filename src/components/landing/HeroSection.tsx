@@ -168,7 +168,7 @@ export function HeroSection() {
           </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-2 animate-fadeUp [animation-delay:300ms]">
-            <StatBadge value="19" label="iconic climbs" delay={320} />
+            <StatBadge value="50" label="iconic climbs" delay={320} />
             <StatBadge value="45-part" label="3D avatar" delay={380} />
             <StatBadge value="FTMS" label="smart trainer" delay={440} />
             <StatBadge value=".FIT" label="Strava export" delay={500} />
