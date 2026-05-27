@@ -4,6 +4,33 @@ All notable changes to GlobeRide, in reverse chronological order.
 
 ---
 
+## Wave 35 — Replay system + mesh pelotons + WebXR Phase 3 + AR mode
+Record any ride and replay it at 0.5×-8× speed with scrubbable timeline, 5 cinematic camera modes, auto-detected highlight reel (climbs / descents / sprints / max-power), MP4 export via WebCodecs. WebRTC mesh extended from 1:1 to 4-peer rooms with shareable codes. WebXR Phase 3 ships full 6DOF room-scale tracking decoupled from the chase-cam plus interactive DOM-overlay HUD on Quest 3. `immersive-ar` session variant for Vision Pro / Quest 3 passthrough rides your route overlaid on the real living room.
+
+## Wave 34 — Onboarding + WebXR Phase 2 + pro peloton + voice control
+Five bespoke SVG onboarding scenes match the Wave 33 hero quality bar. WebXR Phase 2 wires full stereo rendering via XRWebGLLayer + per-eye projection matrix recovery. Pro Peloton Ghosts let you ride alongside the actual finishers of curated stages (Mortirolo 2024, Isola 2000 2024, Vuelta 2023 S13) at their real-world pace. Voice control via Web Speech API — "pause", "resume", "lap", "switch camera", "first person", "end ride" with verbal confirmation. Auto-pauses against the AI commentator to avoid crosstalk.
+
+## Wave 33 — WebXR Phase 1 + Strava segments + landing polish
+WebXR capability detection + session lifecycle ("Enter VR" button on Quest 3 / Vision Pro). Strava live segments overlay fetches the user's actual segments along the loaded route, renders aqua 3D portal gates, shows live "vs PR" delta during the segment and a "+12s" or "NEW PR" celebration on exit. FeatureGrid replaced with 22 bespoke SVG illustrations covering every Wave 1-32 capability; GallerySection rewritten with 6 evocative scene cards. Zero mockups anywhere.
+
+## Wave 32 — Demo-ride autoplay + route-card mini-globes + photoreal share card
+Below the hero, a Cesium demo-ride scene flies down into Mont Ventoux and runs the route at 8× chase-cam, loops infinitely, IntersectionObserver-gated. Every route-library card lazy-mounts a real Cesium mini-globe when scrolled into view (max 5 concurrent, LRU-evicted). The post-ride share card replaces the 2D minimap with a real Cesium scene; html-to-image now waits for `tilesLoaded` so the captured PNG actually shows photoreal Earth, not gray squares.
+
+## Wave 31 — Real photoreal Earth hero
+The abstract dark-circle hero on the landing page is gone. The right side now renders a real Cesium globe with Bing Aerial imagery, atmospheric scattering, real-time sun, and the Mortirolo Pass climb polyline draped on the surface in aqua glow. Slow 0.4°/s auto-rotation. Lazy-loaded, IntersectionObserver-gated, silent SVG fallback when WebGL or token is unavailable.
+
+## Wave 30 — Cinematic graphics overhaul
+Five camera modes (chase, **first-person POV**, overhead, side-tracking, cinematic orbit) with eased transitions. Animated procedural cyclist — pedaling legs sync to cadence, wheels spin at ride speed, body leans into corners (centripetal physics), head turns toward heading, climb-mode tilts forward + sways above 8% grade. Real-time sun position based on wall clock + route GPS. Volumetric `CumulusCloud` primitives drift with wind. Dynamic ground shadow tracks sun azimuth. Wet road GLSL custom material on rain rides. Tour-style spectator crowds on the final 2 km of named climbs (Isola 2000, Mortirolo, Tourmalet).
+
+## Wave 29 — Live multi-rider + UX gaps
+WebRTC DataChannel multi-rider with copy-paste SDP signaling (reuses the race protocol's manifest pattern). Drafting extends to real peers. Handlebar gestures: double-tap to pause/resume, long-press for quick actions, two-finger swipe for ±10W ERG adjust. Low-light HUD auto-engages 18:00-06:00 local. Workout voice cues during structured intervals. Sustained-climb auto-segmentation with optional voice announcements.
+
+## Wave 28 — AI commentary + outdoor GPS + debt cleanup
+Live AI race commentator via xAI + Web Speech API — 8 trigger types, throttled at 45s, ~15-word punchy play-by-play with cached static lines for common milestones to keep cost down. Outdoor GPS Mode turns the app into a Strava-replacement bike computer: `navigator.geolocation.watchPosition()` records a real outdoor ride, power estimated from speed + grade via inverse physics, FIT exporter unchanged. RaceResultCard now imports real types from raceProtocol. Strava `uploadFit` retries on 429 with exponential backoff. Orphan glTF generation scripts deleted (-100 KB).
+
+## Wave 24-27 — Elite initiative round
+Ride graphics push (motion blur on descents, screen-space DOM lens flare, route glow, refined avatar materials). UX polish across 6 screens. Data export panel (CSV rides + JSON achievements / records / races). Lazy-loaded `/ride` `/explore` `/companion` (~138 KB bundle reduction). 12 new achievements. Strava `rate_limited` error kind + upload deduplication. 7-step onboarding refresh with inline SVG hero illustrations.
+
 ## Wave 23 — Phone companion screen
 BroadcastChannel bridge lets a phone act as a paired HR/cadence sensor and remote ride control via `/companion`.
 
