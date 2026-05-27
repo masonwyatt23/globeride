@@ -83,20 +83,24 @@ export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
   if (_baseImageryAdded.has(viewer)) return;
   _baseImageryAdded.add(viewer);
 
-  // Try asset 2 (Bing Maps Aerial with Labels) first, then fall back to
-  // asset 3812 (Bing Aerial without labels) if the first isn't available.
-  const assetIds = [2, 3812];
-
-  for (const assetId of assetIds) {
-    try {
-      const provider = await Cesium.IonImageryProvider.fromAssetId(assetId);
-      if (viewer.isDestroyed()) return;
-      const layer = new Cesium.ImageryLayer(provider, {});
-      viewer.scene.imageryLayers.add(layer);
-      return; // success — don't try the fallback
-    } catch {
-      // This asset isn't accessible with the current token — try the next one.
-    }
+  // Asset 2 = Bing Maps Aerial with Labels — available with every Cesium ion
+  // token (free tier included).  Asset 3812 (Bing without labels) was removed:
+  // it requires a separate entitlement that most tokens lack, causing a 404 +
+  // Cesium E1 console error on every page load.  Google Photorealistic 3D
+  // Tiles (asset 2275207) already renders buildings in cities, so no secondary
+  // imagery fallback is needed.
+  try {
+    const provider = await Cesium.IonImageryProvider.fromAssetId(2);
+    if (viewer.isDestroyed()) return;
+    const layer = new Cesium.ImageryLayer(provider, {});
+    viewer.scene.imageryLayers.add(layer);
+  } catch {
+    // Ion token lacks Bing access — continue without base imagery rather than
+    // requesting a second asset that would also 404 and spam the console.
+    console.warn(
+      '[CesiumViewer] Bing Aerial imagery (ion asset 2) unavailable; ' +
+        'continuing without base imagery.',
+    );
   }
 }
 

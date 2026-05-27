@@ -300,7 +300,7 @@ function PmcChart({ series }: { series: DailyLoad[] }) {
 
   return (
     <div className="h-56 w-full select-none" aria-label="Performance Management Chart">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={40} minHeight={28}>
         <ComposedChart
           data={data}
           margin={{ top: 8, right: 6, bottom: 0, left: 0 }}

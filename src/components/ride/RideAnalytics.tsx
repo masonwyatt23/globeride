@@ -81,7 +81,7 @@ function PowerCurveChart({
 
   return (
     <div className="h-36">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={40} minHeight={28}>
         <BarChart data={data} margin={{ top: 16, right: 4, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
           <XAxis

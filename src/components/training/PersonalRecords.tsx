@@ -217,7 +217,7 @@ function AllTimePowerCurve({ curve }: { curve: AllTimePowerPoint[] }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="h-40">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={40} minHeight={28}>
           <BarChart data={data} margin={{ top: 18, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
             <XAxis
@@ -408,7 +408,7 @@ function TrendCharts({
         </div>
       ) : (
         <div className="h-44">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={40} minHeight={28}>
             <AreaChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">

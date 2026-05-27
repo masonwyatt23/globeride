@@ -142,7 +142,7 @@ export function RoutePreview() {
           Elevation profile
         </div>
         <div className="h-20">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={40} minHeight={28}>
             <AreaChart data={spark} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="rpElevFill" x1="0" y1="0" x2="0" y2="1">
