@@ -32,7 +32,7 @@ export function RealEarthScene({
   ...props
 }: IllustrationProps) {
   return (
-    <svg {...base} {...props} aria-label={title}>
+    <svg {...base} {...props} role="img" aria-label={title}>
       <title>{title}</title>
       <defs>
         <linearGradient id="re-sky" x1="0" y1="0" x2="0" y2="1">
@@ -136,7 +136,7 @@ export function TrainerScene({
   ...props
 }: IllustrationProps) {
   return (
-    <svg {...base} {...props} aria-label={title}>
+    <svg {...base} {...props} role="img" aria-label={title}>
       <title>{title}</title>
       <defs>
         <linearGradient id="tr-sky" x1="0" y1="0" x2="0" y2="1">
@@ -257,7 +257,7 @@ export function PelotonScene({
   ...props
 }: IllustrationProps) {
   return (
-    <svg {...base} {...props} aria-label={title}>
+    <svg {...base} {...props} role="img" aria-label={title}>
       <title>{title}</title>
       <defs>
         <linearGradient id="pel-sky" x1="0" y1="0" x2="0" y2="1">
@@ -359,7 +359,7 @@ export function CoachScene({
   ...props
 }: IllustrationProps) {
   return (
-    <svg {...base} {...props} aria-label={title}>
+    <svg {...base} {...props} role="img" aria-label={title}>
       <title>{title}</title>
       <defs>
         <linearGradient id="coach-sky" x1="0" y1="0" x2="0" y2="1">
@@ -470,7 +470,7 @@ export function CompanionScene({
   ...props
 }: IllustrationProps) {
   return (
-    <svg {...base} {...props} aria-label={title}>
+    <svg {...base} {...props} role="img" aria-label={title}>
       <title>{title}</title>
       <defs>
         <linearGradient id="comp-sky" x1="0" y1="0" x2="0" y2="1">

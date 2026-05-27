@@ -11,6 +11,12 @@
  *
  * Implementation uses a Cesium Entity with an `ellipse` geometry clamped to
  * the ground, which is cheaper than a GroundPrimitive for a single shape.
+ *
+ * No unit tests: every exported function requires a live Cesium.Viewer and
+ * real Cesium.Entity objects. Mocking the Cesium runtime faithfully enough
+ * to exercise shadow geometry would replicate Cesium internals, not our
+ * logic. Integration coverage lives in the CesiumViewer component tests
+ * (manual or headless-browser with a GPU context).
  */
 
 import * as Cesium from 'cesium';

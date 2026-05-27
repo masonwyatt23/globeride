@@ -117,11 +117,16 @@ export function spanToAltitude(spanDeg: number, paddingFactor = 1.3): number {
  *                     tree-shakeable and testable without the full bundle).
  * @param paddingFactor Zoom-out multiplier, default 1.3.
  */
+/** Minimal Cesium namespace shape required by fitCameraToRoute. */
+type CesiumNS = {
+  Cartesian3: { fromDegrees(lon: number, lat: number, alt: number): object };
+  Math: { PI_OVER_TWO: number };
+};
+
 export function fitCameraToRoute(
   viewer: CesiumViewer,
   route: Route,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Cesium: any,
+  Cesium: CesiumNS,
   paddingFactor = 1.3,
 ): void {
   const bounds = computeRouteBounds(route);

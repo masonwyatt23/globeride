@@ -104,8 +104,8 @@ export function ExploreGlobe({ ionToken }: { ionToken: string }) {
       scene.skyAtmosphere.perFragmentAtmosphere = true;
       // Richer Rayleigh scattering → deeper blue limb at high altitude.
       if ('atmosphereLightIntensity' in scene.skyAtmosphere) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (scene.skyAtmosphere as any).atmosphereLightIntensity = 60;
+        // atmosphereLightIntensity is a Cesium private field not yet in @types/cesium.
+        (scene.skyAtmosphere as Cesium.SkyAtmosphere & { atmosphereLightIntensity?: number }).atmosphereLightIntensity = 60;
       }
     }
 

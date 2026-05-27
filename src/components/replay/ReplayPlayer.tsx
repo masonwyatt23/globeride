@@ -34,7 +34,10 @@ import {
 import type { ReplayState } from '@/lib/replay/replayPlayer';
 import { detectHighlights } from '@/lib/replay/highlightDetector';
 import { sequenceCameras } from '@/lib/replay/cinematicSequencer';
-import { isWebCodecsSupported } from '@/lib/replay/videoExport';
+/** Inline capability check — avoids a static import of the heavy WebCodecs module. */
+function isWebCodecsSupported(): boolean {
+  return typeof VideoEncoder !== 'undefined';
+}
 import type { CameraMode } from '@/lib/cesiumCameras';
 import { CAMERA_MODES } from '@/lib/cesiumCameras';
 import type { RideRecord } from '@/lib/rideHistory';

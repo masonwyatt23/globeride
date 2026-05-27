@@ -1,3 +1,14 @@
+/**
+ * cesiumUtils.ts — Centralized Cesium helpers for the GlobeRide viewer.
+ *
+ * No unit tests: this module is a direct wrapper around Cesium.Viewer,
+ * Cesium.Ion, Cesium.JulianDate, and related runtime APIs. Every meaningful
+ * function either mutates viewer state or delegates to Cesium internals that
+ * cannot be instantiated in a Node/jsdom environment without a GPU context.
+ * Integration coverage requires a real browser with WebGL or the Cesium
+ * sandcastle emulator; no meaningful unit seam exists here.
+ */
+
 import * as Cesium from 'cesium';
 import type { Route } from '@/types';
 import type { SkyConfig } from '@/lib/skyAndClouds';
@@ -565,9 +576,10 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
   const scene = viewer.scene;
 
   // Fog — density + height falloff for atmospheric depth.
+  // FogExtended narrows the subset of private Cesium.Fog fields we probe at runtime.
+  type FogExtended = Cesium.Fog & { minimumBrightness?: number; heightScalar?: number };
   scene.fog.density = p.fogDensity;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fog = scene.fog as any;
+  const fog = scene.fog as FogExtended;
   if ('minimumBrightness' in fog) fog.minimumBrightness = p.fogMinimumBrightness;
   if ('heightScalar' in fog) fog.heightScalar = p.fogHeightScalar;
 
@@ -585,9 +597,15 @@ export function applySceneMood(viewer: Cesium.Viewer, mood: SceneMood): void {
 
   // Ground atmosphere (scene.atmosphere) — haze band at terrain level.
   // Available in Cesium 1.107+; guard with 'atmosphere' in scene check.
+  // AtmosphereExtended narrows the private Cesium ground-atmosphere fields we probe.
+  type AtmosphereExtended = {
+    hueShift?: number;
+    saturationShift?: number;
+    brightnessShift?: number;
+    dynamicLighting?: number;
+  };
   if ('atmosphere' in scene && scene.atmosphere) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const atm = scene.atmosphere as any;
+    const atm = scene.atmosphere as AtmosphereExtended;
     if ('hueShift' in atm) atm.hueShift = p.groundHueShift;
     if ('saturationShift' in atm) atm.saturationShift = p.groundSaturationShift;
     if ('brightnessShift' in atm) atm.brightnessShift = p.groundBrightnessShift;

@@ -12,6 +12,8 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import { toPng } from 'html-to-image';
 import { useRideStore } from '@/stores/rideStore';
 import { shortId, formatDuration } from '@/lib/utils';
@@ -54,11 +56,7 @@ async function downloadResultCard(
   raceName: string,
   raceOrganiser?: string,
 ): Promise<void> {
-  const [{ RaceResultCard }, { createRoot }, { createElement }] = await Promise.all([
-    import('@/components/race/RaceResultCard'),
-    import('react-dom/client'),
-    import('react'),
-  ]);
+  const { RaceResultCard } = await import('@/components/race/RaceResultCard');
 
   const CARD_W = 1080;
   const CARD_H = 1350;

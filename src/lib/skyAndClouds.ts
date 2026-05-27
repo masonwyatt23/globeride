@@ -321,8 +321,10 @@ export function spawnCumulusClouds(
   // CloudCollection was added in Cesium 1.102; guard for older bundles.
   if (!('CloudCollection' in Cesium)) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const collection = new (Cesium as any).CloudCollection() as Cesium.CloudCollection;
+  // Cesium.CloudCollection is a runtime API added in 1.102 not yet reflected in
+  // @types/cesium — narrow with a typed constructor shape instead of `any`.
+  type CesiumWithClouds = typeof Cesium & { CloudCollection: new () => Cesium.CloudCollection };
+  const collection = new (Cesium as CesiumWithClouds).CloudCollection();
   const rand = seededRandom(Math.round(centerLat * 1000 + centerLon * 1000));
   const RADIUS_DEG = 0.09; // ~10 km at mid-latitudes
 

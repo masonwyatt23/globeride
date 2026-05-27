@@ -313,7 +313,7 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
 
           {/* Status */}
           {status && (
-            <p className="text-xs bg-white/5 rounded-lg px-3 py-2 text-muted-foreground">{status}</p>
+            <p className="text-xs bg-white/5 rounded-lg px-3 py-2 text-muted-foreground" role="status" aria-live="polite">{status}</p>
           )}
 
           {/* Idle: pick mode */}
@@ -373,6 +373,7 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
                       variant="ghost" size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
                       onClick={() => copyToClipboard(hostOfferBlob, 'invite')}
+                      aria-label={copied === 'invite' ? 'Copied room invite' : 'Copy room invite'}
                     >
                       {copied === 'invite' ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
                     </Button>
@@ -422,6 +423,7 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
                       variant="ghost" size="icon"
                       className="absolute top-1 right-1 h-6 w-6"
                       onClick={() => copyToClipboard(answerBlobForJoiner, 'answer')}
+                      aria-label={copied === 'answer' ? 'Copied answer' : 'Copy answer to send back'}
                     >
                       {copied === 'answer' ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
                     </Button>
@@ -498,6 +500,7 @@ export function PelotonRoom({ onClose, onMeshReady, onMeshClosed }: Props) {
                         variant="ghost" size="icon"
                         className="absolute top-1 right-1 h-6 w-6"
                         onClick={() => copyToClipboard(joinManifestBlob, 'joinManifest')}
+                        aria-label={copied === 'joinManifest' ? 'Copied join request' : 'Copy join request'}
                       >
                         {copied === 'joinManifest' ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
                       </Button>

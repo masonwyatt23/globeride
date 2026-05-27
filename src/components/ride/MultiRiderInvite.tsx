@@ -326,12 +326,12 @@ export function MultiRiderInvite({ onClose, onMeshReady, onMeshClosed }: Props) 
         <div className="p-4 space-y-3">
           {/* Status message */}
           {statusMsg && (
-            <p className="text-xs text-muted-foreground bg-white/5 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground bg-white/5 rounded-lg px-3 py-2" role="status" aria-live="polite">
               {statusMsg}
             </p>
           )}
           {error && (
-            <p className="text-xs text-red-400 bg-red-950/30 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-xs text-red-400 bg-red-950/30 rounded-lg px-3 py-2" role="alert" aria-live="assertive">{error}</p>
           )}
 
           {/* Connected state */}

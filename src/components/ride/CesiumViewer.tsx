@@ -559,7 +559,9 @@ export function CesiumViewer({
       for (const seg of gradientSegmentsRef.current) {
         if (seg.entity.polyline) {
           // Cesium's entity system accepts a raw Material on polyline.material
-          // via the MaterialProperty duck-type path at runtime.
+          // via the MaterialProperty duck-type path at runtime. The declared type
+          // is MaterialProperty but the runtime also accepts Cesium.Material —
+          // suppress only the setter, not the entire object.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (seg.entity.polyline as any).material = mat;
         }

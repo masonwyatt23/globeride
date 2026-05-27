@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { useRideStore } from '@/stores/rideStore';
 import { msToKmh } from '@/lib/utils';
 import { getDomOverlayType } from '@/lib/webxr/xrDomOverlay';
+import { isInVR, getActiveSession } from '@/lib/webxr/xrSession';
 
 // ---------------------------------------------------------------------------
 // Shared hook — polls XR session state every 500 ms
@@ -39,16 +40,14 @@ function useVRState(): VRPollState {
 
   useEffect(() => {
     const id = setInterval(() => {
-      import('@/lib/webxr/xrSession').then(({ isInVR, getActiveSession }) => {
-        const inVR = isInVR();
-        if (!inVR) {
-          setState({ inVR: false, overlayType: null });
-          return;
-        }
-        const session = getActiveSession?.();
-        const overlayType = session ? getDomOverlayType(session) : null;
-        setState({ inVR: true, overlayType });
-      }).catch(() => undefined);
+      const inVR = isInVR();
+      if (!inVR) {
+        setState({ inVR: false, overlayType: null });
+        return;
+      }
+      const session = getActiveSession?.();
+      const overlayType = session ? getDomOverlayType(session) : null;
+      setState({ inVR: true, overlayType });
     }, 500);
     return () => clearInterval(id);
   }, []);

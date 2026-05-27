@@ -2,6 +2,14 @@
  * routeVisuals.ts — helpers for the gradient-coloured route line and
  * route markers (start / finish / kilometre posts).
  *
+ * No unit tests: every exported function accepts a live Cesium.Viewer and
+ * creates Cesium.Entity / Cesium.PolylineGeometry objects that cannot be
+ * constructed outside a WebGL context. The gradient-colour math (green →
+ * yellow → orange → red by grade %) is thin enough that a mock would just
+ * duplicate the implementation. Integration coverage is provided by the
+ * manual CesiumViewer ride-load flow and the gradientCalculator unit tests
+ * which cover the underlying slope computation.
+ *
  * Design goals
  * ─────────────
  * • Gradient colour — green→yellow→orange→red by steepness, matching
