@@ -15,7 +15,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cesium.com https://*.cesium.com; style-src 'self' 'unsafe-inline' https://cesium.com https://*.cesium.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.cesium.com https://*.cesium.com https://www.strava.com https://api.x.ai https://nominatim.openstreetmap.org https://router.project-osrm.org; worker-src 'self' blob:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cesium.com https://*.cesium.com; script-src-elem 'self' 'unsafe-inline' blob: https://cesium.com https://*.cesium.com; style-src 'self' 'unsafe-inline' https://cesium.com https://*.cesium.com; img-src 'self' data: blob: https:; connect-src 'self' blob: data: https://api.cesium.com https://*.cesium.com https://assets.cesium.com https://assets.ion.cesium.com https://*.ion.cesium.com https://www.strava.com https://www.strava.com/api https://api.x.ai https://nominatim.openstreetmap.org https://router.project-osrm.org https://*.tile.openstreetmap.org https://tile.googleapis.com https://*.googleapis.com https://dev.virtualearth.net https://*.virtualearth.net https://ecn.t0.tiles.virtualearth.net https://ecn.t1.tiles.virtualearth.net https://ecn.t2.tiles.virtualearth.net https://ecn.t3.tiles.virtualearth.net; worker-src 'self' blob:; child-src 'self' blob:; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self';"
         },
         {
           "key": "X-Frame-Options",
