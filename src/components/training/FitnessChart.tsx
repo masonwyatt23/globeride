@@ -41,10 +41,13 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  Bike,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { useRideHistory } from '@/hooks/useRideHistory';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { EmptyState } from '@/components/EmptyState';
 import {
   computeTrainingLoadFromRecords,
   classifyForm,
@@ -426,22 +429,7 @@ function Legend() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border/60 bg-muted/20 px-4 py-10 text-center">
-      <Activity className="h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
-      <div className="text-sm font-semibold text-foreground">No training data yet</div>
-      <div className="text-xs text-muted-foreground max-w-[28ch] leading-relaxed">
-        Complete a few rides and your fitness, fatigue, and form will appear here.
-        The chart uses the standard 42-day / 7-day model.
-      </div>
-    </div>
-  );
-}
+// (EmptyState imported from @/components/EmptyState)
 
 // ---------------------------------------------------------------------------
 // Root component
@@ -461,6 +449,7 @@ export interface FitnessChartProps {
  * RideHistory component in any tab that shows training overview.
  */
 export function FitnessChart({ className }: FitnessChartProps) {
+  const navigate = useNavigate();
   const ftpW = useSettingsStore((s) => s.ftpW);
 
   const { rides, loading, error, reload } = useRideHistory();
@@ -504,7 +493,19 @@ export function FitnessChart({ className }: FitnessChartProps) {
     return (
       <div className={cn('flex flex-col gap-4', className)}>
         <SectionTitle />
-        <EmptyState />
+        <EmptyState
+          title="No training data yet"
+          description="Complete a few rides and your fitness (CTL), fatigue (ATL), and form (TSB) will appear here. The chart uses the standard 42-day / 7-day model."
+          icon={<Activity className="h-7 w-7" />}
+          actions={[
+            {
+              label: 'Start your first ride',
+              primary: true,
+              icon: <Bike />,
+              onClick: () => navigate('/'),
+            },
+          ]}
+        />
       </div>
     );
   }

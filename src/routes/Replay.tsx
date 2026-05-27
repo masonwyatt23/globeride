@@ -32,17 +32,35 @@ function LoadingScreen() {
 
 function ErrorScreen({ message }: { message: string }) {
   const navigate = useNavigate();
+  const isNoRide = message.includes('not found') || message.includes('no telemetry');
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-4">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-4 px-6 text-center">
       <AlertCircle className="h-8 w-8 text-destructive" />
-      <p className="text-sm text-muted-foreground max-w-xs text-center">{message}</p>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="text-xs text-primary hover:underline"
-      >
-        Go back
-      </button>
+      <p className="text-sm text-muted-foreground max-w-xs">{message}</p>
+      {isNoRide && (
+        <p className="text-xs text-muted-foreground max-w-[28ch] leading-relaxed">
+          Finish a ride first — GlobeRide records telemetry automatically so you can
+          watch it back in cinematic replay.
+        </p>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+        >
+          Go back
+        </button>
+        {isNoRide && (
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-lg font-semibold hover:bg-primary/90"
+          >
+            Start a ride
+          </button>
+        )}
+      </div>
     </div>
   );
 }

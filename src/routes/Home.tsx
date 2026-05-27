@@ -224,7 +224,7 @@ export function Home() {
                     <>
                   <RouteSearch />
 
-                  <details className="group">
+                  <details className="group" data-gpx-uploader>
                     <summary className="cursor-pointer flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors list-none select-none">
                       <span className="group-open:rotate-90 transition-transform inline-block">›</span>
                       Advanced: upload your own GPX or replay a .FIT
@@ -489,7 +489,7 @@ export function Home() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-iconic-routes>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />

@@ -249,6 +249,29 @@ export function Companion() {
       <CompanionHeader tabletConnected={tabletConnected} />
 
       <div className="flex flex-col gap-4 px-4 pb-6 pt-2">
+        {/* ── Pairing instructions — shown until tablet connects ────────── */}
+        {!tabletConnected && (
+          <div className="rounded-2xl p-5 bg-white/4 ring-1 ring-white/8">
+            <div className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">
+              How to pair
+            </div>
+            <ol className="flex flex-col gap-2 text-sm text-white/70 leading-relaxed list-decimal list-inside">
+              <li>Open GlobeRide on your <strong className="text-white/90">tablet or laptop</strong> and start a ride.</li>
+              <li>Open this page (<span className="font-mono text-white/60 text-xs">{typeof window !== 'undefined' ? window.location.href : '/companion'}</span>) on your <strong className="text-white/90">phone</strong>.</li>
+              <li>Both devices must be on the <strong className="text-white/90">same browser</strong> profile — pairing uses BroadcastChannel (no internet needed).</li>
+            </ol>
+            <button
+              type="button"
+              onClick={() => {
+                try { navigator.clipboard.writeText(window.location.href); } catch { /* noop */ }
+              }}
+              className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold bg-white/8 text-white/60 ring-1 ring-white/12 transition-all duration-150 active:scale-[0.97] hover:bg-white/12"
+            >
+              Copy companion link
+            </button>
+          </div>
+        )}
+
         {/* ── HR card ──────────────────────────────────────────────────── */}
         <HrCard
           status={hrStatus}
