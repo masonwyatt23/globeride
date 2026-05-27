@@ -8,7 +8,7 @@ export function LandingHeader() {
 
   return (
     <header
-      className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 lg:px-10 py-2.5 sm:py-3 animate-slideDown"
+      className="fixed top-0 inset-x-0 z-50 flex items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 lg:px-10 py-2.5 sm:py-3 animate-slideDown min-h-[56px]"
       style={{
         background: 'hsl(220 42% 4% / 0.85)',
         backdropFilter: 'blur(20px) saturate(180%)',

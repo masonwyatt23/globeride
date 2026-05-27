@@ -62,8 +62,34 @@ export function ComparisonSection() {
           </p>
         </div>
 
-        {/* Table wrapper — horizontal scroll on mobile */}
-        <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid hsl(215 26% 14%)' }}>
+        {/* Mobile: stacked cards (one per row) */}
+        <div className="sm:hidden flex flex-col gap-2">
+          {ROWS.map((row) => (
+            <div
+              key={row.axis}
+              className="rounded-xl px-4 py-3"
+              style={{ background: 'hsl(215 32% 6%)', border: '1px solid hsl(215 26% 12%)' }}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: 'hsl(215 18% 40%)' }}>{row.axis}</p>
+              <div className="flex gap-3">
+                <div className="flex-1 rounded-lg px-3 py-2" style={{ background: 'hsl(195 92% 56% / 0.06)', border: '1px solid hsl(195 92% 56% / 0.18)' }}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#22d3ee' }}>GlobeRide</p>
+                  <span className="flex items-center gap-1 text-xs" style={{ color: 'hsl(195 80% 80%)' }}>
+                    <Tick />
+                    {row.globeride}
+                  </span>
+                </div>
+                <div className="flex-1 rounded-lg px-3 py-2" style={{ background: 'hsl(215 32% 5%)', border: '1px solid hsl(215 26% 12%)' }}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'hsl(215 18% 40%)' }}>Zwift</p>
+                  <span className="text-xs" style={{ color: 'hsl(215 18% 50%)' }}>{row.zwift}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: full table */}
+        <div className="hidden sm:block overflow-x-auto rounded-2xl" style={{ border: '1px solid hsl(215 26% 14%)' }}>
           <table className="w-full min-w-[520px] border-collapse text-sm">
             <thead>
               <tr>

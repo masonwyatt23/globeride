@@ -173,6 +173,9 @@ export function FeatureAvatarScene({ ionToken }: { ionToken: string }) {
     }
 
     const onPreRender = () => {
+      // Belt-and-suspenders: skip the frame if Cesium is torn down (h:0 race).
+      if (viewer.isDestroyed()) return;
+
       const nowMs = performance.now();
       const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
       lastTickMs = nowMs;
@@ -188,6 +191,15 @@ export function FeatureAvatarScene({ ionToken }: { ionToken: string }) {
       const next = toC3(nextCoord);
 
       // Heading from current to next in ENU frame.
+      // Guard: if current is degenerate (NaN components from bad coords),
+      // eastNorthUpToFixedFrame produces an invalid matrix — skip the frame.
+      if (!Cesium.Cartesian3.equals(current, current)) {
+        // NaN check: NaN !== NaN, so Cartesian3.equals fails on NaN input.
+        if (import.meta.env.DEV) {
+          console.warn('[FeatureAvatarScene] frame skipped — degenerate position');
+        }
+        return;
+      }
       const enu = Cesium.Transforms.eastNorthUpToFixedFrame(current);
       const inv = Cesium.Matrix4.inverseTransformation(enu, new Cesium.Matrix4());
       const localNext = Cesium.Matrix4.multiplyByPoint(inv, next, new Cesium.Cartesian3());

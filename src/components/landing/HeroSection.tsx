@@ -76,8 +76,8 @@ export function HeroSection() {
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 60% at 15% 80%, hsl(158 80% 42% / 0.05) 0%, transparent 70%)' }} />
       </div>
 
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-24 lg:py-0 flex flex-col lg:flex-row items-center gap-12 lg:gap-0">
-        <div className="relative flex-1 lg:pr-8 text-center lg:text-left z-10">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-28 pb-16 sm:pt-32 sm:pb-20 lg:py-0 flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-0">
+        <div className="relative flex-1 lg:pr-8 text-center lg:text-left z-10 order-1 lg:order-none">
           <div
             className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fadeUp"
             style={{ background: 'hsl(195 92% 56% / 0.08)', border: '1px solid hsl(195 92% 56% / 0.25)', color: '#22d3ee' }}
@@ -91,7 +91,7 @@ export function HeroSection() {
 
           <h1
             className="font-extrabold text-white animate-fadeUp [animation-delay:60ms]"
-            style={{ fontSize: 'clamp(3.25rem, 8.5vw, 6.5rem)', lineHeight: '0.93', letterSpacing: '-0.045em' }}
+            style={{ fontSize: 'clamp(2.5rem, 9vw, 6.5rem)', lineHeight: '0.93', letterSpacing: '-0.045em' }}
           >
             Ride{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -118,7 +118,7 @@ export function HeroSection() {
             <button
               onClick={() => navigate('/app?demo=1')}
               className="inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm sm:text-base active:scale-[0.97] transition-all duration-200"
-              style={{ height: '3.5rem', padding: '0 2rem', background: 'linear-gradient(135deg, #22d3ee, hsl(158 80% 42%))', color: 'hsl(220 42% 4%)', boxShadow: '0 8px 40px -10px hsl(195 92% 56% / 0.7)', border: 'none', cursor: 'pointer' }}
+              style={{ height: '3rem', padding: '0 2rem', background: 'linear-gradient(135deg, #22d3ee, hsl(158 80% 42%))', color: 'hsl(220 42% 4%)', boxShadow: '0 8px 40px -10px hsl(195 92% 56% / 0.7)', border: 'none', cursor: 'pointer', minHeight: '44px' }}
             >
               <Play className="h-4 w-4" fill="currentColor" />
               Try demo route
@@ -127,7 +127,7 @@ export function HeroSection() {
             <button
               onClick={() => setDemoOpen(true)}
               className="inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm sm:text-base active:scale-[0.97] transition-all duration-200"
-              style={{ height: '3.5rem', padding: '0 1.75rem', background: 'transparent', color: '#22d3ee', border: '1px solid hsl(195 92% 56% / 0.35)', cursor: 'pointer' }}
+              style={{ height: '3rem', padding: '0 1.75rem', background: 'transparent', color: '#22d3ee', border: '1px solid hsl(195 92% 56% / 0.35)', cursor: 'pointer', minHeight: '44px' }}
             >
               <MonitorPlay className="h-4 w-4" />
               Watch demo
@@ -137,7 +137,7 @@ export function HeroSection() {
               size="lg"
               onClick={() => navigate('/app')}
               className="rounded-full text-sm sm:text-base font-bold active:scale-[0.97]"
-              style={{ height: '3.5rem', padding: '0 2rem', background: 'hsl(220 42% 9%)', color: 'white', border: '1px solid hsl(215 26% 20%)', boxShadow: 'none' }}
+              style={{ height: '3rem', padding: '0 2rem', background: 'hsl(220 42% 9%)', color: 'white', border: '1px solid hsl(215 26% 20%)', boxShadow: 'none', minHeight: '44px' }}
             >
               Launch app
               <ArrowRight className="h-4 w-4" />
@@ -147,8 +147,8 @@ export function HeroSection() {
               href="https://github.com/masonwyatt23/globeride"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors duration-200 active:scale-[0.97]"
-              style={{ height: '3.5rem', padding: '0 1.5rem', background: 'transparent', color: 'hsl(215 18% 55%)', border: '1px solid hsl(215 26% 18%)' }}
+              className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors duration-200 active:scale-[0.97]"
+              style={{ height: '3rem', padding: '0 1.5rem', background: 'transparent', color: 'hsl(215 18% 55%)', border: '1px solid hsl(215 26% 18%)', minHeight: '44px' }}
             >
               <Github className="h-4 w-4" />
               GitHub
@@ -176,8 +176,8 @@ export function HeroSection() {
         </div>
 
         <div
-          className="relative flex-1 flex items-center justify-center w-full max-w-sm sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms]"
-          style={{ minHeight: '320px' }}
+          className="relative flex-1 flex items-center justify-center w-full max-w-xs sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms] order-2 lg:order-none"
+          style={{ minHeight: '240px' }}
         >
           {/* Parallax wrapper — mouse-tracking via useEffect above */}
           <div

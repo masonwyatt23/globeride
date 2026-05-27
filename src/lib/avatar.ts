@@ -1361,6 +1361,22 @@ export function createAvatar(viewer: Cesium.Viewer, options?: AvatarOptions): Av
   }
 
   function update(u: AvatarUpdate): void {
+    // Defensive: if any positional input is NaN/non-finite, skip this frame
+    // rather than letting degenerate values corrupt Cesium matrix math.
+    if (
+      !Number.isFinite(u.lon) ||
+      !Number.isFinite(u.lat) ||
+      !Number.isFinite(u.ele) ||
+      !Number.isFinite(u.heading)
+    ) {
+      if (import.meta.env.DEV) {
+        console.warn('[avatar] update() skipped — non-finite position input', {
+          lon: u.lon, lat: u.lat, ele: u.ele, heading: u.heading,
+        });
+      }
+      return;
+    }
+
     const dt = Math.min(0.1, Math.max(0, u.dt));
     elapsedMs += dt * 1000;
 

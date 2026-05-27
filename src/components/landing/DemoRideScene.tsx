@@ -312,14 +312,26 @@ export function DemoRideScene({ ionToken }: { ionToken: string }) {
     }
 
     const onPreRender = () => {
+      // Belt-and-suspenders: skip the frame entirely if Cesium is torn down.
+      if (viewer.isDestroyed()) return;
+
       const nowMs = performance.now();
       const dt = Math.min((nowMs - lastTickMs) / 1000, 0.1);
       lastTickMs = nowMs;
       phaseElapsed += dt;
 
       // --- Photoreal altitude gate ---
+      // positionCartographic can be undefined when the canvas has zero size
+      // (h:0 race) and Cesium's camera state is corrupt — guard before read.
       if (photorealTileset && !photorealTileset.isDestroyed()) {
-        const altM = viewer.camera.positionCartographic.height;
+        const cartographic = viewer.camera.positionCartographic;
+        if (!cartographic) {
+          if (import.meta.env.DEV) {
+            console.warn('[DemoRideScene] frame skipped — positionCartographic undefined');
+          }
+          return;
+        }
+        const altM = cartographic.height;
         photorealTileset.show = altM < PHOTOREAL_SHOW_ALTITUDE_M;
       }
 

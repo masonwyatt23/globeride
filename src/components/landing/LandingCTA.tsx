@@ -65,12 +65,12 @@ export function LandingCTA() {
         </p>
 
         {/* CTA row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 max-w-sm sm:max-w-none mx-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
           {/* Primary: Try demo */}
           <button
             onClick={() => navigate('/app?demo=1')}
             className="inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm sm:text-base active:scale-[0.97] transition-all duration-200"
-            style={{ height: '3.5rem', padding: '0 2rem', background: 'linear-gradient(135deg, #22d3ee, hsl(158 80% 42%))', color: 'hsl(220 42% 4%)', boxShadow: '0 8px 40px -10px hsl(195 92% 56% / 0.65)', border: 'none', cursor: 'pointer' }}
+            style={{ minHeight: '44px', height: '3rem', padding: '0 2rem', background: 'linear-gradient(135deg, #22d3ee, hsl(158 80% 42%))', color: 'hsl(220 42% 4%)', boxShadow: '0 8px 40px -10px hsl(195 92% 56% / 0.65)', border: 'none', cursor: 'pointer' }}
           >
             <Play className="h-4 w-4" fill="currentColor" />
             Try demo route
@@ -81,7 +81,7 @@ export function LandingCTA() {
             onClick={handleInstall}
             disabled={installing}
             className="inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm sm:text-base active:scale-[0.97] transition-all duration-200 disabled:opacity-60"
-            style={{ height: '3.5rem', padding: '0 1.75rem', background: 'hsl(220 42% 8%)', color: 'white', border: '1px solid hsl(215 26% 20%)', cursor: 'pointer', boxShadow: 'none' }}
+            style={{ minHeight: '44px', height: '3rem', padding: '0 1.75rem', background: 'hsl(220 42% 8%)', color: 'white', border: '1px solid hsl(215 26% 20%)', cursor: 'pointer', boxShadow: 'none' }}
           >
             <Download className="h-4 w-4" />
             {installing ? 'Installing…' : 'Install app'}
@@ -93,7 +93,7 @@ export function LandingCTA() {
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors duration-200 active:scale-[0.97]"
-            style={{ height: '3.5rem', padding: '0 1.5rem', background: 'transparent', color: 'hsl(215 18% 55%)', border: '1px solid hsl(215 26% 18%)' }}
+            style={{ minHeight: '44px', height: '3rem', padding: '0 1.5rem', background: 'transparent', color: 'hsl(215 18% 55%)', border: '1px solid hsl(215 26% 18%)' }}
           >
             <Github className="h-4 w-4" />
             GitHub

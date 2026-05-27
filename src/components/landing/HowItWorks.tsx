@@ -95,7 +95,7 @@ export function HowItWorks() {
           {STEPS.map((step, i) => (
             <div
               key={step.n}
-              className="step-reveal-child landing-fade-in-up relative flex flex-col md:items-center md:text-center items-start text-left group"
+              className="step-reveal-child landing-fade-in-up relative flex flex-col md:items-center md:text-center items-center text-center md:text-center group"
             >
               {/* Step bubble — glass treatment */}
               <div
@@ -129,7 +129,7 @@ export function HowItWorks() {
               </div>
 
               <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-2">{step.title}</h3>
-              <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
+              <p className="text-sm leading-relaxed max-w-xs mx-auto md:mx-0" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
             </div>
           ))}
         </div>

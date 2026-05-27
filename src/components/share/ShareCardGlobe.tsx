@@ -35,6 +35,7 @@ import 'cesium/Build/Cesium/Widgets/widgets.css';
 
 import { setIonToken, setupBaseImagery } from '@/lib/cesiumUtils';
 import { fitCameraToRoute, waitForCesiumReady, type CesiumViewer } from '@/lib/shareCardCapture';
+import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
 import type { Route } from '@/types';
 
 /** Brand aqua — matches CYAN constant in ShareCard.tsx */
@@ -83,6 +84,13 @@ export function ShareCardGlobe({
 
     async function init() {
       try {
+        // Wait for the container to have positive layout dimensions before
+        // constructing the Viewer. The share card is rendered off-screen for
+        // capture; its parent may not have completed layout when useEffect
+        // fires, leading to a 0×0 WebGL canvas and a gray share screenshot.
+        await waitForContainerSize(container!);
+        if (cancelled) return;
+
         // Apply token before any Cesium API call.
         setIonToken(ionToken);
 

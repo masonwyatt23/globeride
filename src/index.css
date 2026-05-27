@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  /* Offset anchor scroll by the fixed header height so headlines aren't hidden */
+  html {
+    scroll-padding-top: 64px;
+  }
   :root {
     /* -----------------------------------------------------------------------
        GlobeRide Design System — Light theme

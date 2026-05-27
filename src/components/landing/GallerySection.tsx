@@ -330,14 +330,15 @@ export function GallerySection() {
       </div>
 
       {/* Browse all CTA */}
-      <div className="mt-12 text-center">
+      <div className="mt-12 px-4 flex justify-center">
         <button
           onClick={() => {
             // Navigate to app with route library open
             window.location.href = '/app';
           }}
-          className="inline-flex items-center gap-2 rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-[0.97]"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-full text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-[0.97]"
           style={{
+            minHeight: '44px',
             height: '3rem',
             padding: '0 1.75rem',
             background: 'hsl(220 42% 9%)',

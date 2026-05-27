@@ -230,7 +230,7 @@ export function QuickstartSection() {
           {QUICKSTART_STEPS.map(({ n, title, description, Illustration }) => (
             <div
               key={n}
-              className="relative flex flex-col rounded-2xl p-6 transition-colors duration-300"
+              className="relative flex flex-col rounded-2xl p-4 sm:p-6 transition-colors duration-300"
               style={{
                 background: 'hsl(215 32% 6%)',
                 border: '1px solid hsl(215 26% 12%)',
@@ -257,11 +257,13 @@ export function QuickstartSection() {
         </div>
 
         {/* CTA */}
-        <div className="mt-12 text-center">
+        <div className="mt-12 flex justify-center px-4">
           <button
             onClick={() => navigate('/app')}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-sm font-semibold transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 rounded-full text-sm font-semibold transition-all duration-200"
             style={{
+              height: '3rem',
+              minHeight: '44px',
               background: 'hsl(195 92% 56% / 0.12)',
               border: '1px solid hsl(195 92% 56% / 0.35)',
               color: '#22d3ee',

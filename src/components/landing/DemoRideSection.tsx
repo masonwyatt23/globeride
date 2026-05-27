@@ -215,7 +215,7 @@ export function DemoRideSection({
         <h2
           className="font-extrabold text-white"
           style={{
-            fontSize: 'clamp(1.75rem, 4vw, 3rem)',
+            fontSize: 'clamp(1.5rem, 6vw, 3rem)',
             lineHeight: 1.1,
             letterSpacing: '-0.03em',
           }}

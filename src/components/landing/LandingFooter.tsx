@@ -32,10 +32,11 @@ export function LandingFooter() {
         </button>
 
         {/* Links */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs" style={{ color: 'hsl(215 18% 42%)' }}>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-xs" style={{ color: 'hsl(215 18% 42%)' }}>
           <button
             onClick={() => navigate('/app')}
-            className="hover:text-white transition-colors"
+            className="hover:text-white transition-colors py-1"
+            style={{ minHeight: '44px' }}
           >
             Launch app
           </button>

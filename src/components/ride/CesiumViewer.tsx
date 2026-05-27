@@ -75,6 +75,7 @@ import {
 } from '@/lib/spectatorSystem';
 import { MultiRiderPeers } from '@/components/ride/MultiRiderPeers';
 import { ProPelotonAvatars } from '@/components/ride/ProPelotonAvatars';
+import { waitForContainerSize } from '@/lib/landing/waitForContainerSize';
 import {
   computeCameraPose,
   easedCameraTransition,
@@ -248,32 +249,58 @@ export function CesiumViewer({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    setIonToken(ionToken);
+    // cancelled flag — set by cleanup if the component unmounts before the
+    // async container-size wait resolves (e.g. rapid route navigation).
+    let bootstrapCancelled = false;
 
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      timeline: false,
-      animation: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      navigationHelpButton: false,
-      navigationInstructionsInitiallyVisible: false,
-      // Mark the WebGL context as XR-compatible so that
-      // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
-      // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
-      // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
-      contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
+    // ResizeObserver is hoisted to effect scope (outside the async IIFE) so
+    // the synchronous cleanup `return` can always call ro.disconnect(), even
+    // if the component unmounts before waitForContainerSize resolves.
+    const ro = new ResizeObserver(() => {
+      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+        viewerRef.current.resize();
+      }
     });
-    viewerRef.current = viewer;
-    setActiveViewer(viewer);
-    setViewerReady(true);
-    // Notify the parent so EnterVRButton (and other consumers) can hold a
-    // ref to the viewer for XR session entry.
-    onViewerReady?.(viewer);
+    ro.observe(containerRef.current);
+
+    void (async () => {
+      const container = containerRef.current!;
+
+      // Defensive mount-timing guard (Wave 43.D): wait until the container
+      // has positive layout dimensions before constructing the Cesium Viewer.
+      // The ride view is a full-page route so the race is rare in practice,
+      // but React StrictMode double-invocation and fast navigation can trigger
+      // a 0×0 canvas on the first mount pass. waitForContainerSize resolves
+      // immediately when dimensions are already positive (the common path).
+      await waitForContainerSize(container);
+      if (bootstrapCancelled || !containerRef.current) return;
+
+      setIonToken(ionToken);
+
+      const viewer = new Cesium.Viewer(container, {
+        timeline: false,
+        animation: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        navigationHelpButton: false,
+        navigationInstructionsInitiallyVisible: false,
+        // Mark the WebGL context as XR-compatible so that
+        // navigator.xr.requestSession('immersive-vr' | 'immersive-ar') can use
+        // this canvas. xrCompatible is a valid WebGL context attribute (WebXR
+        // spec) but isn't typed in Cesium's WebGLOptions — cast to satisfy tsc.
+        contextOptions: { webgl: { xrCompatible: true } as Cesium.WebGLOptions },
+      });
+      viewerRef.current = viewer;
+      setActiveViewer(viewer);
+      setViewerReady(true);
+      // Notify the parent so EnterVRButton (and other consumers) can hold a
+      // ref to the viewer for XR session entry.
+      onViewerReady?.(viewer);
 
     // Add Bing Maps Aerial as the permanent globe base layer so terrain is
     // always visible — even in rural areas where Google Photorealistic Tiles
@@ -364,16 +391,18 @@ export function CesiumViewer({
         });
     }
 
-    // Cesium normally listens for window resize, but when the container is
-    // collapsed/expanded by a layout change (sidebar open, breakpoint shift)
-    // we have to nudge it explicitly so the canvas refits.
-    const ro = new ResizeObserver(() => {
-      viewer.resize();
-    });
-    ro.observe(containerRef.current);
+    })(); // end async bootstrap IIFE
 
     return () => {
+      // Signal the async init to bail out if it hasn't constructed the viewer
+      // yet (e.g. unmount before waitForContainerSize resolves).
+      bootstrapCancelled = true;
       ro.disconnect();
+
+      // All mutable state below is read from refs, not the async-IIFE-local
+      // `viewer` const, so cleanup is safe regardless of init completion order.
+      const viewer = viewerRef.current;
+
       removeTickRef.current?.();
       removeTickRef.current = null;
       // Dispose weather system before destroying the viewer.
@@ -383,19 +412,19 @@ export function CesiumViewer({
       skyCleanupRef.current = null;
       shadowHandleRef.current?.destroy();
       shadowHandleRef.current = null;
-      if (cloudCollectionRef.current && !viewer.isDestroyed()) {
+      if (viewer && cloudCollectionRef.current && !viewer.isDestroyed()) {
         try { viewer.scene.primitives.remove(cloudCollectionRef.current); } catch { /* torn down */ }
       }
       cloudCollectionRef.current = null;
       // Dispose ghost avatars — viewer.entities.remove needs isDestroyed guard.
       for (const ga of ghostAvatarsRef.current) {
-        if (!viewer.isDestroyed()) ga.dispose();
+        if (viewer && !viewer.isDestroyed()) ga.dispose();
       }
       ghostAvatarsRef.current = [];
       ghostRidesRef.current = [];
       // Dispose pace bot avatars.
       for (const ba of botAvatarsRef.current) {
-        if (!viewer.isDestroyed()) ba.dispose();
+        if (viewer && !viewer.isDestroyed()) ba.dispose();
       }
       botAvatarsRef.current = [];
       // Explicitly destroy tileset GPU resources after removal.
@@ -403,7 +432,7 @@ export function CesiumViewer({
       // constructed with destroyPrimitives:true (we don't set that flag).
       // Calling destroy() here is the only reliable way to prevent VRAM leaks
       // on rapid route changes and mobile OOM situations.
-      if (tilesetRef.current && !viewer.isDestroyed()) {
+      if (tilesetRef.current && viewer && !viewer.isDestroyed()) {
         try {
           viewer.scene.primitives.remove(tilesetRef.current);
           if (!tilesetRef.current.isDestroyed()) tilesetRef.current.destroy();
@@ -412,7 +441,7 @@ export function CesiumViewer({
         }
       }
       tilesetRef.current = null;
-      if (osmTilesetRef.current && !viewer.isDestroyed()) {
+      if (osmTilesetRef.current && viewer && !viewer.isDestroyed()) {
         try {
           viewer.scene.primitives.remove(osmTilesetRef.current);
           if (!osmTilesetRef.current.isDestroyed()) osmTilesetRef.current.destroy();
@@ -438,8 +467,8 @@ export function CesiumViewer({
       climbArchesRef.current?.destroy();
       climbArchesRef.current = null;
       setActiveViewer(null);
-      if (!viewer.isDestroyed()) destroyCinematicEffects(viewer);
-      if (!viewer.isDestroyed()) viewer.destroy();
+      if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
+      if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
       setViewerReady(false);
     };

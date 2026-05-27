@@ -368,6 +368,45 @@ describe('avatarPrimitiveCount — kitPattern', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Wave 43.C — defensive NaN/non-finite input guards
+// ---------------------------------------------------------------------------
+
+/**
+ * The update() function inside createAvatar() guards against NaN/non-finite
+ * lon/lat/ele/heading before calling Cesium matrix math.  We cannot call
+ * update() directly (it needs a live Cesium.Viewer), so we verify the guard
+ * condition logic and that the math helpers it wraps are safe for valid inputs.
+ */
+
+describe('avatar update() NaN guard — condition logic', () => {
+  /** Mirrors the guard condition in avatar.ts update(). */
+  function wouldSkipFrame(u: { lon: number; lat: number; ele: number; heading: number }): boolean {
+    return (
+      !Number.isFinite(u.lon) ||
+      !Number.isFinite(u.lat) ||
+      !Number.isFinite(u.ele) ||
+      !Number.isFinite(u.heading)
+    );
+  }
+
+  it('returns false (no skip) for a fully valid position', () => {
+    expect(wouldSkipFrame({ lon: 2.82, lat: 41.97, ele: 70, heading: 0.5 })).toBe(false);
+  });
+
+  it('returns true (skip) when lon is NaN', () => {
+    expect(wouldSkipFrame({ lon: NaN, lat: 41.97, ele: 70, heading: 0.5 })).toBe(true);
+  });
+
+  it('returns true (skip) when ele is Infinity (h:0 canvas corruption)', () => {
+    expect(wouldSkipFrame({ lon: 2.82, lat: 41.97, ele: Infinity, heading: 0.5 })).toBe(true);
+  });
+
+  it('returns true (skip) when heading is NaN (atan2 of degenerate ENU matrix)', () => {
+    expect(wouldSkipFrame({ lon: 2.82, lat: 41.97, ele: 70, heading: NaN })).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Wave 38.B — avatarPrimitiveCount: shoeStyle variation
 // ---------------------------------------------------------------------------
 
