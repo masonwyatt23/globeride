@@ -27,7 +27,7 @@ import {
   KeyboardIcon,
   RouteLibraryIcon,
   PhysicsIcon,
-} from './icons/FeatureIcons';
+} from './FeatureIcons';
 
 interface Feature {
   id: string;
