@@ -48,6 +48,17 @@ production sat on a 2-hour-old bundle until we noticed and pushed a
 hotfix. `npm run check` is the single source of truth for "is this OK
 to push?".
 
+**Verification gotcha — RAF throttling in hidden tabs.** Chrome (and
+every modern browser) throttles `requestAnimationFrame` to 0–1 Hz in
+hidden / background tabs. The `useRideLoop` + `useWorkoutEngine` +
+chase-cam preRender loops are all RAF-driven, so an automated headless
+verifier whose tab isn't focused will observe `TIME 0:00`, `KM/H 0.0`,
+and a frozen Cesium camera even though the code is perfectly correct.
+If a browser agent reports these symptoms but the user can ride fine,
+it's the harness, not the code. Use `window.__rideDiag.everRan` /
+`document.visibilityState` to disambiguate before chasing the ride
+loop.
+
 Vercel runs `vercel-build = check && vite build`. Pushes to `main`
 auto-deploy.
 
