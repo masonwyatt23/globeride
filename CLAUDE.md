@@ -40,6 +40,14 @@ npm run build       # tsc -b && vite build → ./dist
 npm run preview     # serve the build → :4173
 ```
 
+**Before every commit/push** run `npm run check` — not the sub-scripts
+individually. Running only typecheck + test + build (skipping lint) is
+how the 8a5326a-precursor deploy broke: lint caught an unused selector
+in CI, we hadn't run it locally, Vercel rejected the build, and
+production sat on a 2-hour-old bundle until we noticed and pushed a
+hotfix. `npm run check` is the single source of truth for "is this OK
+to push?".
+
 Vercel runs `vercel-build = check && vite build`. Pushes to `main`
 auto-deploy.
 
