@@ -21,30 +21,62 @@ export type { SkyConfig };
  * React components so the viewer can stay a thin wrapper around `<div>`.
  */
 
+// Tracks whether a valid-looking ion token has been installed. We use this
+// (not Cesium.Ion.defaultAccessToken directly) because Cesium ships with a
+// rotating demo token baked into the bundle that would otherwise make us
+// think we have a token when production has none configured.
+let _ionTokenInstalled = false;
+
 /** Configure the Cesium ion access token from env var or localStorage. */
 export function setIonToken(token: string | null | undefined): void {
   if (token && token.trim().length > 0) {
     Cesium.Ion.defaultAccessToken = token.trim();
+    _ionTokenInstalled = true;
+  } else {
+    // No user-supplied token: clear any inherited default so ion-gated
+    // assets (Bing Aerial, World Terrain, Google Photoreal Tiles) reject
+    // fast instead of using Cesium's bundled demo token, which quietly
+    // rate-limits and pollutes the console.
+    Cesium.Ion.defaultAccessToken = '';
+    _ionTokenInstalled = false;
   }
+}
+
+/** Whether a user-supplied ion token is currently active. */
+export function hasIonToken(): boolean {
+  return _ionTokenInstalled;
 }
 
 let terrainPromise: Promise<Cesium.TerrainProvider> | null = null;
 /**
- * Lazy, shared Cesium World Terrain provider. The viewer and the route
- * generator both need terrain — but only the first caller pays the network
- * cost. If the ion token is missing or revoked this rejects; callers should
- * treat that as "no DEM available" and fall back gracefully.
+ * Lazy, shared terrain provider.
+ *
+ * With a Cesium ion token: returns Cesium World Terrain (a global high-res
+ * DEM hosted on ion). The viewer and the route generator both share the
+ * same promise so only the first caller pays the network cost.
+ *
+ * Without a token: returns a flat `EllipsoidTerrainProvider`. The avatar
+ * and polylines still position correctly because the route already carries
+ * sampled elevations from the GPX (or Open-Elevation fallback). Mountains
+ * appear flat, but the world is visible and the ride is playable.
  *
  * Pass `reset: true` to invalidate the cached promise (e.g. after the user
- * pastes a new ion token).
+ * pastes a new ion token via Settings → Graphics).
  */
 export function getTerrainProvider(reset = false): Promise<Cesium.TerrainProvider> {
   if (reset) terrainPromise = null;
   if (!terrainPromise) {
-    terrainPromise = Cesium.createWorldTerrainAsync().catch((err) => {
-      terrainPromise = null;
-      throw err;
-    });
+    if (!_ionTokenInstalled) {
+      // Flat ellipsoid — no network, no ion auth, no console errors. Cesium
+      // still renders the OSM imagery against this surface and the route's
+      // own GPX elevations drive the avatar/camera height.
+      terrainPromise = Promise.resolve(new Cesium.EllipsoidTerrainProvider());
+    } else {
+      terrainPromise = Cesium.createWorldTerrainAsync().catch((err) => {
+        terrainPromise = null;
+        throw err;
+      });
+    }
   }
   return terrainPromise;
 }
@@ -64,18 +96,43 @@ export function routeToCartesians(route: Route): Cesium.Cartesian3[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Add a Bing Maps Aerial imagery layer to the viewer as the permanent globe
- * base.  Must be called once after the Viewer is constructed so terrain and
- * OSM buildings always have imagery to render on — regardless of whether
- * Google Photorealistic 3D Tiles has data for the current area.
+ * Add a base imagery layer to the viewer so the globe always shows the
+ * world — never a black starfield with markers floating in space.
  *
  * Idempotent: if an imagery layer has already been added by this function the
  * call is a no-op (guarded by the _baseImageryAdded WeakSet).
  *
- * Auth is via the user's Cesium ion token (set via setIonToken before calling
- * this), not via a separate Bing API key.
+ * Source selection:
+ *   - **With Cesium ion token**: Bing Maps Aerial (ion asset 2). Photoreal
+ *     satellite imagery worldwide. Same behaviour as before.
+ *   - **Without token**: OpenStreetMap raster tiles via the public
+ *     tile.openstreetmap.org endpoint. No auth, no ion dependency. Looks
+ *     like a paper map (roads + labels + terrain shading) rather than
+ *     photoreal satellite — but the globe is visible and the ride is
+ *     legible.
+ *
+ * If the with-token Bing fetch fails (revoked / lacks entitlement) we fall
+ * back to OSM imagery rather than leaving the globe black — that guarantees
+ * "broken token" still produces a visible globe.
  */
 const _baseImageryAdded = new WeakSet<object>();
+
+/** Public OSM tile server — also whitelisted in the production CSP. */
+const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
+
+function buildOsmImagery(): Cesium.OpenStreetMapImageryProvider {
+  return new Cesium.OpenStreetMapImageryProvider({
+    url: OSM_TILE_URL,
+    // OSM tiles are 256×256 and capped at zoom 19.
+    maximumLevel: 19,
+    // The OSM Foundation requires attribution — Cesium renders this in
+    // the credit container at the bottom of the viewer.
+    credit: new Cesium.Credit(
+      '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+      true,
+    ),
+  });
+}
 
 export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
   if (viewer.isDestroyed()) return;
@@ -83,24 +140,46 @@ export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
   if (_baseImageryAdded.has(viewer)) return;
   _baseImageryAdded.add(viewer);
 
+  // No ion token — go straight to OSM. Skips the inevitable 401/403 from
+  // IonImageryProvider that would otherwise spam the console on every mount.
+  if (!_ionTokenInstalled) {
+    try {
+      const provider = buildOsmImagery();
+      if (viewer.isDestroyed()) return;
+      const layer = new Cesium.ImageryLayer(provider, {});
+      viewer.scene.imageryLayers.add(layer);
+    } catch {
+      // OSM provider construction is synchronous and never throws in practice
+      // — guard anyway so we never leave the user staring at a black globe.
+      console.warn(
+        '[CesiumViewer] OSM imagery unavailable; the globe will render without a base layer.',
+      );
+    }
+    return;
+  }
+
   // Asset 2 = Bing Maps Aerial with Labels — available with every Cesium ion
-  // token (free tier included).  Asset 3812 (Bing without labels) was removed:
-  // it requires a separate entitlement that most tokens lack, causing a 404 +
-  // Cesium E1 console error on every page load.  Google Photorealistic 3D
-  // Tiles (asset 2275207) already renders buildings in cities, so no secondary
-  // imagery fallback is needed.
+  // token (free tier included).
   try {
     const provider = await Cesium.IonImageryProvider.fromAssetId(2);
     if (viewer.isDestroyed()) return;
     const layer = new Cesium.ImageryLayer(provider, {});
     viewer.scene.imageryLayers.add(layer);
   } catch {
-    // Ion token lacks Bing access — continue without base imagery rather than
-    // requesting a second asset that would also 404 and spam the console.
-    console.warn(
-      '[CesiumViewer] Bing Aerial imagery (ion asset 2) unavailable; ' +
-        'continuing without base imagery.',
-    );
+    // Ion token failed (revoked / lacks Bing entitlement). Fall back to OSM
+    // rather than leaving the globe black.
+    if (viewer.isDestroyed()) return;
+    try {
+      const fallback = buildOsmImagery();
+      if (viewer.isDestroyed()) return;
+      viewer.scene.imageryLayers.add(new Cesium.ImageryLayer(fallback, {}));
+    } catch {
+      // Both failed — surface a single console warning and move on.
+      console.warn(
+        '[CesiumViewer] Bing Aerial and OSM fallback both unavailable; ' +
+          'the globe will render without a base layer.',
+      );
+    }
   }
 }
 
@@ -112,10 +191,16 @@ const GOOGLE_PHOTOREAL_ASSET_ID = 2275207;
  * mesh (buildings, trees, terrain) — via Cesium ion.
  *
  * Not cached: a Cesium3DTileset is bound to one scene, so every viewer mount
- * needs its own. Rejects if the ion token lacks access to the asset; callers
+ * needs its own. Rejects immediately if no ion token is installed (no point
+ * making the network call) or if the token lacks access to the asset; callers
  * must fall back to terrain + OSM buildings.
  */
 export function getPhotorealTileset(): Promise<Cesium.Cesium3DTileset> {
+  if (!_ionTokenInstalled) {
+    return Promise.reject(
+      new Error('Photoreal tileset requires a Cesium ion token; falling back to base imagery.'),
+    );
+  }
   return Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
     // A slightly relaxed screen-space error keeps framerate healthy on
     // modest GPUs without a visible quality hit at ride distances.

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 
 import { ExploreGlobe } from '@/components/explore/ExploreGlobe';
-import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
+import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { RouteSearch } from '@/components/setup/RouteSearch';
 import { RouteDrawer } from '@/components/routes/RouteDrawer';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,10 @@ export function Explore() {
   const route        = useRideStore((s) => s.route);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
 
-  const [token, setToken] = useState<string | null>(() => {
+  // Cesium ion token resolution. The Explore globe no longer *requires* a
+  // token — without one ExploreGlobe falls back to OSM imagery + flat
+  // terrain so the world is still visible and pannable.
+  const [token] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     const fromEnv = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
     if (fromEnv.length > 0) return fromEnv;
@@ -44,26 +47,13 @@ export function Explore() {
     return () => { requestFlyTo(null); };
   }, [requestFlyTo]);
 
-  if (!token) {
-    return (
-      <div className="min-h-full flex flex-col items-center justify-center p-6 gap-5 bg-background">
-        <CesiumTokenPrompt
-          onSubmit={(t) => {
-            window.localStorage.setItem(TOKEN_STORAGE_KEY, t);
-            setToken(t);
-          }}
-        />
-        <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
-          <ChevronLeft className="h-4 w-4" /> Back to setup
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">
       {/* Cinematic globe — owns its own Cesium viewer, separate from the ride view */}
       <ExploreGlobe ionToken={token} />
+
+      {/* Photoreal upgrade nudge — invisible when a token is present. */}
+      <NoTokenBanner hasToken={token !== null && token.length > 0} />
 
       {/* Pulsing globe pins for curated routes (iconic climbs + WT stages) */}
       <ExploreMarkers />

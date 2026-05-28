@@ -15,6 +15,7 @@ import {
   flyToRoute,
   getPhotorealTileset,
   getTerrainProvider,
+  hasIonToken,
   julianDateForMood,
   MOODS,
   moodForRoute,
@@ -281,6 +282,10 @@ export function CesiumViewer({
       await waitForContainerSize(container);
       if (bootstrapCancelled || !containerRef.current) return;
 
+      // Install the token (or clear any inherited default if null). The
+      // helpers downstream (setupBaseImagery, getTerrainProvider,
+      // getPhotorealTileset) branch on hasIonToken() so the no-token path
+      // never makes ion network calls.
       setIonToken(ionToken);
 
       const viewer = new Cesium.Viewer(container, {
@@ -373,8 +378,16 @@ export function CesiumViewer({
     // OSM buildings + Google Photoreal 3D Tiles are the heaviest single
     // contributors to first-frame jank. Hold them back further so the
     // ride view becomes interactive immediately, then layer them in.
+    //
+    // Both assets are ion-hosted (OSM buildings = ion asset 96188, photoreal
+    // = 2275207), so we skip the network calls entirely when no token is
+    // installed. The OSM imagery base layer is enough to make the world
+    // legible — buildings + photoreal mesh are bonus content that arrives
+    // with the ion upgrade.
     scheduleIdle(() => {
       if (viewer.isDestroyed()) return;
+      if (!hasIonToken()) return;
+
       const usePhotoreal = import.meta.env.VITE_PHOTOREAL_TILES !== 'false';
 
       Cesium.createOsmBuildingsAsync()

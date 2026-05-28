@@ -65,10 +65,26 @@ const TAB_PANEL: Record<TabId, React.ComponentType> = {
  * Floating settings dialog — opens on top of either Home or Ride. Persists
  * everything to localStorage via the settingsStore so changes survive reload.
  */
-export function SettingsPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function SettingsPanel({
+  open,
+  onClose,
+  initialTab = 'rider',
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Tab to focus when the panel opens. Defaults to 'rider'. */
+  initialTab?: TabId;
+}) {
   const reset = useSettingsStore((s) => s.reset);
-  const [activeTab, setActiveTab] = useState<TabId>('rider');
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Re-sync the active tab when the caller asks us to open with a specific
+  // initial tab (e.g. NoTokenBanner → 'visual'). Without this the second
+  // open of the panel would stay on whatever tab the user last viewed.
+  useEffect(() => {
+    if (open) setActiveTab(initialTab);
+  }, [open, initialTab]);
 
   // Jump to a tab (and optionally a setting anchor) from the search bar
   const handleJump = useCallback((tab: TabId, settingId: string) => {
@@ -219,19 +235,34 @@ export function SettingsButton({
   showLabel?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<TabId>('rider');
+
+  // Listen for global "open settings" events fired by lightweight nudges
+  // like the NoTokenBanner. The custom-event channel keeps consumers from
+  // having to prop-drill the setter or share a context.
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const detail = (e as CustomEvent<{ tab?: TabId }>).detail;
+      if (detail?.tab) setInitialTab(detail.tab);
+      setOpen(true);
+    }
+    window.addEventListener('globeride:open-settings', onOpen);
+    return () => window.removeEventListener('globeride:open-settings', onOpen);
+  }, []);
+
   return (
     <>
       <Button
         variant={variant}
         size={size}
         className={className}
-        onClick={() => setOpen(true)}
+        onClick={() => { setInitialTab('rider'); setOpen(true); }}
         aria-label="Open settings"
       >
         <Settings className="h-4 w-4" />
         {showLabel && <span>Settings</span>}
       </Button>
-      <SettingsPanel open={open} onClose={() => setOpen(false)} />
+      <SettingsPanel open={open} onClose={() => setOpen(false)} initialTab={initialTab} />
     </>
   );
 }

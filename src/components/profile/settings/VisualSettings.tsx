@@ -11,6 +11,7 @@ import { CAMERA_MODES, type CameraMode } from '@/lib/cesiumCameras';
 import { AVATAR_PRESETS, AVATAR_COLOR_ROLES } from '@/lib/avatarConfig';
 import { Section } from '@/components/ui/section-header';
 import { PickerButton } from './shared';
+import { CesiumIonTokenSection } from './CesiumIonTokenSection';
 
 // ---------------------------------------------------------------------------
 // Camera label map
@@ -63,6 +64,9 @@ export function VisualSettings() {
           ))}
         </div>
       </Section>
+
+      {/* Photoreal Earth — Cesium ion upgrade */}
+      <CesiumIonTokenSection />
 
       {/* Graphics quality */}
       <Section icon={<Monitor className="h-4 w-4" />} title="Graphics">

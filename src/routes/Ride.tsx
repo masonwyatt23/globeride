@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Users } from 'lucide-react';
 
 import { CesiumViewer } from '@/components/ride/CesiumViewer';
-import { CesiumTokenPrompt } from '@/components/ride/CesiumTokenPrompt';
+import { NoTokenBanner } from '@/components/ride/NoTokenBanner';
 import { RideHUD } from '@/components/ride/RideHUD';
 import { EnterVRButton } from '@/components/ride/EnterVRButton';
 import { EnterARButton } from '@/components/ride/EnterARButton';
@@ -119,7 +119,11 @@ export function Ride() {
   const [inviteOpen, setInviteOpen] = useState(false);
   useRideKeyboardShortcuts({ onToggleHelp: () => setHelpOpen((o) => !o) });
 
-  const [token, setToken] = useState<string | null>(() => {
+  // Cesium ion token resolution. The ride view no longer *requires* a token:
+  // without one we fall back to OSM imagery + flat terrain (see
+  // setupBaseImagery / getTerrainProvider in cesiumUtils). The banner below
+  // surfaces the upgrade path without blocking the ride.
+  const [token] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     const fromEnv = import.meta.env.VITE_CESIUM_ION_TOKEN ?? '';
     if (fromEnv.length > 0) return fromEnv;
@@ -208,28 +212,6 @@ export function Ride() {
     return () => document.removeEventListener('click', handler, { capture: true });
   }, []);
 
-  if (!token) {
-    return (
-      <div className="min-h-full flex flex-col items-center justify-center p-6 gap-5 bg-background">
-        <CesiumTokenPrompt
-          onSubmit={(t) => {
-            window.localStorage.setItem(TOKEN_STORAGE_KEY, t);
-            setToken(t);
-          }}
-        />
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Go back to route setup"
-          onClick={() => navigate('/')}
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-          Back to setup
-        </Button>
-      </div>
-    );
-  }
-
   if (!route) return null;
 
   return (
@@ -238,6 +220,11 @@ export function Ride() {
       className="fixed inset-0 w-screen h-screen overflow-hidden bg-background"
     >
       <CesiumViewer ionToken={token} onViewerReady={setCesiumViewer} />
+
+      {/* No-token banner — subtle nudge offering the photoreal upgrade.
+          Invisible when a token is already installed; dismissible per-session
+          so it never gets in the way of the ride. */}
+      <NoTokenBanner hasToken={token !== null && token.length > 0} />
 
       {/* Paused dim veil -- subtle darkening when ride is paused */}
       {rideState === 'paused' && (

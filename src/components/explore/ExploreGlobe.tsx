@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Cesium from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
-import { setIonToken, setupBaseImagery, setActiveViewer } from '@/lib/cesiumUtils';
+import { hasIonToken, setIonToken, setupBaseImagery, setActiveViewer } from '@/lib/cesiumUtils';
 
 /**
  * Altitude threshold (metres above the ellipsoid) below which the Google
@@ -51,7 +51,7 @@ const IDLE_RESUME_MS = 5_000;
  * find this viewer. On /explore, this is the only viewer mounted, so there
  * is no clash with the ride view's registry usage.
  */
-export function ExploreGlobe({ ionToken }: { ionToken: string }) {
+export function ExploreGlobe({ ionToken }: { ionToken: string | null }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -129,33 +129,37 @@ export function ExploreGlobe({ ionToken }: { ionToken: string }) {
 
     // ------------------------------------------------------------------ //
     // 6. Terrain — Cesium World Terrain for realistic mountains.          //
-    // ------------------------------------------------------------------ //
-    Cesium.createWorldTerrainAsync()
-      .then((terrain) => {
-        if (viewer.isDestroyed()) return;
-        viewer.scene.terrainProvider = terrain;
-      })
-      .catch(() => undefined);
-
-    // ------------------------------------------------------------------ //
-    // 7. Google Photorealistic 3D Tiles — hidden at high altitude.        //
+    //    Skipped when no ion token; the default ellipsoid (flat globe)    //
+    //    still renders with OSM imagery on top.                           //
     // ------------------------------------------------------------------ //
     let photorealTileset: Cesium.Cesium3DTileset | null = null;
 
-    Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
-      maximumScreenSpaceError: 16,
-    })
-      .then((tileset) => {
-        if (viewer.isDestroyed()) {
-          tileset.destroy?.();
-          return;
-        }
-        // Start hidden — the preRender handler will show/hide based on altitude.
-        tileset.show = false;
-        viewer.scene.primitives.add(tileset);
-        photorealTileset = tileset;
+    if (hasIonToken()) {
+      Cesium.createWorldTerrainAsync()
+        .then((terrain) => {
+          if (viewer.isDestroyed()) return;
+          viewer.scene.terrainProvider = terrain;
+        })
+        .catch(() => undefined);
+
+      // ---------------------------------------------------------------- //
+      // 7. Google Photorealistic 3D Tiles — hidden at high altitude.     //
+      // ---------------------------------------------------------------- //
+      Cesium.Cesium3DTileset.fromIonAssetId(GOOGLE_PHOTOREAL_ASSET_ID, {
+        maximumScreenSpaceError: 16,
       })
-      .catch(() => undefined); // token may not have photoreal access — that's fine
+        .then((tileset) => {
+          if (viewer.isDestroyed()) {
+            tileset.destroy?.();
+            return;
+          }
+          // Start hidden — the preRender handler will show/hide based on altitude.
+          tileset.show = false;
+          viewer.scene.primitives.add(tileset);
+          photorealTileset = tileset;
+        })
+        .catch(() => undefined); // token may not have photoreal access — that's fine
+    }
 
     // ------------------------------------------------------------------ //
     // 8. Cinematic intro — start far out, ease in to comfortable orbit.   //
