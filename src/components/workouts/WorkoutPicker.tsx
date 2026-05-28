@@ -24,6 +24,7 @@ import {
   Trash2,
   Plus,
   Pencil,
+  Flame,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -31,8 +32,18 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatDurMin } from '@/lib/format';
 import { listWorkouts, deleteWorkout, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
-import { totalDurationSec, estimateTSS } from '@/lib/workout';
-import type { Workout, WorkoutCategory } from '@/lib/workout';
+import {
+  totalDurationSec,
+  estimateTSS,
+  intensityFactor as resolveIF,
+  intensityLabel,
+} from '@/lib/workout';
+import type {
+  Workout,
+  WorkoutCategory,
+  WorkoutPhase,
+  IntensityLabel,
+} from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
 import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
@@ -63,6 +74,45 @@ const CATEGORY_META: Record<WorkoutCategory | 'all', CategoryMeta> = {
 const CATEGORY_TABS: Array<WorkoutCategory | 'all'> = [
   'all', 'endurance', 'tempo', 'sweetspot', 'threshold', 'intervals', 'test', 'custom',
 ];
+
+// ---------------------------------------------------------------------------
+// Periodization phase metadata
+// ---------------------------------------------------------------------------
+
+interface PhaseMeta {
+  label: string;
+  blurb: string;     // short hint shown under section header
+  color: string;     // tailwind text color for section header
+  dot: string;       // dot accent
+}
+
+const PHASE_META: Record<WorkoutPhase, PhaseMeta> = {
+  recovery: { label: 'Recovery',     blurb: 'Active rest + openers',         color: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-400' },
+  base:     { label: 'Base',         blurb: 'Aerobic foundation',            color: 'text-sky-700 dark:text-sky-300',         dot: 'bg-sky-400' },
+  build:    { label: 'Build',        blurb: 'Threshold + sweet-spot stress', color: 'text-amber-700 dark:text-amber-300',     dot: 'bg-amber-400' },
+  peak:     { label: 'Peak',         blurb: 'Race-specific sharpening',      color: 'text-rose-700 dark:text-rose-300',       dot: 'bg-rose-400' },
+};
+
+/** Order phases follow in a training week. */
+const PHASE_ORDER: WorkoutPhase[] = ['recovery', 'base', 'build', 'peak'];
+
+// ---------------------------------------------------------------------------
+// Intensity badge — translates the per-workout IF into Easy/Mod/Hard/Severe.
+// ---------------------------------------------------------------------------
+
+interface IntensityMeta {
+  label: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+const INTENSITY_META: Record<IntensityLabel, IntensityMeta> = {
+  easy:     { label: 'Easy',     color: 'text-emerald-700 dark:text-emerald-300', bgColor: 'bg-emerald-500/12', borderColor: 'border-emerald-500/40' },
+  moderate: { label: 'Moderate', color: 'text-sky-700 dark:text-sky-300',         bgColor: 'bg-sky-500/12',     borderColor: 'border-sky-500/40' },
+  hard:     { label: 'Hard',     color: 'text-amber-700 dark:text-amber-300',     bgColor: 'bg-amber-500/12',   borderColor: 'border-amber-500/40' },
+  severe:   { label: 'Severe',   color: 'text-rose-700 dark:text-rose-300',       bgColor: 'bg-rose-500/12',    borderColor: 'border-rose-500/40' },
+};
 
 // ---------------------------------------------------------------------------
 // Duration buckets
@@ -120,6 +170,7 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
   const [error, setError]               = useState<string | null>(null);
   const [activeCategory, setCategory]   = useState<WorkoutCategory | 'all'>('all');
   const [durationFilter, setDuration]   = useState<DurationFilter>('any');
+  const [groupByPhase, setGroupByPhase] = useState<boolean>(false);
   const [expanded, setExpanded]         = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
@@ -149,14 +200,32 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
     reload();
   }, [pendingDelete, reload]);
 
-  // Filtered list
+  // Filtered list — sorted by duration ascending so users can scan from
+  // shortest to longest within whatever filter they have active.
   const filtered = useMemo(() => {
-    return workouts.filter((w) => {
-      const catOk = activeCategory === 'all' || resolveCategory(w) === activeCategory;
-      const durOk = matchesDuration(totalDurationSec(w), durationFilter);
-      return catOk && durOk;
-    });
+    return workouts
+      .filter((w) => {
+        const catOk = activeCategory === 'all' || resolveCategory(w) === activeCategory;
+        const durOk = matchesDuration(totalDurationSec(w), durationFilter);
+        return catOk && durOk;
+      })
+      .sort((a, b) => totalDurationSec(a) - totalDurationSec(b));
   }, [workouts, activeCategory, durationFilter]);
+
+  // Phase-grouped view — partitions the filtered list into Recovery / Base /
+  // Build / Peak. Workouts without a phase land in 'build' (the safest
+  // default for an unlabelled custom workout). Each phase keeps the
+  // duration-ascending order from `filtered`.
+  const phaseGroups = useMemo(() => {
+    const groups: Record<WorkoutPhase, Workout[]> = {
+      recovery: [], base: [], build: [], peak: [],
+    };
+    for (const w of filtered) {
+      const phase: WorkoutPhase = w.phase ?? 'build';
+      groups[phase].push(w);
+    }
+    return groups;
+  }, [filtered]);
 
   // Category counts (for badges)
   const categoryCounts = useMemo(() => {
@@ -262,7 +331,7 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
         })}
       </div>
 
-      {/* Duration filter chips */}
+      {/* Duration filter chips + phase grouping toggle */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <Filter className="h-3 w-3 text-muted-foreground shrink-0" aria-hidden />
         {DURATION_FILTERS.map(({ value, label }) => (
@@ -281,12 +350,67 @@ export function WorkoutPicker({ onSelect, onRide, className }: WorkoutPickerProp
             {label}
           </button>
         ))}
+        <div className="grow" />
+        <button
+          type="button"
+          aria-pressed={groupByPhase}
+          onClick={() => setGroupByPhase((prev) => !prev)}
+          className={cn(
+            'rounded-full border px-2 py-0 text-[11px] font-medium transition-all leading-5',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            groupByPhase
+              ? 'border-primary/50 bg-primary/10 text-primary'
+              : 'border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border',
+          )}
+          title="Group workouts by training phase (recovery / base / build / peak)"
+        >
+          {groupByPhase ? 'Grouped by phase' : 'Group by phase'}
+        </button>
       </div>
 
       {/* Result count */}
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 py-6 text-center text-sm text-muted-foreground">
           No workouts match these filters.
+        </div>
+      ) : groupByPhase ? (
+        // Phase-grouped view — sections in canonical training-week order.
+        <div className="flex flex-col gap-4">
+          {PHASE_ORDER.map((phase) => {
+            const phaseItems = phaseGroups[phase];
+            if (phaseItems.length === 0) return null;
+            const meta = PHASE_META[phase];
+            return (
+              <section key={phase} aria-label={`${meta.label} workouts`}>
+                <header className="flex items-baseline gap-2 px-1 pb-1.5">
+                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', meta.dot)} aria-hidden />
+                  <h3 className={cn('text-xs font-semibold tracking-wide uppercase', meta.color)}>
+                    {meta.label}
+                  </h3>
+                  <span className="text-[11px] text-muted-foreground/80">{meta.blurb}</span>
+                  <span className="ml-auto text-[11px] text-muted-foreground/60 num">{phaseItems.length}</span>
+                </header>
+                <ul className="flex flex-col gap-2 list-none m-0 p-0">
+                  {phaseItems.map((w) => (
+                    <WorkoutCard
+                      key={w.id}
+                      workout={w}
+                      ftpW={ftpW}
+                      isActive={activeWorkout?.id === w.id}
+                      isExpanded={expanded === w.id}
+                      isPendingDelete={pendingDelete === w.id}
+                      onToggleExpand={() => setExpanded((prev) => prev === w.id ? null : w.id)}
+                      onSelect={onSelect}
+                      onRide={onRide}
+                      onEdit={(wk) => navigate(`/workouts/${wk.id}/edit`)}
+                      onDelete={() => void handleDelete(w.id)}
+                      onDeleteBlur={() => pendingDelete === w.id && setPendingDelete(null)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       ) : (
         <ul className="flex flex-col gap-2 list-none m-0 p-0" aria-label="Workout list">
@@ -347,6 +471,9 @@ function WorkoutCard({
   const tss  = estimateTSS(w, ftpW);
   const cat  = resolveCategory(w);
   const meta = CATEGORY_META[cat];
+  const ifVal       = resolveIF(w);
+  const intensity   = intensityLabel(ifVal);
+  const intMeta     = INTENSITY_META[intensity];
 
   return (
     <li
@@ -388,6 +515,18 @@ function WorkoutCard({
               <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', meta.dot)} aria-hidden />
               {meta.label}
             </span>
+            {/* Intensity badge — derived from workout IF */}
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[9px] font-semibold',
+                intMeta.bgColor, intMeta.borderColor, intMeta.color,
+              )}
+              title={`Intensity factor ${ifVal.toFixed(2)} — ${intMeta.label}`}
+              aria-label={`Intensity ${intMeta.label}, IF ${ifVal.toFixed(2)}`}
+            >
+              <Flame className="h-2.5 w-2.5" aria-hidden />
+              {intMeta.label}
+            </span>
           </div>
           <div className="mt-1 flex items-center gap-2.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-0.5 num">
@@ -396,6 +535,7 @@ function WorkoutCard({
             <span className="flex items-center gap-0.5 num">
               <Zap className="h-3 w-3" aria-hidden /> {tss} TSS
             </span>
+            <span className="num">IF {ifVal.toFixed(2)}</span>
             <span>{w.segments.length} seg{w.segments.length !== 1 ? 's' : ''}</span>
           </div>
         </div>

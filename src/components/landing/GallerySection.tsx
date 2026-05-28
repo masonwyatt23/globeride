@@ -140,7 +140,7 @@ function SceneCardItem({ card }: { card: SceneCard }) {
 
   return (
     <article
-      className="group relative flex-none w-[88vw] sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer landing-card-glass landing-card-hover"
+      className="group relative flex-none w-[82vw] xs:w-[78vw] sm:w-80 lg:w-auto rounded-2xl overflow-hidden cursor-pointer landing-card-glass landing-card-hover"
       style={{ border: `1px solid ${accent}28` }}
       onClick={handleLaunch}
       onKeyDown={e => e.key === 'Enter' && handleLaunch()}
@@ -245,7 +245,7 @@ export function GallerySection() {
   });
 
   return (
-    <section role="region" aria-labelledby="gallery-heading" className="relative py-20 sm:py-28 overflow-hidden">
+    <section role="region" aria-labelledby="gallery-heading" className="relative py-14 sm:py-20 lg:py-28 overflow-hidden">
       {/* Ambient glow */}
       <div
         aria-hidden
@@ -258,9 +258,9 @@ export function GallerySection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         {/* Section header */}
-        <div ref={headerRef} className="text-center mb-12 landing-section-reveal">
+        <div ref={headerRef} className="text-center mb-8 sm:mb-12 landing-section-reveal">
           <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
+            className="inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-4 sm:mb-5"
             style={{
               background: 'hsl(195 92% 56% / 0.08)',
               border: '1px solid hsl(195 92% 56% / 0.2)',
@@ -272,7 +272,7 @@ export function GallerySection() {
           <h2
             id="gallery-heading"
             className="font-extrabold tracking-tight text-white"
-            style={{ fontSize: 'clamp(1.625rem, 5vw, 3.5rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(1.75rem, 6vw, 3.5rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             The world's greatest climbs.<br />
             <span
@@ -287,7 +287,7 @@ export function GallerySection() {
             </span>
           </h2>
           <p
-            className="mt-4 max-w-xl mx-auto text-base sm:text-lg leading-relaxed"
+            className="mt-3 sm:mt-4 max-w-xl mx-auto text-sm sm:text-base lg:text-lg leading-relaxed"
             style={{ color: 'hsl(215 18% 52%)' }}
           >
             50 routes ready to ride — or upload your own GPX. Every kilometre rendered in
@@ -330,7 +330,7 @@ export function GallerySection() {
       </div>
 
       {/* Browse all CTA */}
-      <div className="mt-12 px-4 flex justify-center">
+      <div className="mt-8 sm:mt-12 px-4 flex justify-center">
         <button
           onClick={() => {
             // Navigate to app with route library open

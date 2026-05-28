@@ -8,7 +8,7 @@ import { DemoModal } from './DemoModal';
 function StatBadge({ value, label, delay = 0 }: { value: string; label: string; delay?: number }) {
   return (
     <div
-      className="inline-flex items-center gap-2.5 rounded-full px-3.5 py-2 animate-fadeUp"
+      className="inline-flex items-center gap-2 sm:gap-2.5 rounded-full px-2.5 sm:px-3.5 py-1.5 sm:py-2 animate-fadeUp"
       style={{
         background: 'hsl(220 42% 7% / 0.9)',
         border: '1px solid hsl(195 92% 56% / 0.2)',
@@ -16,8 +16,8 @@ function StatBadge({ value, label, delay = 0 }: { value: string; label: string; 
         animationDelay: `${delay}ms`,
       }}
     >
-      <span className="font-black text-sm text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      <span className="text-xs" style={{ color: 'hsl(215 18% 50%)' }}>{label}</span>
+      <span className="font-black text-xs sm:text-sm text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      <span className="text-[10px] sm:text-xs" style={{ color: 'hsl(215 18% 50%)' }}>{label}</span>
     </div>
   );
 }
@@ -52,7 +52,7 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-[92vh] flex items-center overflow-hidden">
+    <section className="relative min-h-[calc(100svh-4rem)] sm:min-h-[88vh] lg:min-h-[92vh] flex items-center overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
         <div className="absolute inset-0" style={{ background: 'hsl(220 42% 4%)' }} />
         <div
@@ -77,22 +77,22 @@ export function HeroSection() {
       </div>
 
       {/* Mobile: visual first (flex-col-reverse puts the visual above text), Desktop: text-left visual-right */}
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-4 pb-10 sm:pt-32 sm:pb-20 lg:py-0 flex flex-col-reverse lg:flex-row items-center gap-4 sm:gap-12 lg:gap-0">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-6 pb-12 sm:pt-32 sm:pb-20 lg:py-0 flex flex-col-reverse lg:flex-row items-center gap-6 sm:gap-12 lg:gap-0">
         <div className="relative flex-1 lg:pr-8 text-center lg:text-left z-10">
           <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-6 animate-fadeUp"
+            className="inline-flex max-w-full items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-4 sm:mb-6 animate-fadeUp"
             style={{ background: 'hsl(195 92% 56% / 0.08)', border: '1px solid hsl(195 92% 56% / 0.25)', color: '#22d3ee' }}
           >
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75 animate-[livePulse_2s_ease-in-out_infinite]" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-400" />
             </span>
-            Open source · MIT · No account required
+            <span className="truncate">Open source · MIT · No account</span>
           </div>
 
           <h1
-            className="font-extrabold tracking-tight text-white animate-fadeUp [animation-delay:60ms]"
-            style={{ fontSize: 'clamp(2rem, 9vw, 6.5rem)', lineHeight: '0.93', letterSpacing: '-0.045em' }}
+            className="font-extrabold tracking-tight text-white animate-fadeUp [animation-delay:60ms] break-words"
+            style={{ fontSize: 'clamp(2.5rem, 11vw, 6.5rem)', lineHeight: '0.95', letterSpacing: '-0.045em' }}
           >
             Ride{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -103,8 +103,8 @@ export function HeroSection() {
           </h1>
 
           <p
-            className="mt-5 sm:mt-7 max-w-xl text-base sm:text-lg lg:text-xl animate-fadeUp [animation-delay:120ms] mx-auto lg:mx-0"
-            style={{ color: 'hsl(215 18% 60%)', lineHeight: '1.75' }}
+            className="mt-4 sm:mt-7 max-w-xl text-[15px] sm:text-lg lg:text-xl animate-fadeUp [animation-delay:120ms] mx-auto lg:mx-0"
+            style={{ color: 'hsl(215 18% 60%)', lineHeight: '1.65' }}
           >
             Upload a GPX from Strava. GlobeRide renders your route on a{' '}
             <span className="text-white font-medium">photorealistic 3D globe</span> with real terrain,
@@ -115,7 +115,7 @@ export function HeroSection() {
             50 iconic climbs. 45-part 3D avatar. Offline PWA.
           </p>
 
-          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4 animate-fadeUp [animation-delay:180ms]">
+          <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-2.5 sm:gap-4 animate-fadeUp [animation-delay:180ms]">
             {/* Primary CTA — always visible, full-width on mobile */}
             <button
               onClick={() => navigate('/app?demo=1')}
@@ -161,7 +161,7 @@ export function HeroSection() {
 
           {/* Trust signals: 3 shown on mobile, all 5 on sm+ */}
           <div
-            className="mt-7 flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2 text-xs animate-fadeUp [animation-delay:240ms]"
+            className="mt-5 sm:mt-7 flex flex-wrap items-center justify-center lg:justify-start gap-x-3 sm:gap-x-4 gap-y-2 text-[11px] sm:text-xs animate-fadeUp [animation-delay:240ms]"
             style={{ color: 'hsl(215 18% 42%)' }}
           >
             {[
@@ -179,9 +179,9 @@ export function HeroSection() {
           </div>
 
           {/* Stat pills: horizontal-scroll snap on mobile (shows all 4), wraps on sm+ */}
-          <div className="mt-5 animate-fadeUp [animation-delay:300ms]">
-            {/* Mobile: 2 pills only, centered */}
-            <div className="flex items-center justify-center lg:justify-start gap-2 sm:hidden">
+          <div className="mt-4 sm:mt-5 animate-fadeUp [animation-delay:300ms]">
+            {/* Mobile: 2 pills only, centered, tight gap */}
+            <div className="flex items-center justify-center lg:justify-start gap-1.5 sm:hidden">
               <StatBadge value="50" label="iconic climbs" delay={320} />
               <StatBadge value="45-part" label="3D avatar" delay={380} />
             </div>
@@ -196,8 +196,8 @@ export function HeroSection() {
         </div>
 
         <div
-          className="relative flex-1 flex items-center justify-center w-full max-w-[280px] sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms]"
-          style={{ minHeight: '240px' }}
+          className="relative flex-1 flex items-center justify-center w-full max-w-[260px] xs:max-w-[300px] sm:max-w-md lg:max-w-xl xl:max-w-2xl animate-fadeUp [animation-delay:200ms]"
+          style={{ minHeight: '260px' }}
         >
           {/* Parallax wrapper — mouse-tracking via useEffect above */}
           <div
@@ -216,7 +216,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-fadeUp [animation-delay:700ms]" aria-hidden>
+      <div className="hidden sm:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-1.5 animate-fadeUp [animation-delay:700ms]" aria-hidden>
         <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: 'hsl(215 18% 35%)' }}>Scroll</span>
         <div className="h-8 w-5 rounded-full flex items-start justify-center pt-1.5" style={{ border: '1px solid hsl(215 26% 18%)' }}>
           <div className="h-1.5 w-1.5 rounded-full bg-cyan-400/70" style={{ animation: 'scrollDot 2s ease-in-out infinite' }} />

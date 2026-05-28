@@ -39,7 +39,7 @@ function Tick() {
 
 export function ComparisonSection() {
   return (
-    <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
+    <section className="relative px-4 sm:px-6 lg:px-10 py-14 sm:py-20 lg:py-28 overflow-hidden">
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
@@ -50,28 +50,31 @@ export function ComparisonSection() {
 
       <div className="max-w-5xl mx-auto">
         {/* Heading */}
-        <div className="text-center mb-12">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: '#22d3ee' }}>
+        <div className="text-center mb-8 sm:mb-12">
+          <p className="text-[11px] sm:text-xs font-semibold tracking-widest uppercase mb-2 sm:mb-3" style={{ color: '#22d3ee' }}>
             Philosophy
           </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h2
+            className="font-extrabold tracking-tight text-white"
+            style={{ fontSize: 'clamp(1.75rem, 7vw, 2.5rem)', lineHeight: 1.05, letterSpacing: '-0.025em' }}
+          >
             GlobeRide vs Zwift
           </h2>
-          <p className="mt-4 text-base sm:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
             Different philosophy. No subscription. Local-first.
           </p>
         </div>
 
         {/* Mobile: polished mini-cards (one per row) */}
-        <div className="sm:hidden flex flex-col gap-3">
+        <div className="sm:hidden flex flex-col gap-2.5">
           {ROWS.map((row) => (
             <div
               key={row.axis}
-              className="landing-card-glass rounded-2xl px-4 pt-3 pb-4"
+              className="landing-card-glass rounded-2xl px-3 pt-2.5 pb-3"
             >
               {/* Row label — card header */}
               <p
-                className="text-[11px] font-semibold uppercase tracking-widest mb-3 pb-2"
+                className="text-[10px] font-semibold uppercase tracking-widest mb-2 pb-1.5"
                 style={{
                   color: 'hsl(215 18% 55%)',
                   borderBottom: '1px solid hsl(215 26% 12%)',
@@ -80,27 +83,27 @@ export function ComparisonSection() {
                 {row.axis}
               </p>
 
-              {/* Two-column comparison with VS divider */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+              {/* Two-column comparison with VS divider — tight on 320px */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-1.5">
                 {/* GlobeRide — aqua highlight, larger text */}
                 <div
-                  className="rounded-xl px-3 py-2.5"
+                  className="min-w-0 rounded-lg px-2 py-2"
                   style={{
                     background: 'hsl(195 92% 56% / 0.08)',
                     border: '1px solid hsl(195 92% 56% / 0.22)',
                   }}
                 >
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: '#22d3ee' }}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: '#22d3ee' }}>
                     GlobeRide
                   </p>
-                  <span className="flex items-start gap-1 text-xs leading-snug font-medium" style={{ color: 'hsl(195 80% 82%)' }}>
+                  <span className="flex items-start gap-1 text-[11px] leading-snug font-medium break-words" style={{ color: 'hsl(195 80% 82%)' }}>
                     <Tick />
-                    {row.globeride}
+                    <span className="min-w-0 break-words">{row.globeride}</span>
                   </span>
                 </div>
 
                 {/* VS divider */}
-                <div className="flex flex-col items-center justify-center px-0.5">
+                <div className="flex flex-col items-center justify-center">
                   <div className="flex-1 w-px" style={{ background: 'hsl(215 26% 14%)' }} />
                   <span
                     className="text-[9px] font-bold my-1 leading-none"
@@ -113,16 +116,16 @@ export function ComparisonSection() {
 
                 {/* Zwift — muted, smaller */}
                 <div
-                  className="rounded-xl px-3 py-2.5"
+                  className="min-w-0 rounded-lg px-2 py-2"
                   style={{
                     background: 'hsl(215 32% 5%)',
                     border: '1px solid hsl(215 26% 11%)',
                   }}
                 >
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(215 18% 38%)' }}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'hsl(215 18% 38%)' }}>
                     Zwift
                   </p>
-                  <span className="text-xs leading-snug" style={{ color: 'hsl(215 18% 48%)' }}>
+                  <span className="text-[11px] leading-snug break-words block" style={{ color: 'hsl(215 18% 48%)' }}>
                     {row.zwift}
                   </span>
                 </div>

@@ -201,13 +201,13 @@ export function DemoRideSection({
   return (
     <section
       ref={sectionRef}
-      className="relative w-full py-16 sm:py-24"
+      className="relative w-full py-14 sm:py-20 lg:py-24"
       aria-label="Demo ride — Mont Ventoux"
     >
       {/* Section heading */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 mb-8 text-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 mb-6 sm:mb-8 text-center">
         <p
-          className="text-[10px] font-bold uppercase tracking-widest mb-3"
+          className="text-[10px] font-bold uppercase tracking-widest mb-2 sm:mb-3"
           style={{ color: '#22d3ee' }}
         >
           Live demo
@@ -215,15 +215,15 @@ export function DemoRideSection({
         <h2
           className="font-extrabold text-white"
           style={{
-            fontSize: 'clamp(1.5rem, 6vw, 3rem)',
-            lineHeight: 1.1,
+            fontSize: 'clamp(1.75rem, 7vw, 3rem)',
+            lineHeight: 1.05,
             letterSpacing: '-0.03em',
           }}
         >
           See it in motion.
         </h2>
         <p
-          className="mt-3 text-base sm:text-lg max-w-2xl mx-auto"
+          className="mt-3 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed"
           style={{ color: 'hsl(215 18% 55%)' }}
         >
           An actual GlobeRide ride — Mont Ventoux, 8× speed, real terrain
@@ -234,9 +234,9 @@ export function DemoRideSection({
       {/* Globe viewport */}
       <div className="relative z-0 max-w-4xl mx-auto px-4 sm:px-6 lg:px-10">
         <div
-          className="relative w-full overflow-hidden rounded-2xl"
+          className="relative w-full overflow-hidden rounded-xl sm:rounded-2xl"
           style={{
-            height: 'clamp(320px, 60vh, 560px)',
+            height: 'clamp(260px, 55vh, 560px)',
             border: '1px solid hsl(215 26% 14%)',
             boxShadow: '0 0 80px -20px hsl(195 92% 56% / 0.15)',
           }}
@@ -255,11 +255,11 @@ export function DemoRideSection({
 
         {/* Caption */}
         <p
-          className="mt-3 text-center text-xs"
+          className="mt-3 text-center text-[11px] sm:text-xs leading-snug px-2"
           style={{ color: 'hsl(215 18% 35%)' }}
         >
-          Mont Ventoux · Bédoin → Observatory · 21.5 km · 1912 m summit ·
-          Autoplay loops continuously
+          Mont Ventoux · Bédoin → Observatory · 21.5 km · 1912 m summit
+          <span className="hidden sm:inline"> · Autoplay loops continuously</span>
         </p>
       </div>
 

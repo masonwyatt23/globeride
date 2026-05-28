@@ -210,7 +210,7 @@ export const RIDER_CARDS = [
 
 export function RidersSection() {
   return (
-    <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
+    <section className="relative px-4 sm:px-6 lg:px-10 py-14 sm:py-20 lg:py-28 overflow-hidden">
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
@@ -221,20 +221,23 @@ export function RidersSection() {
 
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <div className="text-center mb-12">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: '#22d3ee' }}>
+        <div className="text-center mb-8 sm:mb-12">
+          <p className="text-[11px] sm:text-xs font-semibold tracking-widest uppercase mb-2 sm:mb-3" style={{ color: '#22d3ee' }}>
             In the saddle
           </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h2
+            className="font-extrabold tracking-tight text-white"
+            style={{ fontSize: 'clamp(1.75rem, 7vw, 2.5rem)', lineHeight: 1.05, letterSpacing: '-0.025em' }}
+          >
             What riders see
           </h2>
-          <p className="mt-4 text-base sm:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
             Three scenarios. Same browser tab. No subscription required.
           </p>
         </div>
 
         {/* Cards — 1-col mobile, 2-col tablet, 3-col desktop */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {RIDER_CARDS.map(({ id, heading, body, Scene, sceneTitleId, sceneTitle }) => (
             <div
               key={id}
@@ -253,11 +256,11 @@ export function RidersSection() {
               </div>
 
               {/* Text — clear hierarchy: heading large, body muted */}
-              <div className="flex flex-col flex-1 p-5 sm:p-6">
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-2 leading-snug">
+              <div className="flex flex-col flex-1 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-1.5 sm:mb-2 leading-snug">
                   {heading}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>
+                <p className="text-[13px] sm:text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>
                   {body}
                 </p>
               </div>

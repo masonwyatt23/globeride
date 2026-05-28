@@ -298,7 +298,7 @@ export function FeatureGrid() {
 
   return (
     <section
-      className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28"
+      className="relative px-4 sm:px-6 lg:px-10 py-14 sm:py-20 lg:py-28"
       aria-labelledby="features-heading"
     >
       {/* Subtle ambient background */}
@@ -313,9 +313,9 @@ export function FeatureGrid() {
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div ref={headerRef} className="text-center mb-14 landing-section-reveal">
+        <div ref={headerRef} className="text-center mb-10 sm:mb-14 landing-section-reveal">
           <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
+            className="inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-4 sm:mb-5"
             style={{
               background: 'hsl(195 92% 56% / 0.06)',
               border: '1px solid hsl(195 92% 56% / 0.18)',
@@ -326,12 +326,13 @@ export function FeatureGrid() {
           </div>
           <h2
             id="features-heading"
-            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-[1.05] tracking-tight"
+            className="font-extrabold text-white tracking-tight"
+            style={{ fontSize: 'clamp(1.75rem, 7vw, 3rem)', lineHeight: 1.05, letterSpacing: '-0.025em' }}
           >
             Built for serious cyclists.
           </h2>
           <p
-            className="mt-4 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg leading-relaxed line-clamp-2 sm:line-clamp-none"
+            className="mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-base lg:text-lg leading-relaxed"
             style={{ color: 'hsl(215 18% 52%)' }}
           >
             22 features across photoreal graphics, AI coaching, smart trainer integration, social
@@ -343,7 +344,7 @@ export function FeatureGrid() {
             Flagship cards span lg:col-span-2 to anchor each desktop row. */}
         <div
           ref={gridRef}
-          className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense"
+          className="grid gap-3.5 sm:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 grid-flow-row-dense"
         >
           {FEATURES.map((f) => (
             <div

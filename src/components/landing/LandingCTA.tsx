@@ -16,7 +16,7 @@ export function LandingCTA() {
   }
 
   return (
-    <section role="region" aria-label="Start riding" className="relative px-4 sm:px-6 lg:px-10 py-24 sm:py-32 overflow-hidden">
+    <section role="region" aria-label="Start riding" className="relative px-4 sm:px-6 lg:px-10 py-16 sm:py-24 lg:py-32 overflow-hidden">
       {/* Ambient background */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         {/* Top separator line */}
@@ -39,7 +39,7 @@ export function LandingCTA() {
       <div className="max-w-3xl mx-auto text-center">
         {/* Eyebrow */}
         <div
-          className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-6"
+          className="inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-4 sm:mb-6"
           style={{ background: 'hsl(195 92% 56% / 0.07)', border: '1px solid hsl(195 92% 56% / 0.2)', color: 'hsl(195 92% 56%)' }}
         >
           <span className="relative flex h-1.5 w-1.5 shrink-0">
@@ -51,8 +51,8 @@ export function LandingCTA() {
 
         {/* Headline */}
         <h2
-          className="font-extrabold text-white mb-5"
-          style={{ fontSize: 'clamp(1.875rem, 8vw, 4rem)', lineHeight: '1.0', letterSpacing: '-0.038em' }}
+          className="font-extrabold text-white mb-4 sm:mb-5"
+          style={{ fontSize: 'clamp(2rem, 9vw, 4rem)', lineHeight: '1.0', letterSpacing: '-0.038em' }}
         >
           Start riding in{' '}
           <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
@@ -60,12 +60,12 @@ export function LandingCTA() {
           </span>
         </h2>
 
-        <p className="text-sm sm:text-base lg:text-lg leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'hsl(215 18% 52%)' }}>
+        <p className="text-sm sm:text-base lg:text-lg leading-relaxed mb-8 sm:mb-10 max-w-xl mx-auto" style={{ color: 'hsl(215 18% 52%)' }}>
           No account. No server. No subscription. Open Chrome, drop a GPX, and feel the gradient.
         </p>
 
         {/* CTA row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-4 w-full sm:w-auto">
           {/* Primary: Try demo */}
           <button
             onClick={() => navigate('/app?demo=1')}
@@ -107,7 +107,7 @@ export function LandingCTA() {
 
         {/* Trust signals */}
         <div
-          className="mt-8 flex flex-wrap items-center justify-center gap-x-5 sm:gap-x-8 gap-y-2 text-xs"
+          className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-8 gap-y-1.5 sm:gap-y-2 text-[11px] sm:text-xs"
           style={{ color: 'hsl(215 18% 38%)' }}
         >
           {['Open source', 'MIT licensed', 'No account', 'Chrome & Edge desktop + Android'].map((t, i) => (

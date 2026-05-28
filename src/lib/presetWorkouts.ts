@@ -20,7 +20,14 @@
  * so a user who deleted "Sweet Spot 3x10" doesn't get it back uninvited.
  */
 
-import type { Workout, WorkoutSegment, SegmentTarget, WorkoutCategory } from '@/lib/workout';
+import type {
+  Workout,
+  WorkoutSegment,
+  SegmentTarget,
+  WorkoutCategory,
+  WorkoutPhase,
+} from '@/lib/workout';
+import { computeIntensityFactor } from '@/lib/workout';
 
 /** Tiny constructor that fills in id + cadence default and keeps the data table readable. */
 function seg(
@@ -43,14 +50,41 @@ const ramp = (startPct: number, endPct: number): SegmentTarget => ({
   endPct,
 });
 
+/**
+ * Default phase for a category — gives sensible periodization tags without
+ * forcing every build() call to declare one. Per-workout overrides take
+ * precedence via the optional `phase` argument.
+ *
+ * Mapping rationale:
+ *  - endurance → base       (Z2 aerobic foundation — the base block)
+ *  - tempo     → base       (low-intensity stress, base/early-build)
+ *  - sweetspot → build      (the classic FTP-building zone)
+ *  - threshold → build      (build-block staple)
+ *  - intervals → peak       (VO2 / anaerobic / sharpening work)
+ *  - test      → peak       (FTP test for the peak of a block)
+ *  - custom    → build      (race-sim, energy-system mixers)
+ */
+function defaultPhaseForCategory(category: WorkoutCategory): WorkoutPhase {
+  switch (category) {
+    case 'endurance': return 'base';
+    case 'tempo':     return 'base';
+    case 'sweetspot': return 'build';
+    case 'threshold': return 'build';
+    case 'intervals': return 'peak';
+    case 'test':      return 'peak';
+    case 'custom':    return 'build';
+  }
+}
+
 function build(
   id: string,
   name: string,
   description: string,
   segments: WorkoutSegment[],
   category: WorkoutCategory = 'custom',
+  phase?: WorkoutPhase,
 ): Workout {
-  return {
+  const w: Workout = {
     id,
     name,
     description,
@@ -58,7 +92,11 @@ function build(
     source: 'preset',
     segments,
     category,
+    phase: phase ?? defaultPhaseForCategory(category),
   };
+  // Auto-compute the intensity factor so the picker has a cheap sort key.
+  w.intensityFactor = Math.round(computeIntensityFactor(w) * 100) / 100;
+  return w;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +129,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c', 'cooldown', 180, pct(0.40), '3 min spin-down', 90),
     ],
     'endurance',
+    'recovery',
   ),
 
   build(
@@ -103,6 +142,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c', 'cooldown', 300, ramp(0.50, 0.40),  '5 min spin-down', 90),
     ],
     'endurance',
+    'recovery',
   ),
 
   // ── Endurance (Z2) ──────────────────────────────────────────────────────
@@ -771,6 +811,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c', 'cooldown', 60,  pct(0.40), '1 min spin-down', 95),
     ],
     'endurance',
+    'recovery',
   ),
 
   build(
@@ -783,6 +824,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c', 'cooldown', 300, ramp(0.58, 0.42), '5 min wind-down'),
     ],
     'endurance',
+    'recovery',
   ),
 
   build(
@@ -836,6 +878,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c', 'cooldown', 300, pct(0.42), '5 min wind-down', 90),
     ],
     'endurance',
+    'recovery',
   ),
 
   build(
@@ -1488,6 +1531,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 300, ramp(0.62, 0.44),  '5 min cooldown'),
     ],
     'custom',
+    'peak',
   ),
 
   build(
@@ -1509,6 +1553,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 300, ramp(0.62, 0.44),  '5 min cooldown'),
     ],
     'custom',
+    'peak',
   ),
 
   build(
@@ -1525,6 +1570,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 160, ramp(0.55, 0.42),  '2.5 min easy ride to line'),
     ],
     'custom',
+    'peak',
   ),
 
   build(
@@ -1559,6 +1605,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 240, ramp(0.62, 0.44),  '4 min cooldown'),
     ],
     'custom',
+    'peak',
   ),
 
   build(
@@ -1578,6 +1625,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 360, ramp(0.60, 0.44),  '6 min cooldown'),
     ],
     'custom',
+    'recovery',
   ),
 
   // ── Additional threshold / test ───────────────────────────────────────────
@@ -1607,6 +1655,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 420, ramp(0.60, 0.44),  '7 min cooldown'),
     ],
     'sweetspot',
+    'peak',
   ),
 
   build(
@@ -1623,6 +1672,7 @@ export const PRESET_WORKOUTS: Workout[] = [
       seg('c',  'cooldown', 405, ramp(0.55, 0.44),  '6.75 min easy roll to line'),
     ],
     'custom',
+    'peak',
   ),
 
   build(

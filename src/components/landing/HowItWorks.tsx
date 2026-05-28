@@ -47,7 +47,7 @@ export function HowItWorks() {
     <section
       role="region"
       aria-label="How GlobeRide works"
-      className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden"
+      className="relative px-4 sm:px-6 lg:px-10 py-14 sm:py-20 lg:py-28 overflow-hidden"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
@@ -59,31 +59,31 @@ export function HowItWorks() {
       <div className="max-w-6xl mx-auto">
         <div
           ref={headerRef}
-          className="text-center mb-16 landing-section-reveal"
+          className="text-center mb-10 sm:mb-16 landing-section-reveal"
         >
           <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest mb-5"
+            className="inline-flex items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest mb-4 sm:mb-5"
             style={{ background: 'hsl(195 92% 56% / 0.06)', border: '1px solid hsl(195 92% 56% / 0.18)', color: 'hsl(195 92% 56%)' }}
           >
             How it works
           </div>
           <h2
             className="font-extrabold text-white"
-            style={{ fontSize: 'clamp(1.625rem, 4.5vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(1.75rem, 6vw, 3.25rem)', lineHeight: '1.05', letterSpacing: '-0.03em' }}
           >
             Zero friction from{' '}
             <span style={{ background: 'linear-gradient(130deg, #22d3ee, hsl(158 80% 42%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               route to Strava.
             </span>
           </h2>
-          <p className="mt-4 max-w-lg mx-auto text-sm sm:text-base leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+          <p className="mt-3 sm:mt-4 max-w-lg mx-auto text-sm sm:text-base leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
             Three steps. No account, no backend, no subscription.
           </p>
         </div>
 
         <div
           ref={stepsRef}
-          className="relative grid gap-8 sm:gap-10 md:gap-6 md:grid-cols-3"
+          className="relative grid gap-6 sm:gap-10 md:gap-6 md:grid-cols-3"
         >
           {/* Connector line — desktop only */}
           <div
@@ -107,8 +107,8 @@ export function HowItWorks() {
                   aria-hidden
                   className="md:hidden absolute left-1/2 -translate-x-1/2 w-px"
                   style={{
-                    top: 'calc(5rem + 1.25rem)',   /* below the icon bubble */
-                    height: '2rem',
+                    top: 'calc(3.5rem + 1rem)',   /* below the (smaller) mobile icon bubble */
+                    height: '1.5rem',
                     background: `repeating-linear-gradient(to bottom, ${step.accent}50 0px, ${step.accent}50 4px, transparent 4px, transparent 8px)`,
                   }}
                 />
@@ -116,7 +116,7 @@ export function HowItWorks() {
 
               {/* Step bubble — glass treatment */}
               <div
-                className="relative mb-5 inline-flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0 landing-card-glass"
+                className="relative mb-4 sm:mb-5 inline-flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-2xl transition-all duration-300 group-hover:-translate-y-1 shrink-0 landing-card-glass"
                 style={{
                   border: `1px solid ${step.accent}30`,
                   boxShadow: `0 8px 32px -12px ${step.accent}25`,
@@ -145,8 +145,8 @@ export function HowItWorks() {
                 </div>
               </div>
 
-              <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight mb-2">{step.title}</h3>
-              <p className="text-sm sm:text-base leading-relaxed max-w-xs mx-auto sm:max-w-none" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
+              <h3 className="text-base sm:text-xl font-bold text-white tracking-tight mb-1.5 sm:mb-2">{step.title}</h3>
+              <p className="text-[13px] sm:text-base leading-relaxed max-w-xs mx-auto sm:max-w-none" style={{ color: 'hsl(215 18% 50%)' }}>{step.description}</p>
             </div>
           ))}
         </div>

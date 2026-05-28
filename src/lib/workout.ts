@@ -67,6 +67,18 @@ export type WorkoutCategory =
   | 'test'
   | 'custom';
 
+/**
+ * Periodization phase tag for weekly / block-level training planning.
+ *
+ * | phase    | role in a training block                                   |
+ * |----------|------------------------------------------------------------|
+ * | base     | High-volume aerobic foundation, low intensity              |
+ * | build    | Sustained Z3/Z4 work, sweet-spot, threshold accumulation   |
+ * | peak     | Race-specific VO2 / anaerobic sharpening, low fatigue cost |
+ * | recovery | Z1 active recovery, openers, leg-flushers                  |
+ */
+export type WorkoutPhase = 'base' | 'build' | 'peak' | 'recovery';
+
 export interface Workout {
   id: string;
   name: string;
@@ -82,6 +94,19 @@ export interface Workout {
   source: 'manual' | 'ai' | 'imported' | 'preset';
   /** Browsing category — used by WorkoutPicker to group and filter workouts. */
   category?: WorkoutCategory;
+  /**
+   * Periodization phase for weekly planning. Optional — when set, the picker
+   * can group/sort workouts into a training-week structure (base → build →
+   * peak, with recovery sprinkled between).
+   */
+  phase?: WorkoutPhase;
+  /**
+   * Intensity Factor — normalised intensity vs FTP (1.0 = FTP for the whole
+   * session). Optional; when absent it can be derived from segments via
+   * {@link computeIntensityFactor}. Hand-set on presets so the picker has a
+   * cheap, stable sort key.
+   */
+  intensityFactor?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -170,6 +195,55 @@ export function estimateTSS(w: Workout, ftpW: number): number {
   return Math.round(stress);
 }
 
+/**
+ * Intensity Factor for the workout (NP/FTP, approximated from segment
+ * midpoints). Returns 0 for workouts with no power targets. Result is a
+ * fraction (1.0 = FTP for the whole session).
+ *
+ * Uses Coggan's NP-style 4th-power weighted average of segment intensities,
+ * which gives sprint-heavy and steady sessions distinguishable IFs.
+ */
+export function computeIntensityFactor(w: Workout): number {
+  let totalSec = 0;
+  let weightedSum = 0;
+  // FTP cancels out — we work directly in %FTP space.
+  const fakeFtp = 100;
+  for (const seg of w.segments) {
+    const mid = resolveTargetWatts(seg, seg.durationSec / 2, fakeFtp);
+    if (mid == null) continue;
+    const intensity = mid / fakeFtp;
+    totalSec += seg.durationSec;
+    weightedSum += seg.durationSec * Math.pow(intensity, 4);
+  }
+  if (totalSec === 0) return 0;
+  return Math.pow(weightedSum / totalSec, 0.25);
+}
+
+/**
+ * Read the workout's intensity factor — uses the explicit `intensityFactor`
+ * field when present (cheap, deterministic), otherwise computes it on
+ * demand. Useful for the picker's sort/badge logic.
+ */
+export function intensityFactor(w: Workout): number {
+  if (typeof w.intensityFactor === 'number' && w.intensityFactor > 0) {
+    return w.intensityFactor;
+  }
+  return computeIntensityFactor(w);
+}
+
+/**
+ * Human-readable intensity label derived from the IF — used by the picker's
+ * intensity badge so users see "Easy / Moderate / Hard / Severe" instead of
+ * a bare decimal.
+ */
+export type IntensityLabel = 'easy' | 'moderate' | 'hard' | 'severe';
+export function intensityLabel(ifValue: number): IntensityLabel {
+  if (ifValue < 0.70) return 'easy';
+  if (ifValue < 0.85) return 'moderate';
+  if (ifValue < 0.95) return 'hard';
+  return 'severe';
+}
+
 let _id = 0;
 export function workoutId(prefix = 'w'): string {
   _id += 1;
@@ -190,6 +264,11 @@ export const WORKOUT_JSON_SCHEMA = {
       type: 'string',
       enum: ['endurance', 'tempo', 'sweetspot', 'threshold', 'intervals', 'test', 'custom'],
     },
+    phase: {
+      type: 'string',
+      enum: ['base', 'build', 'peak', 'recovery'],
+    },
+    intensityFactor: { type: 'number' },
     segments: {
       type: 'array',
       minItems: 1,

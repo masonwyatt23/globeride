@@ -202,7 +202,7 @@ export function QuickstartSection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative px-4 sm:px-6 lg:px-10 py-20 sm:py-28 overflow-hidden">
+    <section className="relative px-4 sm:px-6 lg:px-10 py-14 sm:py-20 lg:py-28 overflow-hidden">
       {/* Ambient glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
@@ -213,14 +213,17 @@ export function QuickstartSection() {
 
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
-        <div className="text-center mb-14">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-3" style={{ color: '#22d3ee' }}>
+        <div className="text-center mb-10 sm:mb-14">
+          <p className="text-[11px] sm:text-xs font-semibold tracking-widest uppercase mb-2 sm:mb-3" style={{ color: '#22d3ee' }}>
             Getting started
           </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          <h2
+            className="font-extrabold tracking-tight text-white"
+            style={{ fontSize: 'clamp(1.625rem, 6vw, 2.5rem)', lineHeight: 1.1, letterSpacing: '-0.02em' }}
+          >
             Up and riding in four steps
           </h2>
-          <p className="mt-4 text-base sm:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg max-w-xl mx-auto leading-relaxed" style={{ color: 'hsl(215 18% 52%)' }}>
             No account. No install. Open a browser tab and go.
           </p>
         </div>
@@ -239,7 +242,7 @@ export function QuickstartSection() {
           {QUICKSTART_STEPS.map(({ n, title, description, Illustration }) => (
             <div
               key={n}
-              className="relative flex sm:flex-col rounded-none sm:rounded-2xl p-4 sm:p-6 gap-4 sm:gap-0 transition-colors duration-300"
+              className="relative flex sm:flex-col rounded-none sm:rounded-2xl px-1 py-3 sm:p-6 gap-3 sm:gap-0 transition-colors duration-300"
               style={{
                 background: 'transparent',
                 // On sm+ restore card background
@@ -276,25 +279,25 @@ export function QuickstartSection() {
               </div>
 
               {/* Mobile right column / desktop: illustration + text */}
-              <div className="flex-1 relative z-10 pb-6 sm:pb-0">
-                {/* Illustration — smaller on mobile */}
+              <div className="flex-1 min-w-0 relative z-10 pb-5 sm:pb-0">
+                {/* Illustration — smaller on mobile (aspect 16/10 keeps it compact) */}
                 <div
-                  className="w-full aspect-[4/3] mb-4 rounded-lg overflow-hidden"
+                  className="w-full aspect-[16/10] sm:aspect-[4/3] mb-3 sm:mb-4 rounded-lg overflow-hidden"
                   style={{ background: 'hsl(220 42% 4%)' }}
                 >
                   <Illustration />
                 </div>
 
                 {/* Text */}
-                <h3 className="text-base font-bold text-white tracking-tight mb-2">{title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>{description}</p>
+                <h3 className="text-[15px] sm:text-base font-bold text-white tracking-tight mb-1.5 sm:mb-2 leading-snug">{title}</h3>
+                <p className="text-[13px] sm:text-sm leading-relaxed" style={{ color: 'hsl(215 18% 50%)' }}>{description}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* CTA */}
-        <div className="mt-12 flex justify-center px-4">
+        <div className="mt-8 sm:mt-12 flex justify-center px-4">
           <button
             onClick={() => navigate('/app')}
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-7 rounded-full text-sm font-semibold transition-all duration-200"

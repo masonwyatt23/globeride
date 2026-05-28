@@ -72,7 +72,7 @@ export function LandingHeader() {
         </button>
         <button
           onClick={() => navigate('/app')}
-          className="inline-flex items-center h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 active:scale-95"
+          className="inline-flex items-center h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-bold transition-all duration-200 active:scale-95 whitespace-nowrap"
           style={{
             background: 'linear-gradient(135deg, #22d3ee, hsl(158 80% 42%))',
             color: 'hsl(220 42% 4%)',
@@ -80,7 +80,7 @@ export function LandingHeader() {
             cursor: 'pointer',
           }}
         >
-          <span className="hidden xs:inline">Launch{' '}</span>app
+          <span className="inline">Launch{' '}</span>app
         </button>
       </div>
     </header>
