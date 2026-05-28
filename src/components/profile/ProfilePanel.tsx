@@ -113,7 +113,7 @@ function IdentitySection({
   }
 
   return (
-    <Section icon={<User className="h-4 w-4" />} title="Identity">
+    <Section icon={<User className="h-4 w-4 pointer-events-none" aria-hidden="true" />} title="Identity">
       <div className="flex items-center gap-3">
         {/* Avatar swatch */}
         <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-br from-primary/30 via-primary/15 to-accent/20 ring-2 ring-inset ring-border/60 flex items-center justify-center">
@@ -291,7 +291,7 @@ export function ProfileButton({
         aria-label="Open rider profile"
         title="Rider Profile"
       >
-        <User className="h-4 w-4" />
+        <User className="h-4 w-4 pointer-events-none" aria-hidden="true" />
         {/* Level badge pip */}
         {profile && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground leading-none num pointer-events-none">
