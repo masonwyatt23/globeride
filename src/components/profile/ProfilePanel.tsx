@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   User,
   X,
@@ -36,8 +37,9 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
   }, [open, profile, createProfile]);
 
   if (!open) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] bg-background/70 backdrop-blur-sm overflow-y-auto"
       role="dialog"
@@ -79,7 +81,8 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
           )}
         </CardContent>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

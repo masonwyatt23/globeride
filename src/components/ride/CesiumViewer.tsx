@@ -881,7 +881,11 @@ export function CesiumViewer({
       });
 
       // ---- Camera: per-mode positioning + cross-mode transition ----
-      if (state.rideState === 'running' || state.rideState === 'paused') {
+      // Engage the chase cam whenever a route is loaded, not just during the
+      // running/paused window. Otherwise the viewer sits at the initial
+      // flyToBoundingSphere result (often "Earth from space" framing) until
+      // the user presses Start ride — which makes the ride view look broken.
+      if (state.rideState !== 'idle' && state.rideState !== 'finished') {
         const currentMode = useSettingsStore.getState().cameraMode;
         const riderPose = {
           lat: sampled.lat,
