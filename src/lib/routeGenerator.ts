@@ -3,6 +3,21 @@ import type { Route } from '@/types';
 import { buildRoute } from '@/lib/gpxParser';
 import { snapToCyclingRoads, OsrmRoutingError, type LatLon } from '@/lib/routeRouter';
 import { resamplePolyline } from '@/lib/elevation';
+import { haversine } from '@/lib/utils';
+
+/**
+ * Sum of consecutive haversine distances along a polyline, in meters.
+ * Used to gauge OSRM's actual road distance vs. the requested length and
+ * trigger a re-route at a closer turnaround when the real road meanders
+ * (e.g. mountain switchbacks 2-3× the crow-flies distance).
+ */
+function polylineMeters(p: LatLon[]): number {
+  let m = 0;
+  for (let i = 1; i < p.length; i++) {
+    m += haversine(p[i - 1].lat, p[i - 1].lon, p[i].lat, p[i].lon);
+  }
+  return m;
+}
 
 /**
  * Synthesize a rideable Route around a chosen lat/lon.
@@ -257,21 +272,35 @@ export async function generateRoute(
     ).map((p) => ({ lat: p.lat, lon: p.lon }));
   } else {
     onPhase('routing');
-    const seeds =
-      opts.shape === 'out-and-back'
-        ? outAndBackSeedWaypoints(center, lengthM, headingRad)
-        : loopSeedWaypoints(center, lengthM, headingRad);
-    const snapped = await snapWaypoints(seeds, opts.signal);
-
     if (opts.shape === 'out-and-back') {
-      // OSRM gave us the outbound route. Mirror it for the return leg so the
-      // rider visits the same roads in reverse — keeps the ride continuous
-      // and avoids OSRM picking a different return path on cycle-banned
-      // one-ways.
+      // First OSRM call seeds the outbound at half the requested length
+      // (crow-flies). On twisty terrain (Mont Ventoux switchbacks, alpine
+      // climbs) the real road can be 2-3× longer than crow-flies, so the
+      // mirrored result overshoots wildly. If the first one-way is >35%
+      // longer than target one-way, scale the turnaround back and re-route
+      // ONCE so we hit the requested length to ±20%. Single retry caps
+      // worst-case cost at 2 OSRM calls.
+      const halfTargetM = lengthM / 2;
+      let seeds = outAndBackSeedWaypoints(center, halfTargetM * 2, headingRad);
+      let snapped = await snapWaypoints(seeds, opts.signal);
+      const oneWayM = polylineMeters(snapped);
+      const ratio = oneWayM / halfTargetM;
+      if (ratio > 1.35) {
+        // Real road meanders. Scale the seed by 1/ratio so the re-routed
+        // one-way lands near halfTargetM. Add a small safety margin so we
+        // err slightly under target rather than over.
+        const scaled = halfTargetM * (0.95 / ratio);
+        seeds = outAndBackSeedWaypoints(center, scaled * 2, headingRad);
+        snapped = await snapWaypoints(seeds, opts.signal);
+      }
+      // Mirror the snapped outbound to make the return leg — keeps the
+      // rider on the same roads and avoids OSRM picking a different return
+      // path due to one-way cycling restrictions.
       const reversed = snapped.slice(0, -1).reverse();
       polyline = [...snapped, ...reversed];
     } else {
-      polyline = snapped;
+      const seeds = loopSeedWaypoints(center, lengthM, headingRad);
+      polyline = await snapWaypoints(seeds, opts.signal);
     }
   }
 
