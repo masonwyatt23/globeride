@@ -82,7 +82,8 @@ GlobeRide is a browser-based virtual cycling simulator that renders your route o
 - Draw a route on the map via OSRM real-road cycling routing
 
 ### Training
-- 44 curated workouts across every zone: recovery, Z2, tempo, sweet spot, threshold, over-under, VO2 max, sprints, Tabata, climbing repeats, FTP ramp test
+- 100 curated workouts across every zone: recovery, Z2, tempo, sweet spot, threshold, over-under, VO2 max, sprints, Tabata, climbing repeats, FTP ramp test
+- Periodization tags (base / build / peak / recovery) + intensity-factor sort in the picker so the workout that fits today's plan is always one tap away
 - 6 multi-week training plans with calendar view, streaks, and today/next-up CTAs
 - Power-profile preview before every workout (Zwift-style interval graph)
 - CTL/ATL/TSB Performance Management Chart
