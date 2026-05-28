@@ -59,6 +59,8 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
 
   useEffect(() => {
     let raf = 0;
+    let diagFired = false;
+    let bailReason: string | null = null;
 
     const frame = (tHigh: number) => {
       raf = requestAnimationFrame(frame);
@@ -69,7 +71,18 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Outdoor rides don't require a pre-loaded route — route is built live.
       if (s.replayData || s.workoutRunning || s.rideState !== 'running') {
         lastT.current = tHigh;
+        const newReason = s.replayData ? 'replayData' : s.workoutRunning ? 'workoutRunning' : `rideState=${s.rideState}`;
+        if (!diagFired && newReason !== bailReason) {
+          // eslint-disable-next-line no-console
+          console.info('[rideLoop.diag] bail:', newReason);
+          bailReason = newReason;
+        }
         return;
+      }
+      if (!diagFired) {
+        diagFired = true;
+        // eslint-disable-next-line no-console
+        console.info('[rideLoop.diag] frame is running', { route: !!s.route, rideMode: s.rideMode, mode: s.mode });
       }
       if (!s.route && s.rideMode !== 'outdoor') {
         lastT.current = tHigh;

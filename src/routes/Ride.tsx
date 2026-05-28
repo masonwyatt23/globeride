@@ -140,17 +140,32 @@ export function Ride() {
   // tap on the in-ride Start button. We wait for cesiumViewer to be set
   // (Cesium's first frame painted) before starting so the camera doesn't
   // jump from the initial flyTo to chase pose mid-transition.
+  //
+  // Robust gating: fire when viewer + route are present and rideState is in a
+  // pre-ride state ('idle' OR 'ready'). Browser-verify showed the wizard's
+  // setRoute occasionally landed before /ride's setRoute effect re-fired,
+  // leaving rideState='idle' on entry — the prior `rideState !== 'ready'`
+  // guard then bailed and the ride never auto-started.
   const autoStartConsumedRef = useRef(false);
   useEffect(() => {
     if (autoStartConsumedRef.current) return;
     const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
     if (!wantsAutoStart) return;
     if (!cesiumViewer) return;
-    if (!route || rideState !== 'ready') return;
+    if (!route) return;
+    if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
     autoStartConsumedRef.current = true;
     // Brief delay so the user sees the route + chase angle for a beat
     // before the workout starts ticking — feels less jarring than 0ms.
-    const t = setTimeout(() => useRideStore.getState().start(), 600);
+    const t = setTimeout(() => {
+      const st = useRideStore.getState();
+      // Re-set the route so rideState transitions ready (setRoute handles
+      // this idempotently — same route ref still resets to 'ready').
+      if (st.route && st.rideState !== 'ready' && st.rideState !== 'running') {
+        st.setRoute(st.route);
+      }
+      useRideStore.getState().start();
+    }, 600);
     return () => clearTimeout(t);
   }, [cesiumViewer, route, rideState, location.state]);
 
