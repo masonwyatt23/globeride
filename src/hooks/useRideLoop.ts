@@ -59,31 +59,39 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
 
   useEffect(() => {
     let raf = 0;
-    let diagFired = false;
-    let bailReason: string | null = null;
+    let frameCalls = 0;
+    let lastBailReason: string | null = null;
+    // Expose diagnostic state on window so the production verifier can poll
+    // it via javascript_tool. Avoids relying on console.info which can be
+    // filtered or minified away.
+    interface RideDiag {
+      frameCalls: number;
+      lastBailReason: string | null;
+      everRan: boolean;
+      lastTick: number;
+    }
+    const diag: RideDiag = (window as unknown as { __rideDiag?: RideDiag }).__rideDiag ?? {
+      frameCalls: 0, lastBailReason: null, everRan: false, lastTick: 0,
+    };
+    (window as unknown as { __rideDiag: RideDiag }).__rideDiag = diag;
 
     const frame = (tHigh: number) => {
       raf = requestAnimationFrame(frame);
+      frameCalls++;
+      diag.frameCalls = frameCalls;
 
       const s = store.getState();
-      // Replay loop handles frames when replayData is present — bail out here.
-      // Workout engine handles frames when a workout is running — bail out here too.
-      // Outdoor rides don't require a pre-loaded route — route is built live.
       if (s.replayData || s.workoutRunning || s.rideState !== 'running') {
         lastT.current = tHigh;
         const newReason = s.replayData ? 'replayData' : s.workoutRunning ? 'workoutRunning' : `rideState=${s.rideState}`;
-        if (!diagFired && newReason !== bailReason) {
-          // eslint-disable-next-line no-console
-          console.info('[rideLoop.diag] bail:', newReason);
-          bailReason = newReason;
+        if (newReason !== lastBailReason) {
+          lastBailReason = newReason;
+          diag.lastBailReason = newReason;
         }
         return;
       }
-      if (!diagFired) {
-        diagFired = true;
-        // eslint-disable-next-line no-console
-        console.info('[rideLoop.diag] frame is running', { route: !!s.route, rideMode: s.rideMode, mode: s.mode });
-      }
+      diag.everRan = true;
+      diag.lastTick = tHigh;
       if (!s.route && s.rideMode !== 'outdoor') {
         lastT.current = tHigh;
         return;
