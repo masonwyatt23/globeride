@@ -38,7 +38,6 @@ import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics'
 import { segmentAt, resolveTargetWatts } from '@/lib/workout';
 import {
   setTargetPower,
-  setTrainerControlMode,
   setSimulationParams,
   hasFtmsControlWriter,
 } from '@/lib/ftmsErg';
@@ -135,7 +134,7 @@ export function useWorkoutEngine(): void {
 
       if (seg.target.type === 'grade') {
         // Simulation mode — push grade to trainer (same as free ride).
-        setTrainerControlMode('sim');
+        useRideStore.getState().setTrainerControlModeSynced('sim');
         if (s.connection === 'connected' && shouldSend) {
           lastSentT.current = now;
           store.setState({ lastSentGrade: seg.target.gradePct });
@@ -156,11 +155,11 @@ export function useWorkoutEngine(): void {
           speed = solveVelocity(settings.demoPowerW, seg.target.gradePct, rider);
           power = settings.demoPowerW;
         }
-        store.setState({ workoutTargetWatts: null });
+        store.setState({ workoutTargetWatts: null, targetPowerW: null });
 
       } else if (seg.target.type === 'free') {
         // Free ride — no trainer control; ride as normal.
-        setTrainerControlMode('sim');
+        useRideStore.getState().setTrainerControlModeSynced('sim');
         if (s.mode === 'trainer' && s.speed > 0) {
           speed = s.speed;
           power = s.power || null;
@@ -168,11 +167,11 @@ export function useWorkoutEngine(): void {
           speed = solveVelocity(settings.demoPowerW, grade, rider);
           power = settings.demoPowerW;
         }
-        store.setState({ workoutTargetWatts: null });
+        store.setState({ workoutTargetWatts: null, targetPowerW: null });
 
       } else {
         // ERG mode — targetW is non-null here (watts / ftpPct / rampPct).
-        setTrainerControlMode('erg');
+        useRideStore.getState().setTrainerControlModeSynced('erg');
         const ergW = targetW!; // resolveTargetWatts returns non-null for these types
 
         if (s.connection === 'connected' && hasFtmsControlWriter() && shouldSend) {
@@ -180,7 +179,7 @@ export function useWorkoutEngine(): void {
           setTargetPower(ergW).catch(() => undefined);
         }
 
-        store.setState({ workoutTargetWatts: ergW });
+        store.setState({ workoutTargetWatts: ergW, targetPowerW: ergW });
 
         // Speed: if trainer is reporting speed, use it; otherwise solve from ERG target.
         if (s.mode === 'trainer' && s.speed > 0) {

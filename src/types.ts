@@ -33,6 +33,10 @@ export interface Route {
   maxElevation: number;
   /** When the route was loaded into the app. */
   loadedAt: number;
+  /** Source used for elevation enrichment, when known. */
+  elevationSource?: 'gpx' | 'cesium-terrain' | 'opentopodata' | 'open-elevation' | 'synthetic' | 'unknown';
+  /** Trust level of the elevation profile. */
+  elevationQuality?: 'high' | 'medium' | 'low' | 'flat' | 'unknown';
   /**
    * When true this route is being drawn live from GPS — it has no fixed
    * totalDistance and points accumulate in real time during an outdoor ride.

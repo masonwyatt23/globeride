@@ -19,7 +19,7 @@
  * the upgrade is safe to run from any prior version, including a fresh DB.
  */
 
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { deleteDB, openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { SavedRoute } from '@/types';
 import type { Workout } from '@/lib/workout';
 // Type-only import — erased at compile time, so no runtime import cycle
@@ -86,4 +86,18 @@ export function getDb(): Promise<IDBPDatabase<GlobeRideDB>> {
     });
   }
   return dbPromise;
+}
+
+/** Close the memoized IndexedDB connection, if it has been opened. */
+export async function closeDb(): Promise<void> {
+  if (!dbPromise) return;
+  const db = await dbPromise;
+  db.close();
+  dbPromise = null;
+}
+
+/** Delete all GlobeRide IndexedDB data. Used by settings reset and backup restore. */
+export async function deleteGlobeRideDb(): Promise<void> {
+  await closeDb();
+  await deleteDB(DB_NAME);
 }

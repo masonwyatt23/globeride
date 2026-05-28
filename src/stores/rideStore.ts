@@ -12,6 +12,7 @@ import type {
 import type { ParsedFit } from '@/lib/fitParser';
 import type { SensorConnectionStatus } from '@/lib/bleSensors';
 import type { TrainerControlMode } from '@/lib/ftms';
+import { setTrainerControlMode as setFtmsTrainerControlMode } from '@/lib/ftms';
 import type { Workout } from '@/lib/workout';
 import { computeDraftState, type DraftState } from '@/lib/drafting';
 import type { PaceBot } from '@/lib/paceBots';
@@ -316,6 +317,8 @@ interface RideStoreState {
   // ---- ADDITIVE: ERG control actions ----
   /** Set trainer control mode (erg or sim). Reflects to ftms module. */
   setTrainerControlMode: (mode: TrainerControlMode) => void;
+  /** Single source-of-truth action for UI/workout paths that need store + FTMS sync. */
+  setTrainerControlModeSynced: (mode: TrainerControlMode) => void;
   /** Update the current ERG target power displayed in the HUD. */
   setTargetPowerW: (watts: number | null) => void;
 
@@ -523,7 +526,18 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
   setRideMode: (mode) => set({ rideMode: mode }),
 
   appendLivePoint: (p) =>
-    set((st) => ({ livePolyline: [...st.livePolyline, p] })),
+    set((st) => {
+      const last = st.livePolyline[st.livePolyline.length - 1];
+      if (
+        last &&
+        Math.abs(last.lat - p.lat) < 0.000001 &&
+        Math.abs(last.lon - p.lon) < 0.000001 &&
+        Math.abs(last.ele - p.ele) < 0.5
+      ) {
+        return st;
+      }
+      return { livePolyline: [...st.livePolyline, p] };
+    }),
 
   clearLivePolyline: () => set({ livePolyline: [] }),
 
@@ -693,15 +707,15 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     }),
 
   prepare: () => {
-    const { route } = get();
-    if (!route) return;
+    const { route, rideMode } = get();
+    if (!route && rideMode !== 'outdoor') return;
     set({
       rideState: 'ready',
       distance: 0,
       elapsedMs: 0,
       samples: [],
       startedAt: null,
-      elevation: route.points[0].ele,
+      elevation: route?.points[0]?.ele ?? 0,
       grade: 0,
       lastSentGrade: NaN,
     });
@@ -709,20 +723,15 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   start: () => {
     const st = get();
-    // Diagnostic logging — keep until we confirm the live Start-ride bug is
-    // resolved. The console line lets a user / bug reporter see exactly why
-    // the transition didn't happen.
-    if (!st.route) {
-      console.warn('[rideStore.start] aborted: no route loaded');
+    if (!st.route && st.rideMode !== 'outdoor') {
       return;
     }
     if (st.rideState !== 'ready' && st.rideState !== 'idle') {
-      console.warn(`[rideStore.start] called from unexpected state '${st.rideState}' — transitioning anyway`);
+      return;
     }
     const patch: Partial<RideStoreState> = { rideState: 'running', startedAt: Date.now() };
     if (st.rideMode === 'outdoor') patch.livePolyline = [];
     set(patch);
-    console.info('[rideStore.start] rideState → running', { startedAt: patch.startedAt });
   },
 
   pause: () => {
@@ -766,14 +775,15 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   tick: (input) =>
     set((st) => {
-      if (st.rideState !== 'running' || !st.route) return st;
+      if (st.rideState !== 'running') return st;
+      if (!st.route && st.rideMode !== 'outdoor') return st;
 
       const advance = input.speedNow * input.dt; // m
       let newDistance = st.distance + advance;
       let newState: RideState = st.rideState;
 
-      if (newDistance >= st.route.totalDistance) {
-        if (st.workoutRunning && st.route.totalDistance > 0) {
+      if (st.route && st.route.totalDistance > 0 && newDistance >= st.route.totalDistance) {
+        if (st.workoutRunning) {
           // The workout outlasts the map — loop the route for another lap
           // rather than ending the session early. The workout engine still
           // calls finish() when the workout itself completes.
@@ -814,7 +824,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
         riderDistance: newDistance,
         riderHeading: input.riderHeading ?? 0,
         others: input.otherRiders ?? [],
-        routeTotalDistance: st.route.totalDistance,
+        routeTotalDistance: st.route?.totalDistance ?? Number.POSITIVE_INFINITY,
       });
 
       // Accumulate segment elapsed time while a segment is active.
@@ -863,7 +873,15 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
 
   // ---- ADDITIVE: ERG control action implementations ----
 
-  setTrainerControlMode: (mode) => set({ trainerControlMode: mode }),
+  setTrainerControlMode: (mode) => {
+    setFtmsTrainerControlMode(mode);
+    set({ trainerControlMode: mode, targetPowerW: mode === 'erg' ? get().targetPowerW : null });
+  },
+
+  setTrainerControlModeSynced: (mode) => {
+    setFtmsTrainerControlMode(mode);
+    set({ trainerControlMode: mode, targetPowerW: mode === 'erg' ? get().targetPowerW : null });
+  },
 
   setTargetPowerW: (watts) => set({ targetPowerW: watts }),
 

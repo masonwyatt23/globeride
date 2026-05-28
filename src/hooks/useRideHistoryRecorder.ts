@@ -19,6 +19,8 @@ import {
   computeAscentM,
 } from '@/lib/rideHistory';
 import { useProfileStore } from '@/stores/profileStore';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { computeRideMetrics } from '@/lib/metrics';
 import { totalDurationSec } from '@/lib/workout';
 import type { RideState } from '@/types';
 // ADDITIVE: segment leaderboard recording
@@ -79,6 +81,18 @@ export function useRideHistoryRecorder(): void {
         if (replayData) source = 'replay';
         else if (activeWorkout) source = 'workout';
 
+        const ftpW = useSettingsStore.getState().ftpW;
+        const metrics = computeRideMetrics(samples, ftpW, activeWorkout);
+        const targetDurationSec = activeWorkout ? totalDurationSec(activeWorkout) : 0;
+        const workoutCompliance = activeWorkout
+          ? {
+              completed: workoutElapsedSec >= targetDurationSec * 0.95,
+              targetDurationSec,
+              completedDurationSec: Math.round(workoutElapsedSec),
+              segmentCompliance: metrics.segments,
+            }
+          : undefined;
+
         const record = {
           id: rideId(),
           name,
@@ -92,6 +106,11 @@ export function useRideHistoryRecorder(): void {
           workoutName: activeWorkout?.name,
           samples: [...samples], // snapshot so the store can be reset freely
           source,
+          metrics,
+          ftpW,
+          routeRef: route ? { id: route.id, name: route.name } : undefined,
+          workoutRef: activeWorkout ? { id: activeWorkout.id, name: activeWorkout.name } : undefined,
+          workoutCompliance,
         };
 
         saveRide(record).catch((err) => {

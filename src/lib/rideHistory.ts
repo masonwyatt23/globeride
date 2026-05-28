@@ -12,6 +12,7 @@
 
 import type { TelemetrySample } from '@/types';
 import { getDb, RIDES_STORE } from '@/lib/db';
+import type { RideMetrics } from '@/lib/metrics';
 
 export type RideSource = 'route' | 'workout' | 'replay';
 
@@ -41,6 +42,31 @@ export interface RideRecord {
   samples: TelemetrySample[];
   /** How the ride was sourced. */
   source: RideSource;
+  /** Canonical persisted ride summary. Absent on legacy records. */
+  metrics?: RideMetrics;
+  /** Optional aggregate zone seconds, keyed by zone label. */
+  zones?: Record<string, number>;
+  /** Optional best effort summaries keyed by duration label, e.g. "5m". */
+  bestEfforts?: Record<string, { powerW?: number; speedMs?: number }>;
+  /** FTP snapshot used for this ride's metrics. */
+  ftpW?: number;
+  /** Source route reference, if known. */
+  routeRef?: { id: string; name: string };
+  /** Source workout reference, if known. */
+  workoutRef?: { id: string; name: string };
+  /** Rider perceived exertion, 1-10. */
+  rpe?: number;
+  /** Rider notes. */
+  notes?: string;
+  /** User-defined tags. */
+  tags?: string[];
+  /** Workout compliance summary when a workout was attached. */
+  workoutCompliance?: {
+    completed: boolean;
+    targetDurationSec: number;
+    completedDurationSec: number;
+    segmentCompliance: RideMetrics['segments'];
+  };
 }
 
 // ---------------------------------------------------------------------------

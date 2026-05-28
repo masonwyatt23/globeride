@@ -18,5 +18,5 @@ import { Navigate } from 'react-router-dom';
  * as an overlay; users can immediately start clicking waypoints.
  */
 export function DrawRoute() {
-  return <Navigate to="/explore" replace />;
+  return <Navigate to="/explore?draw=1" replace />;
 }

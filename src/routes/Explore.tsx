@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronLeft } from 'lucide-react';
 
 import { ExploreGlobe } from '@/components/explore/ExploreGlobe';
@@ -30,8 +30,10 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  */
 export function Explore() {
   const navigate     = useNavigate();
+  const location     = useLocation();
   const route        = useRideStore((s) => s.route);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
+  const setDrawModeActive = useRideStore((s) => s.setDrawModeActive);
 
   // Cesium ion token resolution. The Explore globe no longer *requires* a
   // token — without one ExploreGlobe falls back to OSM imagery + flat
@@ -46,6 +48,15 @@ export function Explore() {
   useEffect(() => {
     return () => { requestFlyTo(null); };
   }, [requestFlyTo]);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    if (sp.get('draw') !== '1') return;
+    setDrawModeActive(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('draw');
+    window.history.replaceState({}, '', url.toString());
+  }, [location.search, setDrawModeActive]);
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-black">

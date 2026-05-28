@@ -18,7 +18,6 @@ import {
   disconnect as ftmsDisconnect,
   FtmsError,
   getDeviceName,
-  setTrainerControlMode as ftmsSetMode,
   getTrainerControlMode,
   type TrainerControlMode,
 } from '@/lib/ftms';
@@ -48,7 +47,7 @@ export function TrainerConnect() {
   const targetPowerW        = useRideStore((s) => s.targetPowerW);
   const setConnection       = useRideStore((s) => s.setConnection);
   const setMode             = useRideStore((s) => s.setMode);
-  const storeSetCtrlMode    = useRideStore((s) => s.setTrainerControlMode);
+  const setTrainerControlModeSynced = useRideStore((s) => s.setTrainerControlModeSynced);
   const pushToast           = useRideStore((s) => s.pushToast);
 
   const [report, setReport]                     = useState<BluetoothSupportReport>(() => detectBluetoothSupport());
@@ -103,8 +102,7 @@ export function TrainerConnect() {
 
   const handleToggleControlMode = useCallback(() => {
     const next: TrainerControlMode = trainerControlMode === 'erg' ? 'sim' : 'erg';
-    ftmsSetMode(next);
-    storeSetCtrlMode(next);
+    setTrainerControlModeSynced(next);
     pushToast({
       kind: 'info',
       title: next === 'erg' ? 'ERG mode active' : 'Simulation mode active',
@@ -113,7 +111,7 @@ export function TrainerConnect() {
         : 'Trainer resistance follows the route gradient.',
       durationMs: 3_000,
     });
-  }, [trainerControlMode, storeSetCtrlMode, pushToast]);
+  }, [trainerControlMode, setTrainerControlModeSynced, pushToast]);
 
   const statusLine = useMemo(() => {
     if (connection === 'connected') {

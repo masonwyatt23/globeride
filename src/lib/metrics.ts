@@ -91,6 +91,8 @@ export interface RideMetrics {
    * the workout had no ERG segments.
    */
   segments: SegmentResult[];
+  /** Data-quality flags detected while analysing the ride. */
+  dataQualityFlags?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +266,9 @@ export function computeMetrics(
     segments: segmentResults,
   };
 }
+
+/** Canonical public name used by ride history, coach, records, and backups. */
+export const computeRideMetrics = computeMetrics;
 
 // ---------------------------------------------------------------------------
 // Per-segment compliance

@@ -192,8 +192,6 @@ let server:       BluetoothRemoteGATTServer | null = null;
 let controlPoint: BluetoothRemoteGATTCharacteristic | null = null;
 let indoorBikeData: BluetoothRemoteGATTCharacteristic | null = null;
 let batteryLevel: BluetoothRemoteGATTCharacteristic | null = null;
-/** First-packets diagnostic counter for Indoor Bike Data, reset per connect. */
-let ibdDiagCount = 0;
 // Optional status characteristics (best-effort; many trainers omit them)
 let trainingStatus:       BluetoothRemoteGATTCharacteristic | null = null;
 let fitnessMachineStatus: BluetoothRemoteGATTCharacteristic | null = null;
@@ -359,7 +357,6 @@ async function setupGattSession(dev: BluetoothDevice): Promise<void> {
 
     indoorBikeData = await service.getCharacteristic(INDOOR_BIKE_DATA_UUID);
     await indoorBikeData.startNotifications();
-    ibdDiagCount = 0;
     indoorBikeData.addEventListener('characteristicvaluechanged', handleIndoorBikeData);
   } catch (err) {
     throw new FtmsError(
@@ -610,22 +607,11 @@ function friendlyControlError(opcode: number, resultCode: number): string {
   }
 }
 
-// `ibdDiagCount` (declared near the other module state) limits the
-// first-packets diagnostic below to the first few frames per connection.
 function handleIndoorBikeData(event: Event): void {
   const target = event.target as BluetoothRemoteGATTCharacteristic;
   const v = target.value;
   if (!v) return;
   const parsed = parseIndoorBikeData(v);
-  if (ibdDiagCount < 5) {
-    ibdDiagCount += 1;
-    const flags = v.getUint16(0, true);
-    console.info(
-      `[FTMS] Indoor Bike Data flags=0x${flags.toString(16).padStart(4, '0')} · ` +
-        `speed=${parsed.speed?.toFixed(2) ?? '—'} cadence=${parsed.cadence ?? '—'} ` +
-        `power=${parsed.power ?? '—'} hr=${parsed.heartRate ?? '—'}`,
-    );
-  }
   dataListener?.(parsed);
 }
 
@@ -637,9 +623,6 @@ function handleTrainingStatus(event: Event): void {
   const target = event.target as BluetoothRemoteGATTCharacteristic;
   const v = target.value;
   if (!v || v.byteLength < 1) return;
-  const statusByte = v.getUint8(0);
-  // eslint-disable-next-line no-console
-  console.debug(`[FTMS] Training status: 0x${statusByte.toString(16).padStart(2, '0')}`);
 }
 
 /**
@@ -661,9 +644,6 @@ function handleFitnessMachineStatus(event: Event): void {
   const MACHINE_STOPPED_BY_USER  = 0x02;
   const MACHINE_STOPPED_SAFE_KEY = 0x04;
   const CONTROL_PERMISSION_LOST  = 0xff;
-
-  // eslint-disable-next-line no-console
-  console.debug(`[FTMS] Machine status: 0x${opCode.toString(16).padStart(2, '0')}`);
 
   if (opCode === CONTROL_PERMISSION_LOST) {
     controlErrorListener?.({
@@ -819,40 +799,53 @@ function classifyChooserError(err: unknown): FtmsError {
  * FTMS spec section 4.9.
  */
 export function parseIndoorBikeData(view: DataView): TrainerData {
+  if (view.byteLength < 2) return {};
   let off = 0;
   const flags = view.getUint16(off, true);
   off += 2;
   const out: TrainerData = {};
 
   const has = (bit: number) => (flags & (1 << bit)) !== 0;
+  const canRead = (bytes: number) => off + bytes <= view.byteLength;
+  const skip = (bytes: number) => {
+    if (!canRead(bytes)) return false;
+    off += bytes;
+    return true;
+  };
   const moreData = has(0); // bit 0: "More Data" -- when SET, instant speed is omitted
 
   if (!moreData) {
+    if (!canRead(2)) return out;
     out.speed = (view.getUint16(off, true) / 100) / 3.6; // km/h -> m/s
     off += 2;
   }
-  if (has(1)) off += 2; // average speed
+  if (has(1) && !skip(2)) return out; // average speed
   if (has(2)) {
+    if (!canRead(2)) return out;
     out.cadence = view.getUint16(off, true) / 2;
     off += 2;
   }
-  if (has(3)) off += 2; // average cadence
+  if (has(3) && !skip(2)) return out; // average cadence
   if (has(4)) {
+    if (!canRead(3)) return out;
     // Total Distance is uint24 LE.
     out.distance = view.getUint8(off) | (view.getUint8(off + 1) << 8) | (view.getUint8(off + 2) << 16);
     off += 3;
   }
   if (has(5)) {
+    if (!canRead(2)) return out;
     out.resistance = view.getInt16(off, true);
     off += 2;
   }
   if (has(6)) {
+    if (!canRead(2)) return out;
     out.power = view.getInt16(off, true);
     off += 2;
   }
-  if (has(7)) off += 2; // average power
-  if (has(8)) off += 5; // expended energy (uint16 + uint16 + uint8)
+  if (has(7) && !skip(2)) return out; // average power
+  if (has(8) && !skip(5)) return out; // expended energy (uint16 + uint16 + uint8)
   if (has(9)) {
+    if (!canRead(1)) return out;
     out.heartRate = view.getUint8(off);
     off += 1;
   }

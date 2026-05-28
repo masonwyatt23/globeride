@@ -482,3 +482,58 @@ describe('rideStore.tick — workoutRunning speed routing', () => {
     expect(useRideStore.getState().speed).toBe(8);
   });
 });
+
+// ---- Outdoor route-less rides ----------------------------------------------
+
+describe('rideStore outdoor route-less rides', () => {
+  beforeEach(() => {
+    useRideStore.getState().setRoute(null);
+    useRideStore.getState().setRideMode('trainer');
+    useRideStore.setState({
+      rideState: 'idle',
+      route: null,
+      livePolyline: [],
+      samples: [],
+      distance: 0,
+      elapsedMs: 0,
+    });
+  });
+
+  it('starts, records, and finishes an outdoor ride without a preloaded route', () => {
+    const store = useRideStore.getState();
+    store.setRideMode('outdoor');
+
+    store.start();
+    expect(useRideStore.getState().rideState).toBe('running');
+
+    useRideStore.getState().tick(makeTick({
+      now: 1_000,
+      dt: 1,
+      gradeNow: 2,
+      elevationNow: 102,
+      speedNow: 5,
+      positionNow: { lat: 40, lon: -73 },
+      recordSample: true,
+      cadenceNow: null,
+      powerNow: 180,
+      heartRateNow: null,
+    }));
+
+    const afterTick = useRideStore.getState();
+    expect(afterTick.rideState).toBe('running');
+    expect(afterTick.distance).toBe(5);
+    expect(afterTick.samples).toHaveLength(1);
+
+    afterTick.finish();
+    expect(useRideStore.getState().rideState).toBe('finished');
+  });
+
+  it('dedupes repeated outdoor live polyline points', () => {
+    const p = { lat: 40, lon: -73, ele: 100 };
+    useRideStore.getState().appendLivePoint(p);
+    useRideStore.getState().appendLivePoint(p);
+    useRideStore.getState().appendLivePoint({ ...p, lat: 40.0001 });
+
+    expect(useRideStore.getState().livePolyline).toHaveLength(2);
+  });
+});

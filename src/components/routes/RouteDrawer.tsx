@@ -206,6 +206,24 @@ export function RouteDrawer({ onRouteReady, variant = 'overlay' }: RouteDrawerPr
     attachHandler();
   }, [attachHandler, setDrawModeActive]);
 
+  useEffect(() => {
+    if (drawModeActive && phase === 'idle') {
+      startDrawing();
+    }
+  }, [drawModeActive, phase, startDrawing]);
+
+  useEffect(() => {
+    if (phase !== 'drawing' || handlerRef.current) return;
+    const retry = window.setInterval(() => {
+      if (handlerRef.current) {
+        window.clearInterval(retry);
+        return;
+      }
+      attachHandler();
+    }, 200);
+    return () => window.clearInterval(retry);
+  }, [attachHandler, phase]);
+
   const cancelDrawing = useCallback(() => {
     detachHandler();
     clearMarkers();

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 
 import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
@@ -35,6 +35,12 @@ function RaceResultAutoToast() {
   return null;
 }
 
+function AppLaunchOnboarding() {
+  const location = useLocation();
+  if (location.pathname === '/') return null;
+  return <Onboarding />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,11 +64,11 @@ export default function App() {
           <Route path="/workouts/:id/edit" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
           {/* Strava OAuth callback — auto-captures ?code= after user approves */}
           <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </Suspense>
       <Toaster />
-      <Onboarding />
+      <AppLaunchOnboarding />
       <AchievementToast />
       {/* Race result card auto-toast — surfaces "Download result card" after a race */}
       <RaceResultAutoToast />

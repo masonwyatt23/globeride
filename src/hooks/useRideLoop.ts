@@ -7,7 +7,6 @@ import { solveVelocity, ftmsCrr, ftmsCw, type RiderParams } from '@/lib/physics'
 import {
   setSimulationParams,
   setTargetPower,
-  getTrainerControlMode,
 } from '@/lib/ftms';
 import { gpsToGradePct, shouldAutoPause, distanceMeters } from '@/lib/outdoorGps';
 import { estimatePowerFromGps } from '@/lib/outdoorPower';
@@ -86,7 +85,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
         ? sampleRouteAtDistance(s.route, distanceNow)
         : { lat: 0, lon: 0, ele: 0 };
       const rawGrade = s.route ? gradientAt(s.route, distanceNow) : 0;
-      const grade = smoother.current.push(rawGrade);
+      let grade = smoother.current.push(rawGrade);
 
       const settings = useSettingsStore.getState();
       const rider: RiderParams = {
@@ -127,7 +126,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
             // Compute grade from consecutive GPS samples.
             const rawGpsGrade = gpsToGradePct(prevGps, latestGps);
             // Smooth the GPS grade through the same EMA smoother.
-            smoother.current.push(rawGpsGrade);
+            grade = smoother.current.push(rawGpsGrade);
           }
           positionOverride = { lat: latestGps.lat, lon: latestGps.lon };
           elevationOverride = latestGps.ele ?? null;
@@ -171,7 +170,7 @@ export function useRideLoop(outdoorSamplesRef?: RefObject<GpsSample[]>): void {
       // Skip in outdoor mode — no trainer is connected.
       const now = Date.now();
       if (s.rideMode !== 'outdoor' && s.mode === 'trainer' && s.connection === 'connected') {
-        const controlMode = getTrainerControlMode();
+        const controlMode = s.trainerControlMode;
         if (controlMode === 'erg') {
           // ERG: only push if we have a target power configured in the store.
           const targetW = s.targetPowerW;

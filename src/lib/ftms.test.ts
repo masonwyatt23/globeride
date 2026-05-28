@@ -239,6 +239,28 @@ describe('parseIndoorBikeData', () => {
     expect(data.power).toBeUndefined();
     expect(data.cadence).toBeUndefined();
   });
+
+  it('does not throw on truncated notifications', () => {
+    const flags = 0x0000; // speed present, but payload omits the speed bytes
+    const buf = new ArrayBuffer(2);
+    const view = new DataView(buf);
+    view.setUint16(0, flags, true);
+
+    expect(() => parseIndoorBikeData(view)).not.toThrow();
+    expect(parseIndoorBikeData(view)).toEqual({});
+  });
+
+  it('keeps already parsed fields when a later optional field is truncated', () => {
+    const flags = 0x0000 | (1 << 6); // speed + power
+    const buf = new ArrayBuffer(4);
+    const view = new DataView(buf);
+    view.setUint16(0, flags, true);
+    view.setUint16(2, 3600, true);
+
+    const data = parseIndoorBikeData(view);
+    expect(data.speed).toBeCloseTo(10);
+    expect(data.power).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

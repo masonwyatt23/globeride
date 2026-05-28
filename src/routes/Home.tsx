@@ -1,5 +1,5 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Library,
@@ -95,6 +95,7 @@ function TabSpinner() {
  */
 export function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>('ride');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -154,8 +155,20 @@ export function Home() {
       const dailyPreset = getPreset(DAILY_WORKOUT_ID);
       if (dailyPreset) store.loadWorkout(dailyPreset);
     }
-    navigate('/ride');
+    navigate('/ride', { state: { autoStart: true } });
   };
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    if (sp.get('demo') !== '1') return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('demo');
+    window.history.replaceState({}, '', url.toString());
+    useRideStore.getState().setMode('demo');
+    void handleStartRide();
+    // handleStartRide intentionally uses latest store state and navigate only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
   const imperial = settings.units === 'imperial';
   const totalMassDisplay = imperial
     ? `${Math.round(kgToLb(settings.riderMassKg + settings.bikeMassKg))} lb`

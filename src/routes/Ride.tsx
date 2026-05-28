@@ -131,7 +131,7 @@ export function Ride() {
   });
 
   useEffect(() => {
-    if (!route && rideMode !== 'outdoor') navigate('/');
+    if (!route && rideMode !== 'outdoor') navigate('/app');
   }, [route, rideMode, navigate]);
 
   // ---- Auto-start when arriving from the wizard ----
@@ -152,7 +152,7 @@ export function Ride() {
     const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
     if (!wantsAutoStart) return;
     if (!cesiumViewer) return;
-    if (!route) return;
+    if (!route && rideMode !== 'outdoor') return;
     if (rideState === 'running' || rideState === 'paused' || rideState === 'finished') return;
     autoStartConsumedRef.current = true;
     // Brief delay so the user sees the route + chase angle for a beat
@@ -167,7 +167,7 @@ export function Ride() {
       useRideStore.getState().start();
     }, 600);
     return () => clearTimeout(t);
-  }, [cesiumViewer, route, rideState, location.state]);
+  }, [cesiumViewer, route, rideMode, rideState, location.state]);
 
   // ---- Strava segment fetch ----
   // Fire once per route load, in the background. Ride continues on failure.
