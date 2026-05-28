@@ -120,6 +120,27 @@ const _baseImageryAdded = new WeakSet<object>();
 /** Public OSM tile server — also whitelisted in the production CSP. */
 const OSM_TILE_URL = 'https://tile.openstreetmap.org/';
 
+/**
+ * Custom DOM event dispatched on `window` whenever the photoreal Bing path
+ * silently stalls and we fall back to OSM at runtime. Consumed by
+ * NoTokenBanner (or any future status surface) so the user sees a soft
+ * "photoreal unavailable" notice instead of just a downgraded-looking globe.
+ */
+export const IMAGERY_FALLBACK_EVENT = 'globeride:imagery-fallback';
+
+/**
+ * Milliseconds to wait for the Bing Aerial provider to produce any tile
+ * progress signal before we consider it stalled and swap in OSM.
+ *
+ * Real-browser verification on production showed Bing tile requests staying
+ * in the `pending` state indefinitely on some networks/CSP configurations —
+ * the request ships but the response never arrives, leaving the user with a
+ * black starfield. 4 seconds is short enough that the fallback feels snappy
+ * on a real outage, long enough that a healthy network completes its first
+ * batch comfortably.
+ */
+export const BING_TILE_STALL_TIMEOUT_MS = 4000;
+
 function buildOsmImagery(): Cesium.OpenStreetMapImageryProvider {
   return new Cesium.OpenStreetMapImageryProvider({
     url: OSM_TILE_URL,
@@ -132,6 +153,119 @@ function buildOsmImagery(): Cesium.OpenStreetMapImageryProvider {
       true,
     ),
   });
+}
+
+/**
+ * Notify any UI listeners that the photoreal Bing layer was swapped for OSM
+ * at runtime. Safe in non-DOM environments (Node test runner) — silently
+ * no-ops when `window` is undefined or dispatch throws.
+ */
+function dispatchImageryFallback(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent(IMAGERY_FALLBACK_EVENT));
+  } catch {
+    // CustomEvent unavailable (very old environments) — silently ignore;
+    // the visual fallback already happened, the banner is just a nicety.
+  }
+}
+
+/**
+ * Watchdog that swaps the Bing Aerial layer for OSM if no tile progress is
+ * observed within {@link BING_TILE_STALL_TIMEOUT_MS}.
+ *
+ * Cesium's `globe.tileLoadProgressEvent` fires every time the tile load
+ * queue length changes. We track *whether any progress event has fired at
+ * all* — a healthy network triggers many of them in the first second; a
+ * silent stall produces zero.
+ *
+ * State transitions:
+ *   - `armed`             — timer running, listener subscribed, no progress
+ *                           observed yet.
+ *   - `disarmed-ok`       — progress observed before the deadline → no
+ *                           fallback fires, timer cleared.
+ *   - `disarmed-fallback` — deadline hit with zero progress and tiles still
+ *                           not loaded → Bing layer removed, OSM added,
+ *                           IMAGERY_FALLBACK_EVENT dispatched.
+ *
+ * Once the watchdog enters either disarmed state it tears down its timer
+ * and listener; subsequent progress events are ignored so we never
+ * double-add the OSM layer.
+ */
+function armBingTileStallWatchdog(
+  viewer: Cesium.Viewer,
+  bingLayer: Cesium.ImageryLayer,
+): void {
+  // Globe / event subscription may not exist on stub viewers used in some
+  // test paths — guard defensively so we never throw from inside the helper.
+  const globe = viewer.scene?.globe;
+  if (!globe || !globe.tileLoadProgressEvent) return;
+
+  let disarmed = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let removeListener: (() => void) | null = null;
+
+  const cleanup = (): void => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    if (removeListener) {
+      try {
+        removeListener();
+      } catch {
+        // listener already detached on viewer destroy — ignore
+      }
+      removeListener = null;
+    }
+  };
+
+  const onProgress = (): void => {
+    if (disarmed) return;
+    // First progress signal — tiles are flowing; cancel the fallback.
+    disarmed = true;
+    cleanup();
+  };
+
+  try {
+    removeListener = globe.tileLoadProgressEvent.addEventListener(onProgress);
+  } catch {
+    // Subscription failed in a non-standard runtime — don't arm the timer
+    // either, otherwise we'd fire fallback even on a healthy viewer.
+    return;
+  }
+
+  timer = setTimeout(() => {
+    if (disarmed) return;
+    disarmed = true;
+    cleanup();
+
+    if (viewer.isDestroyed()) return;
+    // Re-check `tilesLoaded` at the deadline: if Cesium already finished
+    // loading everything (rare but possible on a tiny visible area), don't
+    // fall back — the photoreal layer is actually working.
+    if (globe.tilesLoaded) return;
+
+    console.warn('[cesiumUtils] Bing tiles stalled, falling back to OSM');
+
+    try {
+      viewer.scene.imageryLayers.remove(bingLayer, true);
+    } catch {
+      // Layer already removed (e.g. by a parallel route change) — fine.
+    }
+
+    try {
+      const fallback = buildOsmImagery();
+      if (viewer.isDestroyed()) return;
+      viewer.scene.imageryLayers.add(new Cesium.ImageryLayer(fallback, {}));
+      dispatchImageryFallback();
+    } catch {
+      console.warn(
+        '[cesiumUtils] Bing tiles stalled and OSM fallback construction failed; ' +
+          'the globe will render without a base layer.',
+      );
+    }
+  }, BING_TILE_STALL_TIMEOUT_MS);
 }
 
 export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
@@ -165,6 +299,10 @@ export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
     if (viewer.isDestroyed()) return;
     const layer = new Cesium.ImageryLayer(provider, {});
     viewer.scene.imageryLayers.add(layer);
+    // Arm the stall watchdog — if no tile progress is observed within the
+    // timeout, swap this layer out for OSM so the user never sees a black
+    // globe behind their route.
+    armBingTileStallWatchdog(viewer, layer);
   } catch {
     // Ion token failed (revoked / lacks Bing entitlement). Fall back to OSM
     // rather than leaving the globe black.
@@ -173,6 +311,7 @@ export async function setupBaseImagery(viewer: Cesium.Viewer): Promise<void> {
       const fallback = buildOsmImagery();
       if (viewer.isDestroyed()) return;
       viewer.scene.imageryLayers.add(new Cesium.ImageryLayer(fallback, {}));
+      dispatchImageryFallback();
     } catch {
       // Both failed — surface a single console warning and move on.
       console.warn(
