@@ -53,7 +53,10 @@ import { RouteSearch } from '@/components/setup/RouteSearch';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { SensorConnect } from '@/components/trainer/SensorConnect';
 import { RouteLibrary } from '@/components/routes/RouteLibrary';
-import { IconicRoutes } from '@/components/routes/IconicRoutes';
+// Lazy: the Iconic climbs panel pulls the full curated catalog from
+// @/lib/iconicRoutes (~66 kB of densified climb polylines). Defer until
+// the Routes tab actually renders.
+const IconicRoutes = lazy(() => import('@/components/routes/IconicRoutes').then(m => ({ default: m.IconicRoutes })));
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
 import { Button } from '@/components/ui/button';
@@ -68,7 +71,6 @@ import { useSettingsStore, kgToLb, msToKmh, msToMph } from '@/stores/settingsSto
 import { buildRampTest, build20MinTest } from '@/lib/ftpTest';
 import { getPreset, DAILY_WORKOUT_ID } from '@/lib/presetWorkouts';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
-import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { ProPelotonSetup } from '@/components/setup/ProPelotonSetup';
 
 /** Minimal inline spinner shown while a lazy tab panel loads. */
@@ -138,10 +140,13 @@ export function Home() {
   }, []); // intentional: runs once on mount to consume the ?race= deep-link
 
   /** Always-enabled CTA: auto-pairs a random iconic route and the daily easy
-   *  workout if the user hasn't already picked them, then navigates to /ride. */
-  const handleStartRide = () => {
+   *  workout if the user hasn't already picked them, then navigates to /ride.
+   *  The iconic-routes catalog is loaded on demand so it stays off the
+   *  critical bundle path. */
+  const handleStartRide = async () => {
     const store = useRideStore.getState();
     if (!store.route && store.rideMode !== 'outdoor') {
+      const { ICONIC_ROUTES } = await import('@/lib/iconicRoutes');
       const iconic = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
       store.setRoute(iconic.route);
     }
@@ -563,7 +568,7 @@ export function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <IconicRoutes onPicked={() => navigate('/ride')} />
+                <Suspense fallback={<TabSpinner />}><IconicRoutes onPicked={() => navigate('/ride')} /></Suspense>
               </CardContent>
             </Card>
 

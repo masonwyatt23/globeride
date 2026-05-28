@@ -50,7 +50,10 @@ import { listWorkouts, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary'
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import type { Route } from '@/types';
-import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
+// Lazy: the iconic-climbs catalog (~66 kB of densified polylines from
+// @/lib/iconicRoutes) is fetched on first mount of the route step + on
+// demand inside handleStartRide. Keeps the data off the critical bundle.
+import type { IconicRouteInfo } from '@/lib/iconicRoutes';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 // Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
@@ -138,10 +141,6 @@ const CAT_LABEL: Record<string, string> = {
   test: 'FTP Test',
   custom: 'Custom',
 };
-
-// ─── Featured iconic routes (first 6 from library) ───────────────────────────
-
-const FEATURED_ROUTES = ICONIC_ROUTES.slice(0, 6);
 
 // ─── Step badge ───────────────────────────────────────────────────────────────
 
@@ -366,6 +365,18 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
   const setRoute = useRideStore((s) => s.setRoute);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
   const currentRoute = useRideStore((s) => s.route);
+
+  // Featured iconic climbs — lazy-loaded so the curated catalog stays off
+  // the critical bundle. `null` means "still importing"; render skeleton
+  // cards until the module resolves on first mount.
+  const [featuredRoutes, setFeaturedRoutes] = useState<IconicRouteInfo[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    import('@/lib/iconicRoutes')
+      .then((m) => { if (!cancelled) setFeaturedRoutes(m.ICONIC_ROUTES.slice(0, 6)); })
+      .catch(() => { if (!cancelled) setFeaturedRoutes([]); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Restore persisted snapshot on first render so a reload doesn't wipe state.
   const persistedRef = useRef<Partial<RouteStepPersisted> | null>(null);
@@ -696,38 +707,53 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
         <div className="h-px flex-1 bg-border/50" />
       </div>
 
-      {/* Featured iconic routes — 2-column grid */}
+      {/* Featured iconic routes — 2-column grid. Skeleton cards stay in
+          place until the dynamic-imported catalog resolves. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {FEATURED_ROUTES.map((r) => {
-          const distKm = r.route.totalDistance ? (r.route.totalDistance / 1000).toFixed(1) : '—';
-          const ascentM = r.route.ascent ? Math.round(r.route.ascent) : null;
-          const isSelected = currentRoute?.id === r.route.id;
-          return (
-            <button
-              key={r.route.id}
-              type="button"
-              onClick={() => { setRoute(r.route); onRouteSelected(); }}
-              className={cn(
-                'flex items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-all',
-                isSelected
-                  ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/25'
-                  : 'border-border/50 bg-card/30 hover:border-border/80 hover:bg-card/50',
-              )}
-            >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/10 text-primary">
-                <Mountain className="h-4 w-4" />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-foreground truncate">{r.climbName}</div>
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground num">
-                  <span>{distKm} km</span>
-                  {ascentM && <><span className="opacity-40">·</span><span>{ascentM} m</span></>}
+        {featuredRoutes === null
+          ? Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={`featured-skeleton-${i}`}
+                aria-hidden
+                className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/20 px-3.5 py-3 animate-pulse"
+              >
+                <span className="mt-0.5 h-8 w-8 shrink-0 rounded-lg bg-muted/40" />
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="h-3 w-2/3 rounded bg-muted/40" />
+                  <div className="h-2.5 w-1/2 rounded bg-muted/30" />
                 </div>
               </div>
-              {isSelected && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-            </button>
-          );
-        })}
+            ))
+          : featuredRoutes.map((r) => {
+              const distKm = r.route.totalDistance ? (r.route.totalDistance / 1000).toFixed(1) : '—';
+              const ascentM = r.route.ascent ? Math.round(r.route.ascent) : null;
+              const isSelected = currentRoute?.id === r.route.id;
+              return (
+                <button
+                  key={r.route.id}
+                  type="button"
+                  onClick={() => { setRoute(r.route); onRouteSelected(); }}
+                  className={cn(
+                    'flex items-start gap-3 rounded-xl border px-3.5 py-3 text-left transition-all',
+                    isSelected
+                      ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/25'
+                      : 'border-border/50 bg-card/30 hover:border-border/80 hover:bg-card/50',
+                  )}
+                >
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-accent/10 text-primary">
+                    <Mountain className="h-4 w-4" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-foreground truncate">{r.climbName}</div>
+                    <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground num">
+                      <span>{distKm} km</span>
+                      {ascentM && <><span className="opacity-40">·</span><span>{ascentM} m</span></>}
+                    </div>
+                  </div>
+                  {isSelected && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                </button>
+              );
+            })}
       </div>
 
       {/* Browse all routes link */}
@@ -868,10 +894,12 @@ export function RideSetupWizard() {
     setOpenStep(3);
   }, []);
 
-  const handleStartRide = useCallback(() => {
+  const handleStartRide = useCallback(async () => {
     const store = useRideStore.getState();
-    // Auto-fill route if still none
+    // Auto-fill route if still none. The iconic-routes catalog is
+    // dynamic-imported here so it stays off the critical bundle path.
     if (!store.route) {
+      const { ICONIC_ROUTES } = await import('@/lib/iconicRoutes');
       const r = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
       store.setRoute(r.route);
     }
