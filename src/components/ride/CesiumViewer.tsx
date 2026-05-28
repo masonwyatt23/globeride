@@ -224,7 +224,12 @@ export function CesiumViewer({
   const kmMarkersRef = useRef<KmMarkersHandle | null>(null);
   const climbArchesRef = useRef<ClimbArchesHandle | null>(null);
   // Multi-rider peers: state to trigger re-render when viewer is ready.
-  const [viewerReady, setViewerReady] = useState(false);
+  // Monotonically increasing on each viewer creation. Used as a dependency so
+  // viewer-bound effects re-run when StrictMode unmounts + remounts (which
+  // tears down the first viewer + creates a fresh one). A plain boolean
+  // wouldn't fire dependent effects on remount because false → true only
+  // changes once across the component's lifetime. `0` = not yet ready.
+  const [viewerReady, setViewerReady] = useState(0);
 
   // Camera transition state held across frames.
   const camTransitionRef = useRef<{
@@ -298,7 +303,7 @@ export function CesiumViewer({
       });
       viewerRef.current = viewer;
       setActiveViewer(viewer);
-      setViewerReady(true);
+      setViewerReady((n) => n + 1);
       // Notify the parent so EnterVRButton (and other consumers) can hold a
       // ref to the viewer for XR session entry.
       onViewerReady?.(viewer);
@@ -481,7 +486,9 @@ export function CesiumViewer({
       if (viewer && !viewer.isDestroyed()) destroyCinematicEffects(viewer);
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
       viewerRef.current = null;
-      setViewerReady(false);
+      // Don't reset to 0 — keeping the counter forward-only means a future
+      // remount produces n+2 (distinct from the prior n+1) and dependent
+      // effects re-run cleanly.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -855,7 +862,6 @@ export function CesiumViewer({
     if (!viewer) return;
 
     let lastFrameMs = performance.now();
-    let diagFrame = 0;
     const handler = () => {
       const nowMs = performance.now();
       const dt = (nowMs - lastFrameMs) / 1000;
@@ -869,21 +875,6 @@ export function CesiumViewer({
 
       const state = useRideStore.getState();
       const r = state.route;
-      // One-shot diagnostic on the first frame after the handler registers,
-      // and every 120th frame thereafter (~once every 2s @60fps). Helps
-      // pinpoint why the chase cam isn't engaging on production.
-      if (diagFrame === 0 || diagFrame % 120 === 0) {
-        // eslint-disable-next-line no-console
-        console.info('[chaseCam.diag]', {
-          frame: diagFrame,
-          rideState: state.rideState,
-          routeLoaded: !!r,
-          avatarReady: !!avatarRef.current,
-          cameraMode: useSettingsStore.getState().cameraMode,
-          camAltM: Math.round(viewer.camera.positionCartographic.height),
-        });
-      }
-      diagFrame++;
       if (!r || !avatarRef.current) return;
 
       const sampled = sampleRouteAtDistance(r, state.distance);
