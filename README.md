@@ -67,6 +67,7 @@ GlobeRide is a browser-based virtual cycling simulator that renders your route o
 ### WebXR — VR and AR
 - VR on Quest 3 and Chromium desktop — stereo rendering, full 6DOF room-scale head tracking decoupled from chase-cam, interactive DOM-overlay HUD in-headset
 - AR passthrough on Quest 3 and Vision Pro — `immersive-ar` session overlays your route on the real world
+- Hand tracking on Quest 3 — pinch any HUD button to tap, no controllers needed (transient-pointer fallback for Vision Pro Safari)
 - Graceful no-op on unsupported browsers; no permission prompt on the landing page
 
 ### Replay
