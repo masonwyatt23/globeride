@@ -36,6 +36,7 @@ const AIRouteRecommender = lazy(() => import('@/components/routes/AIRouteRecomme
 const WorldTourStages  = lazy(() => import('@/components/routes/WorldTourStages').then(m => ({ default: m.WorldTourStages })));
 const RaceLobby        = lazy(() => import('@/components/race/RaceLobby').then(m => ({ default: m.RaceLobby })));
 const AICoach          = lazy(() => import('@/components/training/AICoach').then(m => ({ default: m.AICoach })));
+const CoachPlanEditor  = lazy(() => import('@/components/training/CoachPlanEditor').then(m => ({ default: m.CoachPlanEditor })));
 
 import { RideHistory } from '@/components/training/RideHistory';
 // Recharts-heavy panels — lazy-loaded so the ~390 kB Recharts chunk stays
@@ -771,6 +772,7 @@ export function Home() {
                 {route && <SegmentLeaderboard route={route} className="mt-4" />}
               </CardContent>
             </Card>
+            <Suspense fallback={<TabSpinner />}><CoachPlanEditor /></Suspense>
             <Suspense fallback={<TabSpinner />}><AICoach /></Suspense>
             <Suspense fallback={<TabSpinner />}><FitnessChart /></Suspense>
             <Suspense fallback={<TabSpinner />}><PersonalRecords /></Suspense>
