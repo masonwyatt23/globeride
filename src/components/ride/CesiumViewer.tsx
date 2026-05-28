@@ -1087,7 +1087,13 @@ export function CesiumViewer({
       if (!viewer.isDestroyed()) viewer.scene.preRender.removeEventListener(handler);
       removeTickRef.current = null;
     };
-  }, []);
+    // viewerReady is in the dep array because the viewer is created async
+    // (same root cause as the route-loading effect — the `if (!viewer) return`
+    // guard at the top bails on first mount before Cesium has finished
+    // initializing, and without viewerReady the handler is never registered).
+    // Without this, applyFollowCam never runs and the camera stays at the
+    // initial flyToBoundingSphere altitude (~7 km up, pitched -35°).
+  }, [viewerReady]);
 
   // ---- Strava segment portals — rebuild when loadedSegments changes ----
   // Triggered by the background fetch completing after route load.
