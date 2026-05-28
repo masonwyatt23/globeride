@@ -855,6 +855,7 @@ export function CesiumViewer({
     if (!viewer) return;
 
     let lastFrameMs = performance.now();
+    let diagFrame = 0;
     const handler = () => {
       const nowMs = performance.now();
       const dt = (nowMs - lastFrameMs) / 1000;
@@ -868,6 +869,21 @@ export function CesiumViewer({
 
       const state = useRideStore.getState();
       const r = state.route;
+      // One-shot diagnostic on the first frame after the handler registers,
+      // and every 120th frame thereafter (~once every 2s @60fps). Helps
+      // pinpoint why the chase cam isn't engaging on production.
+      if (diagFrame === 0 || diagFrame % 120 === 0) {
+        // eslint-disable-next-line no-console
+        console.info('[chaseCam.diag]', {
+          frame: diagFrame,
+          rideState: state.rideState,
+          routeLoaded: !!r,
+          avatarReady: !!avatarRef.current,
+          cameraMode: useSettingsStore.getState().cameraMode,
+          camAltM: Math.round(viewer.camera.positionCartographic.height),
+        });
+      }
+      diagFrame++;
       if (!r || !avatarRef.current) return;
 
       const sampled = sampleRouteAtDistance(r, state.distance);
