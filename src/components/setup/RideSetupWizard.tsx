@@ -37,21 +37,83 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDurMin } from '@/lib/format';
 import { geocode, type GeocodeResult } from '@/lib/geocoder';
-import { generateRoute, type GeneratedShape } from '@/lib/routeGenerator';
+import {
+  generateRoute,
+  RouteGenerationError,
+  type GeneratedShape,
+  type GenerationPhase,
+} from '@/lib/routeGenerator';
 import { getTerrainProvider } from '@/lib/cesiumUtils';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { listWorkouts, seedPresetWorkoutsIfMissing } from '@/lib/workoutLibrary';
 import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
+import type { Route } from '@/types';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
 import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+import { RoutePreview } from '@/components/setup/RoutePreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type WizardStep = 1 | 2 | 3;
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+
+/**
+ * SessionStorage key for the route-step search + params snapshot. We keep the
+ * shape narrow so reading invalid data after a code change degrades to
+ * "no restore" rather than throwing.
+ */
+const ROUTE_STEP_STORAGE_KEY = 'globeride.routeStep.v1';
+
+interface RouteStepPersisted {
+  query: string;
+  place: GeocodeResult | null;
+  shape: GeneratedShape;
+  lengthKm: number;
+  headingDeg: number;
+}
+
+const DEFAULT_LENGTH_KM = 30;
+const DEFAULT_HEADING_DEG = 0;
+
+function loadPersistedRouteStep(): Partial<RouteStepPersisted> | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(ROUTE_STEP_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RouteStepPersisted>;
+    // Validate the values we trust before passing them downstream.
+    const out: Partial<RouteStepPersisted> = {};
+    if (typeof parsed.query === 'string') out.query = parsed.query;
+    if (parsed.place && typeof parsed.place === 'object') {
+      const p = parsed.place as GeocodeResult;
+      if (Number.isFinite(p.lat) && Number.isFinite(p.lon)) out.place = p;
+    }
+    if (parsed.shape === 'loop' || parsed.shape === 'out-and-back') out.shape = parsed.shape;
+    if (typeof parsed.lengthKm === 'number' && Number.isFinite(parsed.lengthKm)) {
+      out.lengthKm = Math.max(2, Math.min(80, parsed.lengthKm));
+    }
+    if (typeof parsed.headingDeg === 'number' && Number.isFinite(parsed.headingDeg)) {
+      out.headingDeg = ((parsed.headingDeg % 360) + 360) % 360;
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedRouteStep(snapshot: RouteStepPersisted): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(ROUTE_STEP_STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Quota exceeded / disabled — silently no-op.
+  }
+}
 
 // ─── Category colour helpers (minimal subset) ─────────────────────────────────
 
@@ -286,31 +348,56 @@ interface RouteStepProps {
   onRouteSelected: () => void;
 }
 
+/** Human-friendly status text for each generation phase. */
+const PHASE_LABEL: Record<GenerationPhase, string> = {
+  routing: 'Routing real roads…',
+  smoothing: 'Smoothing…',
+  elevation: 'Sampling elevation…',
+  done: 'Route ready',
+};
+
 function RouteStep({ onRouteSelected }: RouteStepProps) {
   const navigate = useNavigate();
   const setRoute = useRideStore((s) => s.setRoute);
   const requestFlyTo = useRideStore((s) => s.requestFlyTo);
   const currentRoute = useRideStore((s) => s.route);
 
+  // Restore persisted snapshot on first render so a reload doesn't wipe state.
+  const persistedRef = useRef<Partial<RouteStepPersisted> | null>(null);
+  if (persistedRef.current === null) {
+    persistedRef.current = loadPersistedRouteStep() ?? {};
+  }
+  const persisted = persistedRef.current;
+
   // Search state
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState<string>(persisted.query ?? '');
   const [results, setResults] = useState<GeocodeResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [selected, setSelected] = useState<GeocodeResult | null>(null);
+  const [selected, setSelected] = useState<GeocodeResult | null>(persisted.place ?? null);
   const [searchError, setSearchError] = useState<string | null>(null);
 
   // Generation state
-  const [shape, setShape] = useState<GeneratedShape>('out-and-back');
-  const [lengthKm, setLengthKm] = useState(15);
-  const [headingDeg, setHeadingDeg] = useState(0);
+  const [shape, setShape] = useState<GeneratedShape>(persisted.shape ?? 'out-and-back');
+  const [lengthKm, setLengthKm] = useState<number>(persisted.lengthKm ?? DEFAULT_LENGTH_KM);
+  const [headingDeg, setHeadingDeg] = useState<number>(persisted.headingDeg ?? DEFAULT_HEADING_DEG);
   const [generating, setGenerating] = useState(false);
-  const [genError, setGenError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<GenerationPhase | null>(null);
+  const [genError, setGenError] = useState<{ message: string; allowSynthetic: boolean } | null>(null);
+
+  // Preview state — route is held here until the user commits with "Use this route".
+  const [previewRoute, setPreviewRoute] = useState<Route | null>(null);
 
   // GPX upload expansion
   const [showGpx, setShowGpx] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+  const genAbortRef = useRef<AbortController | null>(null);
+
+  // Persist snapshot whenever the relevant params change.
+  useEffect(() => {
+    savePersistedRouteStep({ query, place: selected, shape, lengthKm, headingDeg });
+  }, [query, selected, shape, lengthKm, headingDeg]);
 
   // Nominatim search with debounce
   useEffect(() => {
@@ -336,44 +423,91 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [query]);
 
+  // Cancel any in-flight generation when the component unmounts.
+  useEffect(() => () => genAbortRef.current?.abort(), []);
+
   const onPlaceSelect = useCallback(
     (r: GeocodeResult) => {
       setSelected(r);
       setShowResults(false);
       setGenError(null);
+      setPreviewRoute(null);
       requestFlyTo({ lat: r.lat, lon: r.lon, boundingBox: r.boundingBox, label: r.shortName });
     },
     [requestFlyTo],
   );
 
-  const onGenerate = useCallback(async () => {
-    if (!selected) return;
-    setGenerating(true);
-    setGenError(null);
-    try {
-      let terrainProvider = null;
-      try { terrainProvider = await getTerrainProvider(); } catch { /* no token */ }
-      const route = await generateRoute(
-        { lat: selected.lat, lon: selected.lon },
-        {
-          shape,
-          lengthKm,
-          headingDeg,
-          name:
-            shape === 'loop'
-              ? `${selected.shortName} · ${lengthKm} km loop`
-              : `${selected.shortName} · ${lengthKm} km out-and-back`,
-          terrainProvider,
-        },
-      );
-      setRoute(route);
-      onRouteSelected();
-    } catch (err) {
-      setGenError(err instanceof Error ? err.message : 'Could not generate route');
-    } finally {
-      setGenerating(false);
-    }
-  }, [selected, shape, lengthKm, headingDeg, setRoute, onRouteSelected]);
+  const runGenerate = useCallback(
+    async (useSynthetic: boolean) => {
+      if (!selected) return;
+      // Cancel any in-flight generation before starting a new one.
+      genAbortRef.current?.abort();
+      const ctrl = new AbortController();
+      genAbortRef.current = ctrl;
+
+      setGenerating(true);
+      setPhase('routing');
+      setGenError(null);
+      setPreviewRoute(null);
+      try {
+        let terrainProvider = null;
+        try { terrainProvider = await getTerrainProvider(); } catch { /* no token */ }
+        const route = await generateRoute(
+          { lat: selected.lat, lon: selected.lon },
+          {
+            shape,
+            lengthKm,
+            headingDeg,
+            useSynthetic,
+            name:
+              shape === 'loop'
+                ? `${selected.shortName} · ${lengthKm} km loop`
+                : `${selected.shortName} · ${lengthKm} km out-and-back`,
+            terrainProvider,
+            signal: ctrl.signal,
+            onPhase: (p) => { if (!ctrl.signal.aborted) setPhase(p); },
+          },
+        );
+        if (ctrl.signal.aborted) return;
+        setPreviewRoute(route);
+      } catch (err) {
+        if (ctrl.signal.aborted) return;
+        if (err instanceof RouteGenerationError) {
+          if (err.code === 'aborted') return;
+          // Both osrm_no_route and osrm_network are recoverable with synthetic.
+          // The unknown bucket also offers it — the user might just want to try.
+          setGenError({
+            message:
+              err.code === 'osrm_no_route'
+                ? `No bike roads near ${selected.shortName}. Try a different location or use synthetic routing.`
+                : err.message,
+            allowSynthetic: !useSynthetic,
+          });
+        } else {
+          setGenError({
+            message: err instanceof Error ? err.message : 'Could not generate route',
+            allowSynthetic: !useSynthetic,
+          });
+        }
+      } finally {
+        if (!ctrl.signal.aborted) {
+          setGenerating(false);
+          setPhase(null);
+        }
+      }
+    },
+    [selected, shape, lengthKm, headingDeg],
+  );
+
+  const onGenerate = useCallback(() => { void runGenerate(false); }, [runGenerate]);
+  const onUseSynthetic = useCallback(() => { void runGenerate(true); }, [runGenerate]);
+
+  const onCommitPreview = useCallback(() => {
+    if (!previewRoute) return;
+    setRoute(previewRoute);
+    setPreviewRoute(null);
+    onRouteSelected();
+  }, [previewRoute, setRoute, onRouteSelected]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -401,7 +535,13 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
           ) : query ? (
             <button
               type="button"
-              onClick={() => { setQuery(''); setResults([]); setSelected(null); setShowResults(false); }}
+              onClick={() => {
+                setQuery('');
+                setResults([]);
+                setSelected(null);
+                setShowResults(false);
+                setPreviewRoute(null);
+              }}
               aria-label="Clear"
               className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 inline-flex items-center justify-center transition-colors"
             >
@@ -450,7 +590,12 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
               </div>
               <button
                 type="button"
-                onClick={() => { setSelected(null); setQuery(''); }}
+                onClick={() => {
+                  setSelected(null);
+                  setQuery('');
+                  setPreviewRoute(null);
+                  setGenError(null);
+                }}
                 aria-label="Clear selection"
                 className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
               >
@@ -496,14 +641,45 @@ function RouteStep({ onRouteSelected }: RouteStepProps) {
             )}
 
             {genError && (
-              <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2 text-xs text-destructive">{genError}</div>
+              <div className="rounded-lg border border-destructive/35 bg-destructive/8 px-3 py-2 text-xs text-destructive flex flex-col gap-2">
+                <span>{genError.message}</span>
+                {genError.allowSynthetic && (
+                  <div>
+                    <Button variant="outline" size="sm" onClick={onUseSynthetic} disabled={generating}>
+                      Use synthetic routing instead
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
 
-            <Button variant="default" onClick={onGenerate} disabled={generating} className="self-start">
-              {generating
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Sampling terrain…</>
-                : <><RouteIcon className="h-4 w-4" /> Generate route</>}
-            </Button>
+            {/* Generate button + phase progress */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="default" onClick={onGenerate} disabled={generating} className="self-start">
+                {generating
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> {phase ? PHASE_LABEL[phase] : 'Generating…'}</>
+                  : <><RouteIcon className="h-4 w-4" /> Generate route</>}
+              </Button>
+              {generating && phase && (
+                <span
+                  role="status"
+                  aria-live="polite"
+                  className="text-[11px] text-muted-foreground"
+                >
+                  {PHASE_LABEL[phase]}
+                </span>
+              )}
+            </div>
+
+            {/* Preview card */}
+            {previewRoute && !generating && (
+              <RoutePreview
+                route={previewRoute}
+                onCommit={onCommitPreview}
+                onRegenerate={onGenerate}
+                regenerating={generating}
+              />
+            )}
           </div>
         )}
       </div>
