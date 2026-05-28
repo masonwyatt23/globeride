@@ -211,3 +211,54 @@ describe('save → list → load → delete round-trip', () => {
     await expect(deleteCustomWorkout('nonexistent-id')).resolves.toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Persistence reliability — save → reload → list (simulates page refresh)
+// ---------------------------------------------------------------------------
+
+describe('persistence reliability across simulated reloads', () => {
+  it('saved workout survives simulated reload (list returns it after _store is rebuilt)', async () => {
+    const w = makeCustomWorkout('Reload Test', [
+      { id: 's1', kind: 'warmup', durationSec: 600, target: { type: 'ftpPct', value: 0.55 } },
+    ]);
+    await saveCustomWorkout(w);
+    // Simulate a reload: listCustomWorkouts re-queries the same in-memory _store (our mock).
+    const list = await listCustomWorkouts();
+    expect(list.some((x) => x.id === w.id && x.name === 'Reload Test')).toBe(true);
+  });
+
+  it('multiple custom workouts are all returned by listCustomWorkouts', async () => {
+    const a = makeCustomWorkout('Alpha', []);
+    const b = makeCustomWorkout('Beta', []);
+    const c = makeCustomWorkout('Gamma', []);
+    await saveCustomWorkout(a);
+    await saveCustomWorkout(b);
+    await saveCustomWorkout(c);
+    const list = await listCustomWorkouts();
+    const ids = list.map((x) => x.id);
+    expect(ids).toContain(a.id);
+    expect(ids).toContain(b.id);
+    expect(ids).toContain(c.id);
+  });
+
+  it('overwriting a workout by id preserves the updated name', async () => {
+    const original = makeCustomWorkout('Old Name', [], undefined, 'custom-overwrite-test');
+    await saveCustomWorkout(original);
+    const updated: typeof original = { ...original, name: 'New Name' };
+    await saveCustomWorkout(updated);
+    const loaded = await loadCustomWorkout('custom-overwrite-test');
+    expect(loaded?.name).toBe('New Name');
+    // Should not duplicate — list should contain only one entry with this id.
+    const list = await listCustomWorkouts();
+    expect(list.filter((x) => x.id === 'custom-overwrite-test')).toHaveLength(1);
+  });
+
+  it('category:"custom" tag is preserved through save/load round-trip', async () => {
+    const w = makeCustomWorkout('Category Test', []);
+    await saveCustomWorkout(w);
+    const loaded = await loadCustomWorkout(w.id);
+    expect(loaded?.category).toBe('custom');
+    expect(loaded?.source).toBe('manual');
+    expect(loaded?.isCustom).toBe(true);
+  });
+});

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { Landing } from '@/routes/Landing';
 import { Home } from '@/routes/Home';
 import { DrawRoute } from '@/routes/DrawRoute';
+import { StravaCallback } from '@/routes/StravaCallback';
 import { Toaster } from '@/components/setup/Toaster';
 import { TrainerEventBridge } from '@/components/trainer/TrainerEventBridge';
 import { Onboarding } from '@/components/profile/Onboarding';
@@ -55,6 +56,8 @@ export default function App() {
           {/* Custom workout builder */}
           <Route path="/workouts/new" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
           <Route path="/workouts/:id/edit" element={<RouteErrorBoundary routeName="Workout Builder"><Suspense fallback={<LoadingFallback />}><WorkoutBuilderRoute /></Suspense></RouteErrorBoundary>} />
+          {/* Strava OAuth callback — auto-captures ?code= after user approves */}
+          <Route path="/strava-callback" element={<RouteErrorBoundary routeName="Strava Callback"><StravaCallback /></RouteErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

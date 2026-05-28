@@ -24,6 +24,7 @@ import {
   getRefreshTokenOverride,
   clearRefreshTokenOverride,
   forceReauth,
+  STRAVA_OOB_REDIRECT_URI,
 } from '@/lib/stravaOauth';
 import {
   verifyStravaAccess,
@@ -88,7 +89,11 @@ function StravaSection() {
       );
       return;
     }
-    const url = buildStravaAuthorizeUrl();
+    // Use the OOB redirect so the code appears in the Strava developers page
+    // URL bar — the user copies it and pastes it below. This avoids needing
+    // the /strava-callback route registered as an authorized domain for the
+    // Settings panel copy-paste flow.
+    const url = buildStravaAuthorizeUrl({ redirectUri: STRAVA_OOB_REDIRECT_URI });
     window.open(url, '_blank', 'noopener,noreferrer');
     setFlowStep('waiting_code');
     setExchangeError(null);
@@ -227,8 +232,10 @@ function StravaSection() {
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">Step 2</span> — After approving,
-              copy the <code className="text-[10px]">code</code> value from the URL bar (it looks
-              like <code className="text-[10px]">?code=abc123…</code>) and paste it below.
+              Strava redirects you to the Strava developers page. Copy the{' '}
+              <code className="text-[10px]">code</code> value from the URL bar (it looks
+              like <code className="text-[10px]">?code=abc123…&amp;scope=…</code>) and paste it
+              below. Codes expire in 10 minutes and can only be used once.
             </p>
             <div className="flex items-center gap-2 mt-1">
               <input

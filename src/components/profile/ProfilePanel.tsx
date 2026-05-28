@@ -39,7 +39,7 @@ export function ProfilePanel({ open, onClose }: { open: boolean; onClose: () => 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] bg-background/70 backdrop-blur-sm overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="Rider profile"

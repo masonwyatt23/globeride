@@ -235,8 +235,9 @@ export function Ride() {
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
-        {/* Left cluster: nav + status chips */}
+        {/* ── Left column: nav buttons + map awareness (tablet+) ── */}
         <div className="flex flex-col gap-2 items-start pointer-events-auto">
+          {/* Top-bar nav row */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -269,9 +270,23 @@ export function Ride() {
           <ConnectionStatus compact />
           {replayData && <ReplayBadge />}
           <SensorStatusPills />
+
+          {/* Minimap — below the nav row, left column, tablet+ only */}
+          <div className="hidden sm:block pointer-events-none mt-1">
+            <Minimap />
+          </div>
+
+          {/* Elevation profile — below minimap, left column, tablet+ only */}
+          <div
+            className="hidden sm:block pointer-events-auto mt-1 w-[22rem] md:w-[26rem] lg:w-[30rem] xl:w-[34rem]"
+          >
+            <div className="glass glass-hairline rounded-2xl p-3 sm:p-4 transition-all duration-300">
+              <ElevationProfile />
+            </div>
+          </div>
         </div>
 
-        {/* Right: HUD column (tablet+) -- scrollable if workout panel is tall */}
+        {/* ── Right column: stats + workout HUD (tablet+) ── */}
         <div
           className="hidden sm:flex flex-col gap-2 pointer-events-none w-full max-w-[22rem] md:max-w-[25rem] lg:max-w-[28rem] xl:max-w-[31rem] overflow-y-auto"
           style={{ maxHeight: 'calc(100vh - 6rem)' }}
@@ -283,7 +298,7 @@ export function Ride() {
         </div>
       </div>
 
-      {/* -- Mobile HUD -- below the top bar -------------------------------- */}
+      {/* -- Mobile HUD -- below the top bar (single column stack) ---------- */}
       <div
         className="sm:hidden absolute left-0 right-0 pointer-events-none z-[2]"
         style={{
@@ -292,7 +307,18 @@ export function Ride() {
           paddingRight: 'max(env(safe-area-inset-right), 0.75rem)',
         }}
       >
+        {/* Stats first on mobile */}
         <RideHUD />
+        {/* Minimap — compact, full-width on mobile */}
+        <div className="mt-2 pointer-events-none flex justify-center">
+          <Minimap />
+        </div>
+        {/* Elevation profile — collapsible width on mobile */}
+        <div className="mt-2 pointer-events-auto">
+          <div className="glass glass-hairline rounded-2xl p-3 transition-all duration-300">
+            <ElevationProfile />
+          </div>
+        </div>
         {activeWorkout && (
           <div className="mt-2">
             <WorkoutHUD />
@@ -303,23 +329,6 @@ export function Ride() {
           <SegmentHUD />
         </div>
       </div>
-
-      {/* -- Elevation profile -- bottom-left -------------------------------- */}
-      <div
-        className="absolute pointer-events-auto z-[2]"
-        style={{
-          left:   'max(env(safe-area-inset-left), 0.75rem)',
-          right:  'max(env(safe-area-inset-right), 0.75rem)',
-          bottom: 'calc(max(env(safe-area-inset-bottom), 1.25rem) + 5rem)',
-        }}
-      >
-        <div className="glass glass-hairline rounded-2xl p-3 sm:p-4 w-full sm:w-[26rem] md:w-[30rem] lg:w-[34rem] xl:w-[38rem] transition-all duration-300">
-          <ElevationProfile />
-        </div>
-      </div>
-
-      {/* -- Minimap -- bottom-right ---------------------------------------- */}
-      <Minimap className="absolute bottom-[6rem] right-3 z-[2] pointer-events-none hidden sm:block" />
 
       {/* -- Transport controls -- bottom-center ----------------------------- */}
       {/* z-50 (above every other HUD layer) so the Start ride button can

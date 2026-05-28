@@ -9,7 +9,8 @@
  */
 
 import type { ReactNode } from 'react';
-import { Activity, ChevronRight, Zap, Timer, TrendingUp, TrendingDown } from 'lucide-react';
+import { useCallback } from 'react';
+import { Activity, ChevronRight, Zap, Timer, TrendingUp, TrendingDown, SkipForward } from 'lucide-react';
 import { useRideStore } from '@/stores/rideStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { segmentAt, resolveTargetWatts, totalDurationSec } from '@/lib/workout';
@@ -54,14 +55,27 @@ export function WorkoutHUD() {
   const power              = useRideStore((s) => s.power);
   const ftpW               = useSettingsStore((s) => s.ftpW);
 
+  // Skip to the end of the current segment (advances elapsed past this segment).
+  const skipSegment = useCallback(() => {
+    const s = useRideStore.getState();
+    if (!s.activeWorkout) return;
+    const cur = segmentAt(s.activeWorkout, s.workoutElapsedSec);
+    if (!cur) return;
+    // Jump to 1 ms past the segment boundary so the engine picks up the next segment.
+    const jumpTo = cur.remainingInSegmentSec + 0.001;
+    s.advanceWorkoutElapsed(jumpTo);
+  }, []);
+
   if (!activeWorkout || (rideState !== 'running' && rideState !== 'paused')) return null;
 
   const cursor = segmentAt(activeWorkout, workoutElapsedSec);
   if (!cursor) return null;
 
-  const { segment, remainingInSegmentSec, elapsedInSegmentSec, next } = cursor;
-  const totalSec   = totalDurationSec(activeWorkout);
-  const progress   = totalSec > 0 ? Math.min(1, workoutElapsedSec / totalSec) : 0;
+  const { segment, remainingInSegmentSec, elapsedInSegmentSec, next, index } = cursor;
+  const totalSec      = totalDurationSec(activeWorkout);
+  const segmentCount  = activeWorkout.segments.length;
+  const segmentLabel  = `${index + 1} of ${segmentCount}`;
+  const progress      = totalSec > 0 ? Math.min(1, workoutElapsedSec / totalSec) : 0;
   // Clamp segment progress to [0,100] — avoids negative or >100 values at boundaries
   const segPct     = segment.durationSec > 0
     ? Math.min(100, Math.max(0, (elapsedInSegmentSec / segment.durationSec) * 100))
@@ -107,7 +121,7 @@ export function WorkoutHUD() {
 
         <div className="p-3 sm:p-3.5 flex flex-col gap-2.5">
 
-          {/* Header: kind badge + live indicator + countdown */}
+          {/* Header: kind badge + live indicator + segment index + skip + countdown */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span
@@ -136,15 +150,41 @@ export function WorkoutHUD() {
                   role="status"
                 />
               )}
-            </div>
-            <div
-              className="flex items-center gap-1 text-muted-foreground"
-              aria-label={`Time remaining in segment: ${formatSec(safeRemaining)}`}
-            >
-              <Timer className="h-3 w-3" aria-hidden="true" />
-              <span className="num text-sm font-bold text-foreground tabular-nums" aria-hidden="true">
-                {formatSec(safeRemaining)}
+              {/* Segment index */}
+              <span
+                className="text-[10px] text-muted-foreground tabular-nums"
+                aria-label={`Segment ${index + 1} of ${segmentCount}`}
+              >
+                {segmentLabel}
               </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* Skip segment button — only when next segment exists */}
+              {next && (
+                <button
+                  type="button"
+                  onClick={skipSegment}
+                  aria-label="Skip to next segment"
+                  title="Skip to next segment"
+                  className={cn(
+                    'pointer-events-auto flex h-6 w-6 items-center justify-center rounded-md',
+                    'text-muted-foreground transition-colors',
+                    'hover:text-foreground hover:bg-muted/50',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  )}
+                >
+                  <SkipForward className="h-3 w-3" aria-hidden="true" />
+                </button>
+              )}
+              <div
+                className="flex items-center gap-1 text-muted-foreground"
+                aria-label={`Time remaining in segment: ${formatSec(safeRemaining)}`}
+              >
+                <Timer className="h-3 w-3" aria-hidden="true" />
+                <span className="num text-sm font-bold text-foreground tabular-nums" aria-hidden="true">
+                  {formatSec(safeRemaining)}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -269,9 +309,17 @@ export function WorkoutHUD() {
       {/* ── Overall workout progress ───────────────────────────────── */}
       <div className="pointer-events-auto glass glass-hairline rounded-xl px-3 py-2.5 flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2 text-[10px]">
-          <span className="font-semibold text-foreground/80 truncate max-w-[16ch]">
-            {activeWorkout.name}
-          </span>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="font-semibold text-foreground/80 truncate max-w-[16ch]">
+              {activeWorkout.name}
+            </span>
+            <span
+              className="text-muted-foreground/70"
+              aria-label={`Segment ${index + 1} of ${segmentCount}`}
+            >
+              Seg {segmentLabel}
+            </span>
+          </div>
           <span
             className="num tabular-nums text-muted-foreground shrink-0"
             aria-label={`Workout time: ${formatSec(workoutElapsedSec)} of ${formatSec(totalSec)}`}

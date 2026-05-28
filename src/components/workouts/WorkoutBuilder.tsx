@@ -10,7 +10,7 @@
  *  - Save to workout library / load directly into ride
  */
 
-import { useCallback, useId, useReducer, useState } from 'react';
+import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -22,6 +22,7 @@ import {
   RepeatIcon,
   Save,
   Play,
+  CheckCircle2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -190,15 +191,54 @@ export function WorkoutBuilder({
   const ftpW = useSettingsStore((s) => s.ftpW);
   const formId = useId();
 
+  // Draft persistence — save in-progress work to localStorage so a page
+  // reload doesn't discard unsaved segments. Only applies to new workouts
+  // (initialWorkout === undefined); editing an existing workout skips the draft.
+  const DRAFT_KEY = 'globeride.workoutBuilder.draft';
+  const isDraftMode = !initialWorkout;
+
   const [segments, dispatch] = useReducer(
     editorReducer,
     undefined,
-    () => initialWorkout ? initialWorkout.segments.map(toEditable) : [makeSegment('warmup'), makeSegment('steady'), makeSegment('cooldown')],
+    () => {
+      if (initialWorkout) return initialWorkout.segments.map(toEditable);
+      // Attempt to restore an in-progress draft from localStorage.
+      try {
+        const raw = typeof localStorage !== 'undefined' && localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { name?: string; segments?: EditableSegment[] };
+          if (Array.isArray(parsed.segments) && parsed.segments.length > 0) {
+            return parsed.segments as EditableSegment[];
+          }
+        }
+      } catch { /* ignore corrupt drafts */ }
+      return [makeSegment('warmup'), makeSegment('steady'), makeSegment('cooldown')];
+    },
   );
-  const [name, setName] = useState(initialWorkout?.name ?? 'My Workout');
+  const [name, setName] = useState(() => {
+    if (initialWorkout) return initialWorkout.name ?? 'My Workout';
+    try {
+      const raw = typeof localStorage !== 'undefined' && localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { name?: string };
+        if (parsed.name) return parsed.name;
+      }
+    } catch { /* ignore */ }
+    return 'My Workout';
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist draft to localStorage whenever name/segments change (new workouts only).
+  useEffect(() => {
+    if (!isDraftMode) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, segments }));
+    } catch { /* private-mode safe */ }
+  }, [name, segments, isDraftMode, DRAFT_KEY]);
 
   // Interval set helper state
   const [intervalN, setIntervalN] = useState(4);
@@ -241,6 +281,14 @@ export function WorkoutBuilder({
     try {
       await saveWorkout(workout);
       setSaved(true);
+      // Clear the in-progress draft now that it's safely in IndexedDB.
+      if (isDraftMode) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+      }
+      // Show named toast feedback for 3 seconds.
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      setSaveToast(workout.name.trim() || 'Untitled Workout');
+      toastTimerRef.current = setTimeout(() => setSaveToast(null), 3000);
       onSaved?.(workout);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -248,7 +296,7 @@ export function WorkoutBuilder({
     } finally {
       setSaving(false);
     }
-  }, [workout, segments.length, onSaved]);
+  }, [workout, segments.length, onSaved, isDraftMode, DRAFT_KEY]);
 
   const handleRide = useCallback(() => {
     onRide?.(workout);
@@ -381,6 +429,18 @@ export function WorkoutBuilder({
           </p>
         </CardContent>
       </Card>
+
+      {/* Save toast */}
+      {saveToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-3.5 py-2.5 text-sm text-emerald-600 dark:text-emerald-400"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>Saved <strong className="font-semibold">{saveToast}</strong> to your workout library.</span>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -786,6 +846,7 @@ function buildWorkout(name: string, segments: EditableSegment[], existingId?: st
     name: name.trim() || 'Untitled Workout',
     createdAt: Date.now(),
     source: 'manual',
+    category: 'custom',
     segments: segments.map(fromEditable),
   };
 }

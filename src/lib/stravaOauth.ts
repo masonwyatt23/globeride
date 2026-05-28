@@ -5,12 +5,19 @@
  * browser via the /strava-api Vite proxy (mirrors the same proxy used for
  * token refresh + upload). The flow:
  *
- *   1. User clicks "Connect Strava" → open buildStravaAuthorizeUrl() in a new tab.
- *   2. User approves on Strava, gets redirected to the redirect_uri with ?code=…
- *   3. User copies the `code` value and pastes it into the in-app input.
- *   4. App calls exchangeCodeForRefreshToken(code) via the proxy.
- *   5. The returned refresh_token is saved to sessionStorage (STRAVA_RT_OVERRIDE_KEY).
- *   6. strava.ts prefers the sessionStorage override over the .env.local value.
+ *   Auto-capture path (preferred, used by forceReauth / Connect button):
+ *   1. User clicks "Connect Strava" → current tab navigates to the Strava
+ *      authorize URL with redirect_uri = window.location.origin + '/strava-callback'.
+ *   2. User approves on Strava → redirected to /strava-callback?code=…
+ *   3. The StravaCallback route extracts the code and calls exchangeCodeForRefreshToken().
+ *   4. On success, redirect to /app?strava=connected.
+ *
+ *   Manual copy-paste path (fallback, shown in Settings → Data):
+ *   1. User clicks "Connect Strava" → new tab opens the authorize URL.
+ *      redirect_uri is Strava's own OOB page (http://developers.strava.com).
+ *   2. After approval the code appears in the OOB page URL bar.
+ *   3. User copies the code, pastes it in the input, clicks Confirm.
+ *   4. App calls exchangeCodeForRefreshToken(code) directly.
  *
  * Scope requested: activity:write,activity:read_all  (covers upload + read).
  *
@@ -25,16 +32,32 @@
 export const STRAVA_RT_OVERRIDE_KEY = 'globeride.strava.refreshTokenOverride';
 
 /**
- * The redirect URI used when building the authorize URL.
- * We use Strava's own "out-of-band" redirect so the user lands on a Strava
- * confirmation page that shows the auth code in the URL bar — they copy it
- * and paste it back into GlobeRide.
+ * Strava's official out-of-band redirect URI for apps without a web server.
+ * After approval the user lands on the Strava developers page; the `code`
+ * parameter is visible in the URL bar and the user copies it manually.
  *
- * Alternatively callers can pass window.location.origin + '/strava-callback'
- * if they set up a redirect handler, but for a backend-less personal app the
- * OOB approach requires no extra routing.
+ * See: https://developers.strava.com/docs/authentication/
+ *
+ * NOTE: the previous value ('https://www.strava.com/oauth/authorize') was
+ * incorrect — it pointed at the authorize endpoint itself, causing Strava to
+ * reject every redirect with an OAuth error ("redirect_uri did not match").
  */
-const DEFAULT_REDIRECT_URI = 'https://www.strava.com/oauth/authorize';
+export const STRAVA_OOB_REDIRECT_URI = 'http://developers.strava.com';
+
+/**
+ * Default redirect URI for the auto-capture flow.
+ * The /strava-callback route reads ?code= from the URL and completes the
+ * exchange automatically (no copy-paste required).
+ */
+export function stravaCallbackUri(): string {
+  // Use globalThis so this can be called in server-side / test environments
+  // that mock globalThis.location without a full jsdom setup.
+  const origin =
+    typeof globalThis !== 'undefined' && globalThis.location
+      ? globalThis.location.origin
+      : 'http://localhost';
+  return `${origin}/strava-callback`;
+}
 
 // ---------------------------------------------------------------------------
 // Authorize URL builder
@@ -47,7 +70,10 @@ export interface StravaAuthorizeUrlOpts {
 
 /**
  * Build the Strava OAuth authorize URL.
- * Open this in a new tab; the user approves then copies the `code` param.
+ *
+ * By default uses the OOB redirect (http://developers.strava.com) so the user
+ * can see and copy the code manually. Pass redirectUri: stravaCallbackUri() to
+ * use the auto-capture /strava-callback route instead (no copy-paste needed).
  */
 export function buildStravaAuthorizeUrl(opts: StravaAuthorizeUrlOpts = {}): string {
   const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID as string | undefined;
@@ -55,7 +81,7 @@ export function buildStravaAuthorizeUrl(opts: StravaAuthorizeUrlOpts = {}): stri
     throw new Error('VITE_STRAVA_CLIENT_ID is not set — add it to .env.local');
   }
 
-  const redirectUri = opts.redirectUri ?? DEFAULT_REDIRECT_URI;
+  const redirectUri = opts.redirectUri ?? STRAVA_OOB_REDIRECT_URI;
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -270,18 +296,27 @@ export function isStravaLinked(): boolean {
  * redirects the current window to the Strava OAuth authorize URL so the user
  * can re-grant the correct scope (`activity:write,activity:read_all`).
  *
+ * Uses the /strava-callback auto-capture route as the redirect_uri so the user
+ * is returned to the app automatically after approving — no copy-paste needed.
+ *
  * Pass `clearCachedTokenFn` (= `clearCachedToken` from strava.ts) to also
  * invalidate the in-memory + localStorage access-token cache.
  *
  * Opens in the SAME tab (not a new tab) — a direct user gesture is required
  * to avoid popup blockers when navigating to a cross-origin URL.
+ *
+ * IMPORTANT: the redirect_uri passed here MUST be registered in your Strava
+ * app dashboard (https://www.strava.com/settings/api) under "Authorization
+ * Callback Domain". Add your deployment domain (e.g. globeride.vercel.app)
+ * and/or localhost for local dev.
  */
 export function forceReauth(clearCachedTokenFn?: () => void): void {
   // 1. Wipe the stale refresh token so it isn't reused after the redirect
   clearRefreshTokenOverride();
   // 2. Wipe the cached access token if caller supplied the helper
   clearCachedTokenFn?.();
-  // 3. Redirect current window to the Strava authorize URL (same-tab)
-  const url = buildStravaAuthorizeUrl();
-  window.location.href = url;
+  // 3. Redirect current tab to Strava with the auto-capture callback URI.
+  //    Use globalThis.location so this is mockable in Node test environments.
+  const url = buildStravaAuthorizeUrl({ redirectUri: stravaCallbackUri() });
+  globalThis.location.href = url;
 }

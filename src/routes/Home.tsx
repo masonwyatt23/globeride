@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import { AppHeader } from '@/components/setup/AppHeader';
+import { RideSetupWizard } from '@/components/setup/RideSetupWizard';
 import { OutdoorModeToggle } from '@/components/setup/OutdoorModeToggle';
 import { PaceBotsPanel } from '@/components/ride/PaceBotsPanel';
 import { WorkoutBuilder } from '@/components/workouts/WorkoutBuilder';
@@ -89,6 +90,20 @@ function TabSpinner() {
 export function Home() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('ride');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Honor ?tab= query param from wizard "Browse all" links
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const tab = sp.get('tab') as TabId | null;
+    if (tab && ['ride','routes','workouts','races','history'].includes(tab)) {
+      setShowAdvanced(true);
+      setActiveTab(tab);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tab');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   const route = useRideStore((s) => s.route);
   const connection = useRideStore((s) => s.connection);
@@ -164,28 +179,73 @@ export function Home() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 lg:py-11 flex flex-col gap-6">
 
-        {/* Hero — always visible above tabs */}
+        {/* Hero — always visible */}
         <div className="animate-fadeUp">
           <Badge variant="default" className="mb-3 text-[10px]">
             <Sparkles className="h-3 w-3" />
             Open source · MIT licensed
           </Badge>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.05] [letter-spacing:-0.03em]">
-            Ride{' '}
-            <span className="text-gradient">anywhere on Earth.</span>
+            Pick your ride.
           </h1>
-          <p className="mt-3 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
-            Upload any GPX from Strava, Komoot or Garmin. GlobeRide renders the
-            route on a photorealistic 3D globe, drives real gradient into your
-            smart trainer over Web Bluetooth, and exports a Strava-compatible
-            .FIT when you're done.
+          <p className="mt-2 text-muted-foreground max-w-prose text-sm sm:text-base leading-relaxed">
+            30 seconds, no account required.
           </p>
         </div>
 
-        {/* Tab bar */}
-        <HomeTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+        {/* ── Wizard (default view) ── */}
+        {!showAdvanced && <RideSetupWizard />}
 
-        {/* RIDE tab */}
+        {/* ── Advanced toggle footer ── */}
+        {!showAdvanced && (
+          <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-border/40">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(true)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <History className="h-3.5 w-3.5" />
+              History
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAdvanced(true); setActiveTab('races'); }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <Flag className="h-3.5 w-3.5" />
+              Races
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(true)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              <Dumbbell className="h-3.5 w-3.5" />
+              Advanced view
+            </button>
+          </div>
+        )}
+
+        {/* ── Advanced / power-user tab layout ── */}
+        {showAdvanced && (
+          <>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(false)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                ← Back to quick setup
+              </button>
+            </div>
+            {/* Tab bar */}
+            <HomeTabBar tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+          </>
+        )}
+
+        {/* All tab panels — only rendered in advanced mode */}
+        {showAdvanced && (
+        <>
         <HomeTabPanel id="ride" activeTab={activeTab}>
           <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
 
@@ -711,6 +771,8 @@ export function Home() {
             <PersonalRecords />
           </div>
         </HomeTabPanel>
+        </>
+        )}
 
       </main>
 
