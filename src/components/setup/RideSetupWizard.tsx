@@ -651,7 +651,6 @@ export function RideSetupWizard() {
   const connection = useRideStore((s) => s.connection);
   const loadWorkout = useRideStore((s) => s.loadWorkout);
   const clearWorkout = useRideStore((s) => s.clearWorkout);
-  const activeWorkout = useRideStore((s) => s.activeWorkout);
 
   // null = free ride selected; Workout = structured selected
   const [pickedWorkout, setPickedWorkout] = useState<Workout | null>(null);

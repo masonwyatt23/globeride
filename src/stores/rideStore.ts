@@ -722,7 +722,7 @@ export const useRideStore = create<RideStoreState>((set, get) => ({
     const patch: Partial<RideStoreState> = { rideState: 'running', startedAt: Date.now() };
     if (st.rideMode === 'outdoor') patch.livePolyline = [];
     set(patch);
-    console.log('[rideStore.start] rideState → running', { startedAt: patch.startedAt });
+    console.info('[rideStore.start] rideState → running', { startedAt: patch.startedAt });
   },
 
   pause: () => {
