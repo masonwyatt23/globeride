@@ -374,24 +374,26 @@ describe('cesiumUtils — token-aware behaviour', () => {
       warnSpy.mockRestore();
     });
 
-    it('subscribes to globe.tileLoadProgressEvent after adding the Bing layer', async () => {
+    it('does NOT subscribe to tileLoadProgressEvent (event fires on queue-length changes, not actual loads)', async () => {
       setIonToken('eyJ_x.y');
       const viewer = makeViewer() as unknown as FakeViewer;
       await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
 
-      expect(viewer.scene.globe.tileLoadProgressEvent.addEventListener).toHaveBeenCalledTimes(1);
+      // The watchdog deliberately doesn't listen to progress — see the
+      // comment in armBingTileStallWatchdog for the prod-observed reason.
+      expect(viewer.scene.globe.tileLoadProgressEvent.addEventListener).not.toHaveBeenCalled();
     });
 
-    it('does NOT swap to OSM when a tile-progress event fires within the timeout', async () => {
+    it('does NOT swap to OSM when globe.tilesLoaded becomes true before the deadline', async () => {
       setIonToken('eyJ_x.y');
       const viewer = makeViewer() as unknown as FakeViewer;
       await setupBaseImagery(viewer as unknown as import('cesium').Viewer);
 
-      // A healthy network produces progress within the first second.
-      vi.advanceTimersByTime(500);
-      viewer.scene.globe.tileLoadProgressEvent.raise();
+      // A healthy network finishes loading before the deadline.
+      viewer.scene.globe.tilesLoaded = true;
 
-      // Now blow well past the deadline — fallback must NOT fire.
+      // Blow well past the deadline — fallback must NOT fire because tiles
+      // are loaded.
       vi.advanceTimersByTime(BING_TILE_STALL_TIMEOUT_MS * 2);
 
       expect(osmConstructorCalls.length).toBe(0);

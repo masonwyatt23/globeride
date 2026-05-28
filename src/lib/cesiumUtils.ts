@@ -196,44 +196,28 @@ function armBingTileStallWatchdog(
   viewer: Cesium.Viewer,
   bingLayer: Cesium.ImageryLayer,
 ): void {
-  // Globe / event subscription may not exist on stub viewers used in some
-  // test paths — guard defensively so we never throw from inside the helper.
+  // Globe stub may not exist in some test paths — guard defensively.
   const globe = viewer.scene?.globe;
-  if (!globe || !globe.tileLoadProgressEvent) return;
+  if (!globe) return;
 
   let disarmed = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
-  let removeListener: (() => void) | null = null;
 
   const cleanup = (): void => {
     if (timer !== null) {
       clearTimeout(timer);
       timer = null;
     }
-    if (removeListener) {
-      try {
-        removeListener();
-      } catch {
-        // listener already detached on viewer destroy — ignore
-      }
-      removeListener = null;
-    }
   };
 
-  const onProgress = (): void => {
-    if (disarmed) return;
-    // First progress signal — tiles are flowing; cancel the fallback.
-    disarmed = true;
-    cleanup();
-  };
-
-  try {
-    removeListener = globe.tileLoadProgressEvent.addEventListener(onProgress);
-  } catch {
-    // Subscription failed in a non-standard runtime — don't arm the timer
-    // either, otherwise we'd fire fallback even on a healthy viewer.
-    return;
-  }
+  // We deliberately do NOT subscribe to `tileLoadProgressEvent`. Cesium
+  // fires that on tile-queue-length changes — including when tile REQUESTS
+  // are dispatched, not just when they complete. On production, Bing tiles
+  // were observed to dispatch successfully (queue length changes, event
+  // fires, watchdog would disarm) but never paint (response stalls). The
+  // resulting black globe is exactly the bug this watchdog is supposed to
+  // catch. Check the authoritative `globe.tilesLoaded` flag at the deadline
+  // instead — it's only true when tiles have actually finished loading.
 
   timer = setTimeout(() => {
     if (disarmed) return;
