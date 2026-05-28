@@ -94,6 +94,97 @@ interface XRInputSource {
   readonly gamepad: Gamepad | null;
   /** 'gaze' | 'tracked-pointer' | 'screen' | 'transient-pointer'. */
   readonly targetRayMode: string;
+  /**
+   * Phase 4: hand-tracking. Present on input sources backed by an articulated
+   * hand (Quest 2/3, Pico). Each joint is an XRSpace that can be located via
+   * `frame.getJointPose(joint, refSpace)`. Absent on controller-based sources
+   * and on the Vision Pro `'transient-pointer'` fallback.
+   *
+   * Spec: https://www.w3.org/TR/webxr-hand-input-1/#xrhand-interface
+   */
+  readonly hand?: XRHand;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: hand input — articulated hand tracking on Quest / Pico.
+// https://www.w3.org/TR/webxr-hand-input-1/
+// ---------------------------------------------------------------------------
+
+/**
+ * Standard joint names used by XRHand.get(). We only reference the two joints
+ * needed for pinch detection (thumb tip + index tip); the spec defines 25.
+ */
+type XRHandJoint =
+  | 'wrist'
+  | 'thumb-metacarpal'
+  | 'thumb-phalanx-proximal'
+  | 'thumb-phalanx-distal'
+  | 'thumb-tip'
+  | 'index-finger-metacarpal'
+  | 'index-finger-phalanx-proximal'
+  | 'index-finger-phalanx-intermediate'
+  | 'index-finger-phalanx-distal'
+  | 'index-finger-tip'
+  | 'middle-finger-metacarpal'
+  | 'middle-finger-phalanx-proximal'
+  | 'middle-finger-phalanx-intermediate'
+  | 'middle-finger-phalanx-distal'
+  | 'middle-finger-tip'
+  | 'ring-finger-metacarpal'
+  | 'ring-finger-phalanx-proximal'
+  | 'ring-finger-phalanx-intermediate'
+  | 'ring-finger-phalanx-distal'
+  | 'ring-finger-tip'
+  | 'pinky-finger-metacarpal'
+  | 'pinky-finger-phalanx-proximal'
+  | 'pinky-finger-phalanx-intermediate'
+  | 'pinky-finger-phalanx-distal'
+  | 'pinky-finger-tip';
+
+/**
+ * Per-joint reference space. Pass to `XRFrame.getJointPose(joint, refSpace)`
+ * to read its pose in the active reference space.
+ */
+type XRJointSpace = XRSpace;
+
+/**
+ * Articulated-hand input source. Maps joint name → XRJointSpace.
+ *
+ * Iteration order is implementation-defined; always look joints up by name.
+ */
+interface XRHand {
+  readonly size: number;
+  get(joint: XRHandJoint): XRJointSpace | undefined;
+  values(): IterableIterator<XRJointSpace>;
+}
+
+/**
+ * Joint pose returned by `XRFrame.getJointPose(joint, refSpace)`.
+ * `radius` is the runtime's estimated joint radius (metres) — useful for
+ * collision tests but not consumed by our pinch heuristic.
+ */
+interface XRJointPose {
+  readonly transform: XRRigidTransform;
+  readonly radius?: number;
+}
+
+/**
+ * Event emitted when `inputSources` changes (controller connect/disconnect,
+ * hand-tracking session start, etc.). Phase 4 subscribes to this so we can
+ * (de)register per-hand pinch listeners as XRInputSources come and go.
+ */
+interface XRInputSourcesChangeEvent extends Event {
+  readonly added: ReadonlyArray<XRInputSource>;
+  readonly removed: ReadonlyArray<XRInputSource>;
+}
+
+/**
+ * Event emitted by `'selectstart' | 'selectend' | 'select'`. On Vision Pro
+ * Safari the `'transient-pointer'` fallback fires these around a pinch.
+ */
+interface XRInputSourceEvent extends Event {
+  readonly inputSource: XRInputSource;
+  readonly frame: XRFrame;
 }
 
 // ---------------------------------------------------------------------------
@@ -157,6 +248,12 @@ type XRReferenceSpace = EventTarget;
 interface XRFrame {
   readonly session: XRSession;
   getViewerPose(referenceSpace: XRReferenceSpace): XRViewerPose | null;
+  /**
+   * Phase 4: locate an articulated-hand joint in the given reference space.
+   * Returns null if tracking is lost for that joint. Quest browsers implement
+   * this on XRFrame when 'hand-tracking' is granted.
+   */
+  getJointPose?(joint: XRJointSpace, baseSpace: XRReferenceSpace): XRJointPose | null;
 }
 
 interface XRViewerPose {

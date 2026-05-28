@@ -1,5 +1,5 @@
 /**
- * xrDomOverlay.ts WebXR Phase 3: DOM overlay for in-headset HUD.
+ * xrDomOverlay.ts WebXR Phase 3 + Phase 4: DOM overlay for in-headset HUD.
  *
  * WebXR DOM Overlays feature (W3C spec):
  *   https://immersive-web.github.io/dom-overlays/
@@ -108,4 +108,129 @@ export function getDomOverlayType(
     .domOverlayState;
   if (!state) return null;
   return state.type ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: pinch → HUD button routing
+// ---------------------------------------------------------------------------
+
+/**
+ * CSS attribute marker that opts a HUD button into Phase 4 pinch routing.
+ * Any element rendered inside the dom-overlay subtree with this attribute is
+ * eligible for pinch-to-tap. The attribute is read at routing time so React
+ * re-renders / late-mounted buttons are picked up automatically.
+ */
+export const HAND_HUD_BUTTON_ATTR = 'data-xr-pinch-target';
+
+/**
+ * Default hit radius (5 cm) used when matching a pinch ray origin against a
+ * HUD button's bounding sphere. Spec note: 5 cm is comfortable for tabletop /
+ * head-locked HUDs; tighten via the `radiusM` arg if buttons sit closer.
+ */
+export const HAND_HUD_DEFAULT_RADIUS_M = 0.05;
+
+/**
+ * Hover state for a single HUD button — exposed via `data-xr-hover` attribute
+ * so a sibling stylesheet (or React component) can show a ring/glow without
+ * additional re-renders.
+ */
+function setHover(el: HTMLElement, hovered: boolean): void {
+  if (hovered) el.setAttribute('data-xr-hover', 'true');
+  else el.removeAttribute('data-xr-hover');
+}
+
+/**
+ * A pinch-target collected from the DOM. Exposed so the routing logic can be
+ * tested without a real `document`: callers build a list and pass it to the
+ * pure helpers, while the DOM-aware variants below derive it from `root`.
+ */
+export interface HudPinchTarget {
+  center: { x: number; y: number; z: number };
+  el: HTMLElement;
+}
+
+/**
+ * Pure: pick the closest target inside a given radius. Returns null if no
+ * target is within `radiusM` of the ray origin.
+ *
+ * Exported for tests so the routing math can be exercised without a DOM.
+ */
+export function nearestHudTarget(
+  targets: ReadonlyArray<HudPinchTarget>,
+  ray: { origin: { x: number; y: number; z: number } },
+  radiusM = HAND_HUD_DEFAULT_RADIUS_M,
+): HudPinchTarget | null {
+  let best: { dist: number; t: HudPinchTarget } | null = null;
+  for (const t of targets) {
+    const dx = t.center.x - ray.origin.x;
+    const dy = t.center.y - ray.origin.y;
+    const dz = t.center.z - ray.origin.z;
+    const d = Math.hypot(dx, dy, dz);
+    if (d <= radiusM && (!best || d < best.dist)) best = { dist: d, t };
+  }
+  return best?.t ?? null;
+}
+
+/**
+ * Build a `HudPinchTarget[]` list of every pinch-target inside `root` from
+ * the live DOM. The center is derived from each element's
+ * `getBoundingClientRect()`, mapped into reference-space metres via a simple
+ * pixel→metre scale (1000 px-per-metre keeps numbers in the same band as
+ * PINCH_ENTER_M / PINCH_EXIT_M).
+ *
+ * Returns an empty array when the DOM isn't available (e.g. node test env).
+ */
+export function collectHudTargets(root: HTMLElement): HudPinchTarget[] {
+  if (!root || typeof root.querySelectorAll !== 'function') return [];
+  const nodes = root.querySelectorAll<HTMLElement>(`[${HAND_HUD_BUTTON_ATTR}]`);
+  const list: HudPinchTarget[] = [];
+  for (const el of nodes) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    list.push({
+      center: {
+        x: (rect.left + rect.width / 2) / 1000,
+        y: (rect.top + rect.height / 2) / 1000,
+        z: 0,
+      },
+      el,
+    });
+  }
+  return list;
+}
+
+/**
+ * Route a pinch event onto the nearest HUD button within `radiusM`. Invokes
+ * `el.click()` on the winning element and returns it; returns null when no
+ * target is within range.
+ *
+ * Exported for tests; called by xrHandInput when a `pinchStart` fires.
+ */
+export function routePinchToHud(
+  root: HTMLElement,
+  ray: { origin: { x: number; y: number; z: number } },
+  radiusM = HAND_HUD_DEFAULT_RADIUS_M,
+): HTMLElement | null {
+  const hit = nearestHudTarget(collectHudTargets(root), ray, radiusM);
+  if (!hit) return null;
+  hit.el.click();
+  return hit.el;
+}
+
+/**
+ * Update hover indicators across all HUD pinch-targets. Marks the closest
+ * target with `data-xr-hover="true"` if it's within `radiusM`; clears the
+ * attribute on every other target.
+ *
+ * Exported for hand-input glue and tests.
+ */
+export function updateHudHover(
+  root: HTMLElement,
+  ray: { origin: { x: number; y: number; z: number } },
+  radiusM = HAND_HUD_DEFAULT_RADIUS_M,
+): HTMLElement | null {
+  const targets = collectHudTargets(root);
+  const hit = nearestHudTarget(targets, ray, radiusM);
+  for (const t of targets) setHover(t.el, t.el === hit?.el);
+  return hit?.el ?? null;
 }

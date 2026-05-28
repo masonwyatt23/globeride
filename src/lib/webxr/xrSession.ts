@@ -124,6 +124,28 @@ export interface XRFrameLoopHandle {
   stop: () => void;
 }
 
+// Phase 4: the latest XRFrame captured by runXRFrameLoop. Consumers (such as
+// xrHandInput) read this synchronously to access getJointPose without owning
+// their own RAF loop. Reset to null on session end / restoreLoop().
+let _latestFrame: XRFrame | null = null;
+let _latestRefSpace: XRReferenceSpace | null = null;
+
+/**
+ * Return the most recently captured XRFrame, or null if no frame is in flight.
+ * Used by xrHandInput.subscribeHandInput so it doesn't need to own a RAF loop.
+ */
+export function getLatestXRFrame(): XRFrame | null {
+  return _latestFrame;
+}
+
+/**
+ * Return the reference space active for the current XR session, or null.
+ * Mirrors getLatestXRFrame — both are reset together on session end.
+ */
+export function getLatestXRReferenceSpace(): XRReferenceSpace | null {
+  return _latestRefSpace;
+}
+
 /**
  * Start the per-frame XR render loop: for each animation frame, retrieve the
  * viewer pose and render one Cesium frame per eye into the XR compositor's
@@ -155,6 +177,11 @@ export function runXRFrameLoop(
 
   function xrFrame(_time: number, frame: XRFrame) {
     rafId = session.requestAnimationFrame(xrFrame);
+
+    // Phase 4: publish the latest frame + refSpace so xrHandInput.ts can
+    // read joint poses without owning a second RAF loop.
+    _latestFrame = frame;
+    _latestRefSpace = refSpace;
 
     const pose = frame.getViewerPose(refSpace);
     if (!pose) return; // tracking lost — keep loop alive
@@ -203,7 +230,15 @@ export function runXRFrameLoop(
   }
 
   rafId = session.requestAnimationFrame(xrFrame);
-  return { stop: () => session.cancelAnimationFrame(rafId) };
+  return {
+    stop: () => {
+      session.cancelAnimationFrame(rafId);
+      // Phase 4: clear the published frame snapshot so late readers see null
+      // instead of a stale frame from a previous session.
+      _latestFrame = null;
+      _latestRefSpace = null;
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------

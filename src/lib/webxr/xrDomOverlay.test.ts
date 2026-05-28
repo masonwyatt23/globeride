@@ -24,6 +24,8 @@ import {
   supportsDomOverlay,
   getDomOverlayInit,
   getDomOverlayType,
+  nearestHudTarget,
+  type HudPinchTarget,
 } from './xrDomOverlay';
 
 // ---------------------------------------------------------------------------
@@ -137,5 +139,38 @@ describe('getDomOverlayType', () => {
       domOverlayState: { type: 'floating' },
     } as unknown as XRSession;
     expect(getDomOverlayType(session)).toBe('floating');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 4: nearestHudTarget — pure routing logic (DOM-free)
+// ---------------------------------------------------------------------------
+
+function makeTarget(id: string, x: number, y: number): HudPinchTarget {
+  return {
+    center: { x, y, z: 0 },
+    el: { id, _clicked: false } as unknown as HTMLElement,
+  };
+}
+
+describe('nearestHudTarget', () => {
+  it('returns the target nearest to the ray origin within the radius', () => {
+    const targets = [makeTarget('a', 0.10, 0.10), makeTarget('b', 0.50, 0.50)];
+    const hit = nearestHudTarget(targets, { origin: { x: 0.10, y: 0.10, z: 0 } }, 0.05);
+    expect(hit?.el.id).toBe('a');
+  });
+
+  it('returns null when no target is within the radius', () => {
+    const targets = [makeTarget('a', 0.10, 0.10)];
+    const hit = nearestHudTarget(targets, { origin: { x: 5, y: 5, z: 0 } }, 0.05);
+    expect(hit).toBeNull();
+  });
+
+  it('respects the radiusM threshold exactly at the boundary', () => {
+    const targets = [makeTarget('a', 0.05, 0)];
+    // Ray at origin → 5 cm exactly to target. Default radius 5 cm should
+    // include the boundary (<=).
+    const hit = nearestHudTarget(targets, { origin: { x: 0, y: 0, z: 0 } }, 0.05);
+    expect(hit?.el.id).toBe('a');
   });
 });
