@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Users } from 'lucide-react';
 
 import { CesiumViewer } from '@/components/ride/CesiumViewer';
@@ -67,6 +67,7 @@ const TOKEN_STORAGE_KEY = 'globeride.cesiumIonToken';
  */
 export function Ride() {
   const navigate      = useNavigate();
+  const location      = useLocation();
   const route         = useRideStore((s) => s.route);
   const rideState     = useRideStore((s) => s.rideState);
   const replayData    = useRideStore((s) => s.replayData);
@@ -128,6 +129,26 @@ export function Ride() {
   useEffect(() => {
     if (!route && rideMode !== 'outdoor') navigate('/');
   }, [route, rideMode, navigate]);
+
+  // ---- Auto-start when arriving from the wizard ----
+  // The wizard's "Start ride" CTA passes { state: { autoStart: true } } so the
+  // ride begins as soon as the viewer is ready instead of requiring a second
+  // tap on the in-ride Start button. We wait for cesiumViewer to be set
+  // (Cesium's first frame painted) before starting so the camera doesn't
+  // jump from the initial flyTo to chase pose mid-transition.
+  const autoStartConsumedRef = useRef(false);
+  useEffect(() => {
+    if (autoStartConsumedRef.current) return;
+    const wantsAutoStart = (location.state as { autoStart?: boolean } | null)?.autoStart === true;
+    if (!wantsAutoStart) return;
+    if (!cesiumViewer) return;
+    if (!route || rideState !== 'ready') return;
+    autoStartConsumedRef.current = true;
+    // Brief delay so the user sees the route + chase angle for a beat
+    // before the workout starts ticking — feels less jarring than 0ms.
+    const t = setTimeout(() => useRideStore.getState().start(), 600);
+    return () => clearTimeout(t);
+  }, [cesiumViewer, route, rideState, location.state]);
 
   // ---- Strava segment fetch ----
   // Fire once per route load, in the background. Ride continues on failure.

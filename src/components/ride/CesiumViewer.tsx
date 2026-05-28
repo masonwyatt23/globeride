@@ -41,6 +41,7 @@ import { headingAt, sampleRouteAtDistance } from '@/lib/gpxParser';
 import { applyGraphicsQuality } from '@/lib/graphicsQuality';
 import { applyCinematicEffects, destroyCinematicEffects } from '@/lib/cinematicEffects';
 import { loadGhosts, type GhostRide } from '@/lib/ghosts';
+import { shouldChaseCamUpdate } from '@/lib/chaseCamGuard';
 import type { AvatarColors } from '@/lib/avatarConfig';
 import { BOT_COLORWAYS } from '@/lib/paceBots';
 import {
@@ -774,7 +775,15 @@ export function CesiumViewer({
     });
 
     flyToRoute(viewer, positions);
-  }, [route]);
+    // viewerReady is in the dep array because the viewer is created async
+    // (Cesium ion + asset 2275207). If this effect first fires before the
+    // viewer is ready, `viewerRef.current` is null and we bail on the guard
+    // above; re-running once `viewerReady` flips true is what populates the
+    // route polyline, gradient segments, markers, avatar, ghosts, and the
+    // chase-cam target. Forgetting this dep was a real-browser-only bug —
+    // local dev usually had a warm Cesium connection so the viewer was
+    // ready before the effect ran.
+  }, [route, viewerReady]);
 
   // ---- React to route-search fly-to requests ----
   useEffect(() => {
@@ -881,11 +890,7 @@ export function CesiumViewer({
       });
 
       // ---- Camera: per-mode positioning + cross-mode transition ----
-      // Engage the chase cam whenever a route is loaded, not just during the
-      // running/paused window. Otherwise the viewer sits at the initial
-      // flyToBoundingSphere result (often "Earth from space" framing) until
-      // the user presses Start ride — which makes the ride view look broken.
-      if (state.rideState !== 'idle' && state.rideState !== 'finished') {
+      if (shouldChaseCamUpdate(state.rideState)) {
         const currentMode = useSettingsStore.getState().cameraMode;
         const riderPose = {
           lat: sampled.lat,

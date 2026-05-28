@@ -10,7 +10,7 @@
  *  - Save to workout library / load directly into ride
  */
 
-import { useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useReducer, useRef, useState } from 'react';
 import {
   Plus,
   Trash2,
@@ -40,7 +40,10 @@ import {
 } from '@/lib/workout';
 import { saveWorkout } from '@/lib/workoutLibrary';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+// Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
+const WorkoutPowerProfile = lazy(() =>
+  import('@/components/workouts/WorkoutPowerProfile').then(m => ({ default: m.WorkoutPowerProfile })),
+);
 
 // ---------------------------------------------------------------------------
 // Segment color palette by kind
@@ -336,7 +339,9 @@ export function WorkoutBuilder({
       {/* Workout shape preview + kind-color ribbon */}
       {segments.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <WorkoutPowerProfile workout={workout} ftpW={ftpW} variant="full" />
+          <Suspense fallback={<div className="h-20 w-full rounded bg-muted/30 animate-pulse" />}>
+            <WorkoutPowerProfile workout={workout} ftpW={ftpW} variant="full" />
+          </Suspense>
           <TimelineBar segments={segments} ftpW={ftpW} totalSec={totalSec} />
         </div>
       )}

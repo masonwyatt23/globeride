@@ -7,7 +7,7 @@
  * CTA: Start ride (always enabled; defaults fill in if nothing picked)
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -53,7 +53,10 @@ import type { Route } from '@/types';
 import { ICONIC_ROUTES } from '@/lib/iconicRoutes';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { GPXUploader } from '@/components/setup/GPXUploader';
-import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+// Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
+const WorkoutPowerProfile = lazy(() =>
+  import('@/components/workouts/WorkoutPowerProfile').then(m => ({ default: m.WorkoutPowerProfile })),
+);
 import { RoutePreview } from '@/components/setup/RoutePreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -290,7 +293,9 @@ function WorkoutStep({ selected, onFreeRide, onSelect }: WorkoutStepProps) {
               >
                 {/* Thumbnail */}
                 <div className="hidden sm:block shrink-0 w-14" aria-hidden>
-                  <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-8" />
+                  <Suspense fallback={<div className="h-8 w-full rounded bg-muted/30 animate-pulse" />}>
+                    <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-8" />
+                  </Suspense>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -870,9 +875,10 @@ export function RideSetupWizard() {
       const r = ICONIC_ROUTES[Math.floor(Math.random() * ICONIC_ROUTES.length)];
       store.setRoute(r.route);
     }
-    // Auto-fill workout if user picked free ride (null = no workout attached)
-    // Nothing to do — free ride means no activeWorkout
-    navigate('/ride');
+    // Pass autoStart so the ride begins as soon as Cesium is ready — the
+    // wizard's "Start ride" CTA should actually start the ride, not just
+    // drop the user on a "press Start" screen.
+    navigate('/ride', { state: { autoStart: true } });
   }, [navigate]);
 
   const toggleStep = useCallback(

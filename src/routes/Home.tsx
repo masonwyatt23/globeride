@@ -38,17 +38,20 @@ const RaceLobby        = lazy(() => import('@/components/race/RaceLobby').then(m
 const AICoach          = lazy(() => import('@/components/training/AICoach').then(m => ({ default: m.AICoach })));
 
 import { RideHistory } from '@/components/training/RideHistory';
-import { FitnessChart } from '@/components/training/FitnessChart';
-import { PersonalRecords } from '@/components/training/PersonalRecords';
+// Recharts-heavy panels — lazy-loaded so the ~390 kB Recharts chunk stays
+// off the critical path. Each chart pulls Recharts only when its tab/view
+// actually renders.
+const FitnessChart = lazy(() => import('@/components/training/FitnessChart').then(m => ({ default: m.FitnessChart })));
+const PersonalRecords = lazy(() => import('@/components/training/PersonalRecords').then(m => ({ default: m.PersonalRecords })));
+const ElevationProfile = lazy(() => import('@/components/ride/ElevationProfile').then(m => ({ default: m.ElevationProfile })));
+const RoutePreview = lazy(() => import('@/components/routes/RoutePreview').then(m => ({ default: m.RoutePreview })));
 import { GPXUploader } from '@/components/setup/GPXUploader';
 import { FITUploader } from '@/components/setup/FITUploader';
 import { StravaUrlImport } from '@/components/setup/StravaUrlImport';
 import { RouteSearch } from '@/components/setup/RouteSearch';
 import { TrainerConnect } from '@/components/trainer/TrainerConnect';
 import { SensorConnect } from '@/components/trainer/SensorConnect';
-import { ElevationProfile } from '@/components/ride/ElevationProfile';
 import { RouteLibrary } from '@/components/routes/RouteLibrary';
-import { RoutePreview } from '@/components/routes/RoutePreview';
 import { IconicRoutes } from '@/components/routes/IconicRoutes';
 import { SegmentLeaderboard } from '@/components/training/SegmentLeaderboard';
 import { SettingsButton } from '@/components/profile/SettingsPanel';
@@ -332,10 +335,12 @@ export function Home() {
 
                   {route && rideMode !== 'outdoor' && (
                     <div className="rounded-lg bg-muted/40 p-3 border border-border/60">
-                      <ElevationProfile />
+                      <Suspense fallback={<TabSpinner />}><ElevationProfile /></Suspense>
                     </div>
                   )}
-                  {rideMode !== 'outdoor' && <RoutePreview />}
+                  {rideMode !== 'outdoor' && (
+                    <Suspense fallback={<TabSpinner />}><RoutePreview /></Suspense>
+                  )}
                 </CardContent>
               </Card>
 
@@ -767,8 +772,8 @@ export function Home() {
               </CardContent>
             </Card>
             <Suspense fallback={<TabSpinner />}><AICoach /></Suspense>
-            <FitnessChart />
-            <PersonalRecords />
+            <Suspense fallback={<TabSpinner />}><FitnessChart /></Suspense>
+            <Suspense fallback={<TabSpinner />}><PersonalRecords /></Suspense>
           </div>
         </HomeTabPanel>
         </>

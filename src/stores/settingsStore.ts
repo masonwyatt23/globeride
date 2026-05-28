@@ -5,6 +5,13 @@ import { type AvatarColors, DEFAULT_AVATAR_COLORS } from '@/lib/avatarConfig';
 import type { GraphicsQuality } from '@/lib/graphicsQuality';
 import type { LowLightSetting } from '@/lib/lowLightMode';
 import { type CameraMode, isCameraMode } from '@/lib/cesiumCameras';
+import type { Workout } from '@/lib/workout';
+import {
+  emptyPlan,
+  setDay as setPlanDay,
+  shiftDaysToNextWeek,
+  type WeeklyPlan,
+} from '@/lib/coach/plan';
 
 /** Unit system for HUD + Settings UI. The physics engine is always SI. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -85,6 +92,14 @@ export interface RiderSettings {
   rideAudioEnabled: boolean;
   /** Procedural ride audio master volume, 0-100. */
   rideAudioVolume: number;
+  // ---- Manual coach plan ----
+  /**
+   * User-built weekly training plan (Mon..Sun). Null until the rider
+   * drops their first workout onto a day — UI shows a "Start a plan"
+   * empty state in that case so we don't litter localStorage with a
+   * blank grid for riders who only use the AI Coach.
+   */
+  coachPlan: WeeklyPlan | null;
 }
 
 export const DEFAULT_SETTINGS: RiderSettings = {
@@ -121,6 +136,7 @@ export const DEFAULT_SETTINGS: RiderSettings = {
   voiceControlEnabled: true,
   rideAudioEnabled: true,
   rideAudioVolume: 60,
+  coachPlan: null,
 };
 
 type CommentaryPatch = Partial<
@@ -161,6 +177,20 @@ interface SettingsStoreState extends RiderSettings {
   setRideAudioEnabled: (enabled: boolean) => void;
   /** Set procedural ride audio volume 0-100. */
   setRideAudioVolume: (volume: number) => void;
+  /**
+   * Assign (or clear with `null`) a workout to a specific day slot
+   * (0 = Mon … 6 = Sun) of the manual coach plan. Lazily creates the
+   * plan on first write so we don't seed an empty grid into
+   * localStorage for AI-Coach-only riders.
+   */
+  setCoachPlanDay: (dayIdx: number, workout: Workout | null) => void;
+  /** Drop the manual plan back to null. */
+  clearCoachPlan: () => void;
+  /**
+   * Rotate the manual plan forward by one day and bump the week
+   * counter. No-op when no plan exists yet.
+   */
+  shiftCoachPlanToNextWeek: () => void;
   reset: () => void;
 }
 
@@ -182,6 +212,15 @@ export const useSettingsStore = create<SettingsStoreState>()(
       setBottleId: (id) => set({ bottleId: id }),
       setRideAudioEnabled: (enabled) => set({ rideAudioEnabled: enabled }),
       setRideAudioVolume: (volume) => set({ rideAudioVolume: Math.max(0, Math.min(100, volume)) }),
+      setCoachPlanDay: (dayIdx, workout) =>
+        set((s) => ({
+          coachPlan: setPlanDay(s.coachPlan ?? emptyPlan(), dayIdx, workout),
+        })),
+      clearCoachPlan: () => set({ coachPlan: null }),
+      shiftCoachPlanToNextWeek: () =>
+        set((s) => ({
+          coachPlan: s.coachPlan ? shiftDaysToNextWeek(s.coachPlan) : null,
+        })),
       reset: () => set({ ...DEFAULT_SETTINGS }),
     }),
     {
@@ -288,6 +327,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
           voiceControlEnabled: s.voiceControlEnabled,
           rideAudioEnabled: s.rideAudioEnabled,
           rideAudioVolume: s.rideAudioVolume,
+          coachPlan: s.coachPlan,
         }) satisfies RiderSettings,
     },
   ),

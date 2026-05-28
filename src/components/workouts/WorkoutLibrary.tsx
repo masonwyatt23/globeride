@@ -3,7 +3,7 @@
  * Used on the Home page and in the WorkoutPanel.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Dumbbell, Trash2, Play, Clock, Zap, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,10 @@ import { totalDurationSec, estimateTSS } from '@/lib/workout';
 import type { Workout } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
-import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+// Lazy-load the chart preview — Recharts (~390 kB) stays off the critical path.
+const WorkoutPowerProfile = lazy(() =>
+  import('@/components/workouts/WorkoutPowerProfile').then(m => ({ default: m.WorkoutPowerProfile })),
+);
 
 
 
@@ -132,7 +135,9 @@ export function WorkoutLibrary({ onSelect, className }: WorkoutLibraryProps) {
                 Hidden on phones (<640px) to keep the list compact; iPad and
                 larger get a 64–80px thumbnail. */}
             <div className="hidden sm:block shrink-0 w-16 md:w-20" aria-hidden="true">
-              <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-10" />
+              <Suspense fallback={<div className="h-10 w-full rounded bg-muted/30 animate-pulse" />}>
+                <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-10" />
+              </Suspense>
             </div>
 
             {/* Info */}

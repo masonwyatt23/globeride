@@ -11,7 +11,7 @@
  * Drop-in wherever WorkoutLibrary is used; accepts the same `onSelect` prop.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dumbbell,
@@ -46,7 +46,16 @@ import type {
 } from '@/lib/workout';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useRideStore } from '@/stores/rideStore';
-import { WorkoutPowerProfile } from '@/components/workouts/WorkoutPowerProfile';
+// Lazy-load the chart preview — WorkoutPowerProfile pulls in Recharts (~390 kB).
+// Defer until the picker actually renders a card.
+const WorkoutPowerProfile = lazy(() =>
+  import('@/components/workouts/WorkoutPowerProfile').then(m => ({ default: m.WorkoutPowerProfile })),
+);
+
+/** Lightweight placeholder matching the chart's box so cards don't reflow. */
+function WorkoutPowerProfileSkeleton({ heightClass = 'h-10' }: { heightClass?: string }) {
+  return <div className={`${heightClass} w-full rounded bg-muted/30 animate-pulse`} aria-hidden />;
+}
 
 // ---------------------------------------------------------------------------
 // Category metadata
@@ -489,7 +498,9 @@ function WorkoutCard({
 
         {/* Power profile thumbnail */}
         <div className="hidden sm:block shrink-0 w-16 md:w-20" aria-hidden>
-          <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-10" />
+          <Suspense fallback={<WorkoutPowerProfileSkeleton heightClass="h-10" />}>
+            <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="thumbnail" heightClass="h-10" />
+          </Suspense>
         </div>
 
         {/* Info */}
@@ -598,7 +609,9 @@ function WorkoutCard({
       {isExpanded && (
         <div className="border-t border-border/40 px-3 pb-3 pt-2.5 flex flex-col gap-2.5">
           {/* Full-size power profile */}
-          <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="compact" heightClass="h-24" />
+          <Suspense fallback={<WorkoutPowerProfileSkeleton heightClass="h-24" />}>
+            <WorkoutPowerProfile workout={w} ftpW={ftpW} variant="compact" heightClass="h-24" />
+          </Suspense>
 
           {/* Description */}
           {w.description && (
