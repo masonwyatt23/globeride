@@ -5,6 +5,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  // Defense in depth: ignore any stale hosted client-key environment value.
+  define: { 'import.meta.env.VITE_XAI_API_KEY': 'undefined' },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -46,17 +48,6 @@ export default defineConfig({
     port: 5173,
     host: true,
     proxy: {
-      // xAI proxy — routes /xai/* → https://api.x.ai/* to avoid CORS in the
-      // browser during dev. In production, expose the same /xai path via your
-      // hosting proxy (e.g. Vercel rewrites, Cloudflare Workers) or a
-      // serverless function that adds the Authorization header server-side
-      // so the API key is never sent from the browser to a public endpoint.
-      '/xai': {
-        target: 'https://api.x.ai',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/xai/, ''),
-        secure: true,
-      },
       // Proxy /strava-api/* → https://www.strava.com/* to work around browser CORS.
       // In production, mirror this rewrite in your reverse-proxy / serverless function
       // (nginx location ^~ /strava-api/, Cloudflare Worker, Netlify redirect, etc.).
@@ -69,12 +60,6 @@ export default defineConfig({
   },
   preview: {
     proxy: {
-      '/xai': {
-        target: 'https://api.x.ai',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/xai/, ''),
-        secure: true,
-      },
       '/strava-api': {
         target: 'https://www.strava.com',
         changeOrigin: true,

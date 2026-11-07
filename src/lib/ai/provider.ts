@@ -2,19 +2,15 @@
  * AI provider abstraction for GlobeRide workout generation.
  *
  * Two providers are supported:
- *  - xAI (Grok): OpenAI-compatible chat/completions, accessed through the Vite
- *    dev/preview proxy at /xai (→ https://api.x.ai). Production deployments must
- *    expose the same /xai proxy or a serverless route — never expose the key to
- *    the browser directly via a public URL.
+ *  - xAI (Grok): temporarily disabled for credential containment.
  *  - Ollama: local http://localhost:11434 (no CORS issues), uses /api/chat with
  *    format:'json' for structured output.
  *
  * Provider selection:
  *  VITE_AI_PROVIDER = 'xai' | 'ollama' | 'auto' (default)
- *  'auto' → xAI if VITE_XAI_API_KEY is present, else Ollama.
+ *  'auto' → local Ollama. Explicit xAI selection fails without network access.
  *
  * Key env vars (never hard-code):
- *  VITE_XAI_API_KEY      — xAI secret key
  *  VITE_XAI_MODEL        — default: 'grok-4.3'
  *  VITE_OLLAMA_URL       — default: 'http://localhost:11434'
  *  VITE_OLLAMA_MODEL     — default: 'llama3.1'
@@ -42,8 +38,8 @@ function resolveProviderName(): AIProviderName {
   const env = import.meta.env.VITE_AI_PROVIDER ?? 'auto';
   if (env === 'xai') return 'xai';
   if (env === 'ollama') return 'ollama';
-  // 'auto': use xAI when a key is configured
-  return import.meta.env.VITE_XAI_API_KEY ? 'xai' : 'ollama';
+  // 'auto': local inference only; hosted xAI is disabled.
+  return 'ollama';
 }
 
 export function getProviderInfo(): AIProviderInfo {
@@ -89,43 +85,8 @@ Output only the JSON object now.`;
 // xAI provider (OpenAI-compatible, proxied)
 // ---------------------------------------------------------------------------
 
-async function callXAI(prompt: string, ftpW: number): Promise<string> {
-  const model = import.meta.env.VITE_XAI_MODEL || 'grok-4.3';
-  const apiKey = import.meta.env.VITE_XAI_API_KEY;
-  if (!apiKey) throw new Error('VITE_XAI_API_KEY is not configured.');
-
-  // Use the Vite proxy (/xai → https://api.x.ai) to avoid CORS in browser.
-  // In production, expose /xai via your hosting proxy or a serverless function.
-  const res = await fetch('/xai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // The key is only included in the header — never logged or stored.
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: buildSystemPrompt(ftpW) },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 2048,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`xAI API error ${res.status}: ${body.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('xAI returned an empty response.');
-  }
-  return content;
+async function callXAI(_prompt: string, _ftpW: number): Promise<string> {
+  throw new Error('Hosted xAI features are temporarily disabled. Use a local Ollama setup instead.');
 }
 
 // ---------------------------------------------------------------------------

@@ -2,8 +2,8 @@
 
 ## What's here
 
-- `provider.ts` — Provider abstraction and `generateWorkout()` entry point; routes to xAI (Grok via `/xai` proxy) or Ollama (`localhost:11434`); one self-repair retry on invalid JSON
-- `commentator.ts` — Live ride commentary engine: `detectTriggers()` (pure, called each frame) + `pickAndGenerate()` (async, throttled); static lines for predictable triggers, xAI for dynamic ones
+- `provider.ts` — Provider abstraction and `generateWorkout()` entry point; uses local Ollama (`localhost:11434`); hosted xAI is disabled; one self-repair retry on invalid JSON
+- `commentator.ts` — Live ride commentary engine: `detectTriggers()` (pure, called each frame) + `pickAndGenerate()` (async, throttled); static lines for predictable triggers, local Ollama or static fallback for dynamic ones
 - `commentatorStaticLines.ts` — Hand-curated commentary strings pool; `pickStaticLine(trigger)` and `pickFallbackLine()`; no LLM calls
 - `coach.ts` — Training coach: picks a workout from `PRESET_WORKOUTS` catalog by id; never generates raw workout segments — uses the curated catalog for quality control
 - `validate.ts` — Validates and repairs AI-generated `Workout` JSON (duration units, %FTP fractions, missing ids, wrong key names); pure, Node-testable
@@ -54,9 +54,9 @@ recommendRoute(prompt: string): Promise<{ info: AIRouteInfo; route: Route }>
 
 ## Constraints / gotchas
 
-- **Provider selection**: `VITE_AI_PROVIDER=xai|ollama|auto` (default `auto`). `auto` uses xAI when `VITE_XAI_API_KEY` is set, else Ollama. Never hard-code keys — proxy route `/xai` keeps the key server-side.
-- **xAI proxy**: requires `/xai` reverse proxy (configured in `vite.config.ts` for dev; must be replicated in production via Vercel rewrites or a serverless function).
-- **Ollama**: runs at `localhost:11434`, no CORS issues. Must be running locally with the target model pulled. No key required.
+- **Provider selection**: `VITE_AI_PROVIDER=xai|ollama|auto` (default `auto`). `auto` uses local Ollama. Explicit `xai` selection fails locally without network access. Never put credentials in client environment variables.
+- **xAI containment**: `/xai/*` and direct `/api/xai` requests return 503 without forwarding or reading credentials. Dev/preview proxies are removed. Re-enablement requires a separately reviewed authenticated and budget-limited service.
+- **Ollama**: local development can use `localhost:11434` with the target model pulled. The production CSP does not permit localhost, so this is not a hosted-origin functionality guarantee. No key required.
 - **Self-repair**: all generators attempt one repair pass if the first LLM response fails validation. If both attempts fail, an Error is thrown — callers should catch and surface a user-facing message.
 - **Coach constraint**: `coachRecommendation` only returns workout ids from `PRESET_WORKOUTS` (`@/lib/presetWorkouts`). It cannot invent new workout structures.
 - **Static vs. LLM commentary**: static triggers (`halfway`, `speed_50/60/70`, `recovery`, `descent_exit`, `power_dropout`) never make a network call. LLM triggers (`bot_attack`, `climb_entry`, `final_2km`, `bot_catch`) call xAI/Ollama and have the associated latency.

@@ -151,7 +151,6 @@ function ProviderBadge({ name, model }: { name: string; model: string }) {
 function ProviderSwitcher() {
   const { providerOverride, setProviderOverride } = useAIStore();
   const envProvider = import.meta.env.VITE_AI_PROVIDER ?? 'auto';
-  const hasXaiKey = !!import.meta.env.VITE_XAI_API_KEY;
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -160,6 +159,8 @@ function ProviderSwitcher() {
         <button
           key={p}
           onClick={() => setProviderOverride(p)}
+          disabled={p === 'xai'}
+          title={p === 'xai' ? 'Hosted xAI is temporarily disabled' : undefined}
           className={cn(
             'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
             providerOverride === p
@@ -170,7 +171,7 @@ function ProviderSwitcher() {
           {p === 'auto' && <Activity className="h-2.5 w-2.5" />}
           {p === 'xai' && <Zap className="h-2.5 w-2.5" />}
           {p === 'ollama' && <Server className="h-2.5 w-2.5" />}
-          {p === 'auto' ? `auto${envProvider !== 'auto' ? ` (env: ${envProvider})` : hasXaiKey ? ' → xAI' : ' → Ollama'}` : p}
+          {p === 'auto' ? `auto${envProvider !== 'auto' ? ` (env: ${envProvider})` : ' → Ollama'}` : p}
         </button>
       ))}
     </div>
