@@ -25,7 +25,7 @@ function resolveProviderName(): 'xai' | 'ollama' {
   const env = import.meta.env.VITE_AI_PROVIDER ?? 'auto';
   if (env === 'xai') return 'xai';
   if (env === 'ollama') return 'ollama';
-  return import.meta.env.VITE_XAI_API_KEY ? 'xai' : 'ollama';
+  return 'ollama';
 }
 
 // ---------------------------------------------------------------------------
@@ -80,40 +80,8 @@ Output only the JSON object now.`;
 // Provider call helpers — identical pattern to provider.ts
 // ---------------------------------------------------------------------------
 
-async function callXAI(userPrompt: string): Promise<string> {
-  const model = import.meta.env.VITE_XAI_MODEL || 'grok-4.3';
-  const apiKey = import.meta.env.VITE_XAI_API_KEY;
-  if (!apiKey) throw new Error('VITE_XAI_API_KEY is not configured.');
-
-  const res = await fetch('/xai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: ROUTE_SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7, // slightly higher than workouts — encourages creative geo variety
-      max_tokens: 512,
-      response_format: { type: 'json_object' },
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`xAI API error ${res.status}: ${body.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('xAI returned an empty response.');
-  }
-  return content;
+async function callXAI(_userPrompt: string): Promise<string> {
+  throw new Error('Hosted xAI features are temporarily disabled. Use a local Ollama setup instead.');
 }
 
 async function callOllama(userPrompt: string): Promise<string> {

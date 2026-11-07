@@ -25,8 +25,8 @@ Web Speech API (TTS + recognition) · WebRTC · WebXR · WebCodecs.
 
 Everything is client-side and local-first. The only network calls are
 the Cesium ion tile fetches (when the user supplies a token), the
-Strava OAuth proxy at `/strava-api/*` (the user's own token), and the
-xAI proxy at `/xai/*` (for AI commentary + coach output validation).
+Strava OAuth proxy at `/strava-api/*` (the user's own token), and local Ollama (when configured). Hosted xAI access is disabled;
+`/xai/*` is a fail-closed 503 endpoint, not a forwarding proxy.
 
 ## Commands
 
@@ -101,7 +101,7 @@ is gitignored — never commit it.
 - `src/lib/spectatorSystem.ts` — billboard crowds on iconic climbs
 
 **AI**
-- `src/lib/ai/provider.ts` — xAI proxy client
+- `src/lib/ai/provider.ts` — local Ollama client; hosted xAI disabled
 - `src/lib/ai/coach.ts` — adaptive training recommendations
 - `src/lib/ai/commentator.ts` — live race commentary (8 trigger types,
   throttled, paired with `src/lib/speechSynthesis.ts`)

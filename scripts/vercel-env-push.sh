@@ -47,17 +47,14 @@ push() {
 }
 
 CESIUM=$(getval VITE_CESIUM_ION_TOKEN)
-XAI_KEY=$(getval VITE_XAI_API_KEY)
 XAI_MODEL=$(getval VITE_XAI_MODEL)
 PROVIDER=$(getval VITE_AI_PROVIDER)
 S_ID=$(getval VITE_STRAVA_CLIENT_ID)
 S_SECRET=$(getval VITE_STRAVA_CLIENT_SECRET)
 S_REFRESH=$(getval VITE_STRAVA_REFRESH_TOKEN)
 
-# The cloud build can't reach a localhost Ollama, so force the xAI provider.
-if [[ -z "$PROVIDER" || "$PROVIDER" == "ollama" || "$PROVIDER" == "auto" ]]; then
-  PROVIDER="xai"
-fi
+# Hosted xAI is disabled. Never upload client or server xAI credentials.
+[[ -z "$PROVIDER" ]] && PROVIDER="auto"
 [[ -z "$XAI_MODEL" ]] && XAI_MODEL="grok-4.3"
 
 echo "Pushing GlobeRide env vars to Vercel ($TARGET)…"
@@ -65,14 +62,12 @@ echo "Pushing GlobeRide env vars to Vercel ($TARGET)…"
 # Client vars — VITE_ prefix, inlined into the JS bundle at build time.
 push VITE_CESIUM_ION_TOKEN     "$CESIUM"
 push VITE_AI_PROVIDER          "$PROVIDER"
-push VITE_XAI_API_KEY          "$XAI_KEY"
 push VITE_XAI_MODEL            "$XAI_MODEL"
 push VITE_STRAVA_CLIENT_ID     "$S_ID"
 push VITE_STRAVA_CLIENT_SECRET "$S_SECRET"
 push VITE_STRAVA_REFRESH_TOKEN "$S_REFRESH"
 
 # Server-only vars — no VITE_ prefix, read by the edge proxies in api/.
-push XAI_API_KEY          "$XAI_KEY"
 push STRAVA_CLIENT_SECRET "$S_SECRET"
 push STRAVA_CLIENT_ID     "$S_ID"
 

@@ -258,7 +258,7 @@ function resolveProviderName(): 'xai' | 'ollama' {
   const env = import.meta.env.VITE_AI_PROVIDER ?? 'auto';
   if (env === 'xai') return 'xai';
   if (env === 'ollama') return 'ollama';
-  return import.meta.env.VITE_XAI_API_KEY ? 'xai' : 'ollama';
+  return 'ollama';
 }
 
 const COMMENTATOR_SYSTEM_PROMPT = `You are a live cycling-broadcast commentator for GlobeRide, a virtual cycling simulator. Your style: energetic, precise, authoritative — like a seasoned Tour de France TV commentator (think Carlton Kirby or Phil Liggett).
@@ -297,43 +297,10 @@ function buildCommentatorUserPrompt(
 }
 
 async function callXAICommentator(
-  trigger: CommentaryTrigger,
-  ride: RideSnapshot,
+  _trigger: CommentaryTrigger,
+  _ride: RideSnapshot,
 ): Promise<string> {
-  const model = import.meta.env.VITE_XAI_MODEL || 'grok-4.3';
-  const apiKey = import.meta.env.VITE_XAI_API_KEY;
-  if (!apiKey) throw new Error('VITE_XAI_API_KEY is not configured.');
-
-  const res = await fetch('/xai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: COMMENTATOR_SYSTEM_PROMPT },
-        { role: 'user', content: buildCommentatorUserPrompt(trigger, ride) },
-      ],
-      temperature: 0.8,
-      max_tokens: 128,
-      response_format: { type: 'json_object' },
-    }),
-    signal: AbortSignal.timeout(8000),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`xAI API error ${res.status}: ${body.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('xAI returned an empty response.');
-  }
-  return content;
+  throw new Error('Hosted xAI features are temporarily disabled. Use a local Ollama setup instead.');
 }
 
 async function callOllamaCommentator(
